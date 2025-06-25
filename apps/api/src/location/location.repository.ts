@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+
 import DatabaseService from 'src/database/database.service';
 import LocationEntity from './location.entity';
 import { MeasureType } from 'src/utils/measureTypeQuery';
