@@ -4,10 +4,7 @@ import TasksRepository from './tasks.repository';
 import { TasksHttp } from './tasks.http';
 import { AirgradientModel } from './tasks.model';
 import { ConfigService } from '@nestjs/config';
-import {
-  OpenAQApiLocationsResponse,
-  OpenAQApiParametersResponse,
-} from './model/openaq.model';
+import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
 
 @Injectable()
 export class TasksService {
@@ -31,8 +28,7 @@ export class TasksService {
     const start = Date.now();
 
     // Fetch data from the airgradient external API
-    const url =
-      'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
+    const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
     const data = await this.http.fetch<AirgradientModel[]>(url);
     this.logger.debug('Total data: ' + data.length);
 
@@ -91,9 +87,7 @@ export class TasksService {
         });
       } catch (error) {
         if (error instanceof HttpException && error.getStatus() === 404) {
-          this.logger.debug(
-            'Requested page already empty for parameters endpoint',
-          );
+          this.logger.debug('Requested page already empty for parameters endpoint');
           break;
         } else {
           // TODO: What needs to be done here? Now just stop
@@ -108,8 +102,7 @@ export class TasksService {
           // LocationId is in intereset, push so later will be inserted
           var batch = {};
           // locationId here is the actual locationId from table, not from openaq
-          batch['locationId'] =
-            locationIds[data.results[i].locationsId.toString()];
+          batch['locationId'] = locationIds[data.results[i].locationsId.toString()];
           batch['pm25'] = data.results[i].value;
           batch['measuredAt'] = data.results[i].datetime.utc;
           batches.push(batch);
@@ -129,9 +122,7 @@ export class TasksService {
     }
 
     if (matchCounter < locationIdsLength) {
-      this.logger.warn(
-        `Total OpenAQ locations that not match ${locationIdsLength - matchCounter}`,
-      );
+      this.logger.warn(`Total OpenAQ locations that not match ${locationIdsLength - matchCounter}`);
     }
 
     const after = Date.now();
@@ -171,7 +162,7 @@ export class TasksService {
         // NOTE: Already formatted to 'license1','license2','license3'
         if (data.results[i].licenses !== null) {
           location['licenses'] = data.results[i].licenses
-            .map((license) => `'${license.name}'`)
+            .map(license => `'${license.name}'`)
             .join(',');
         } else {
           location['licenses'] = null;

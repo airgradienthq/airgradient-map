@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import Measurement from './measurement.entity';
 import { MeasureType } from 'src/utils/measureTypeQuery';
@@ -32,9 +28,7 @@ class MeasurementRepository {
     };
 
     if (measure) {
-      const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(
-        measure as MeasureType,
-      );
+      const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measure as MeasureType);
       let validationQuery = '';
 
       if (hasValidation) {
@@ -56,8 +50,10 @@ class MeasurementRepository {
     measure?: string,
   ): Promise<Measurement[]> {
     const params = [offset, limit];
-    const { selectQuery, whereQuery, hasValidation, minVal, maxVal } =
-      this.buildMeasureQuery(measure, params.length);
+    const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
+      measure,
+      params.length,
+    );
 
     if (hasValidation) {
       params.push(minVal, maxVal);
@@ -96,9 +92,7 @@ class MeasurementRepository {
 
     try {
       const result = await this.databaseService.runQuery(query, params);
-      return result.rows.map(
-        (measurement: Partial<Measurement>) => new Measurement(measurement),
-      );
+      return result.rows.map((measurement: Partial<Measurement>) => new Measurement(measurement));
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException('Error query latest measures');
@@ -114,8 +108,10 @@ class MeasurementRepository {
   ): Promise<Measurement[]> {
     const params = [xMin, yMin, xMax, yMax];
 
-    const { selectQuery, whereQuery, hasValidation, minVal, maxVal } =
-      this.buildMeasureQuery(measure, params.length);
+    const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
+      measure,
+      params.length,
+    );
 
     if (hasValidation) {
       params.push(minVal, maxVal);
@@ -163,14 +159,10 @@ class MeasurementRepository {
       const result = await this.databaseService.runQuery(query, params);
 
       // Return rows while map the result first to measurement entity
-      return result.rows.map(
-        (measurement: Partial<Measurement>) => new Measurement(measurement),
-      );
+      return result.rows.map((measurement: Partial<Measurement>) => new Measurement(measurement));
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error query latest measures by area',
-      );
+      throw new InternalServerErrorException('Error query latest measures by area');
     }
   }
 }

@@ -31,8 +31,7 @@ class Location {
   url: string;
 
   @ApiProperty({
-    description:
-      "differentiate type of the sensor. 'Reference' or 'Small Sensor'",
+    description: "differentiate type of the sensor. 'Reference' or 'Small Sensor'",
   })
   sensorType: string;
 

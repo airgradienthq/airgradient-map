@@ -35,9 +35,7 @@ class MeasurementCluster {
     if (clusters.properties.cluster) {
       this.type = 'cluster';
       this.sensorsCount = clusters.properties.point_count;
-      this.value = Math.round(
-        clusters.properties.sum / clusters.properties.point_count,
-      );
+      this.value = Math.round(clusters.properties.sum / clusters.properties.point_count);
     } else {
       this.type = 'sensor';
       this.locationId = clusters.properties.locationId;

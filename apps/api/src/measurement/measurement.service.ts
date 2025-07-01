@@ -19,9 +19,7 @@ export class MeasurementService {
       this.clusterRadius = clusterRadius;
     }
 
-    const clusterMaxZoom = this.configService.get<number>(
-      'MAP_CLUSTER_MAX_ZOOM',
-    );
+    const clusterMaxZoom = this.configService.get<number>('MAP_CLUSTER_MAX_ZOOM');
     if (clusterMaxZoom) {
       this.clusterMaxZoom = clusterMaxZoom;
     }
@@ -29,11 +27,7 @@ export class MeasurementService {
 
   async getLastMeasurements(measure?: string, page = 1, pagesize = 100) {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    return await this.measurementRepository.retrieveLatest(
-      offset,
-      pagesize,
-      measure,
-    );
+    return await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
   }
 
   async getLastMeasurementsByArea(
@@ -43,13 +37,7 @@ export class MeasurementService {
     yMax: number,
     measure?: string,
   ) {
-    return await this.measurementRepository.retrieveLatestByArea(
-      xMin,
-      yMin,
-      xMax,
-      yMax,
-      measure,
-    );
+    return await this.measurementRepository.retrieveLatestByArea(xMin, yMin, xMax, yMax, measure);
   }
 
   async getLastMeasurementsByCluster(
@@ -78,7 +66,7 @@ export class MeasurementService {
 
     // converting to .geojson features array
     let geojson = new Array<any>();
-    locations.map((point) => {
+    locations.map(point => {
       geojson.push({
         type: 'Feature',
         geometry: {
@@ -101,7 +89,7 @@ export class MeasurementService {
     } else {
       const clustersIndexes = new Supercluster({
         radius: this.clusterRadius,
-        map: (props) => ({
+        map: props => ({
           sum: props.value,
         }),
         reduce: (accumulate, props) => {
@@ -114,8 +102,7 @@ export class MeasurementService {
 
     // Map to to array of MeasurementClusterModel
     const clustersModel = clusters.map(
-      (clusterResult: Partial<MeasurementCluster>) =>
-        new MeasurementCluster(clusterResult),
+      (clusterResult: Partial<MeasurementCluster>) => new MeasurementCluster(clusterResult),
     );
 
     return clustersModel;

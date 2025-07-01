@@ -14,10 +14,7 @@ class LocationRepository {
   constructor(private readonly databaseService: DatabaseService) {}
   private readonly logger = new Logger(LocationRepository.name);
 
-  async retrieveLocations(
-    offset: number = 0,
-    limit: number = 100,
-  ): Promise<LocationEntity[]> {
+  async retrieveLocations(offset: number = 0, limit: number = 100): Promise<LocationEntity[]> {
     const query = `
             SELECT
                 l.id AS "locationId",
@@ -44,19 +41,12 @@ class LocationRepository {
         `;
 
     try {
-      const results = await this.databaseService.runQuery(query, [
-        offset,
-        limit,
-      ]);
+      const results = await this.databaseService.runQuery(query, [offset, limit]);
 
-      return results.rows.map(
-        (location: Partial<LocationEntity>) => new LocationEntity(location),
-      );
+      return results.rows.map((location: Partial<LocationEntity>) => new LocationEntity(location));
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error query locations information',
-      );
+      throw new InternalServerErrorException('Error query locations information');
     }
   }
 
@@ -96,9 +86,7 @@ class LocationRepository {
       return new LocationEntity(location);
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error query location information by id',
-      );
+      throw new InternalServerErrorException('Error query location information by id');
     }
   }
 
@@ -143,13 +131,9 @@ class LocationRepository {
     bucketSize: string,
     measure: string,
   ) {
-    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(
-      measure as MeasureType,
-    );
+    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measure as MeasureType);
 
-    const validationQuery = hasValidation
-      ? `AND m.${measure} BETWEEN $5 AND $6`
-      : '';
+    const validationQuery = hasValidation ? `AND m.${measure} BETWEEN $5 AND $6` : '';
 
     const query = `
             SELECT

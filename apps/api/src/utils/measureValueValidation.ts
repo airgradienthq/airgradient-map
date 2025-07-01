@@ -2,9 +2,7 @@ import { MeasureType } from './measureTypeQuery';
 import * as Constants from '../constants';
 import { MeasureValueValidationConfig } from 'src/types/shared/measure-value-validation';
 
-export function getMeasureValidValueRange(
-  measureType: MeasureType,
-): MeasureValueValidationConfig {
+export function getMeasureValidValueRange(measureType: MeasureType): MeasureValueValidationConfig {
   let minVal = 0;
   let maxVal = 0;
   let hasValidation = true;

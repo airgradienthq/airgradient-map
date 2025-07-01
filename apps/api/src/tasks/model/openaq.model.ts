@@ -126,7 +126,7 @@ class ResultLocations {
     this.isMobile = result.isMobile;
     this.isMonitor = result.isMonitor;
     this.instruments = result.instruments;
-    this.sensors = result.sensors.map((s) => new Sensor(s));
+    this.sensors = result.sensors.map(s => new Sensor(s));
     this.coordinates = new Coordinates(result.coordinates);
     this.licenses = result.licenses;
     this.bounds = [...result.bounds];
@@ -158,7 +158,7 @@ export class OpenAQApiParametersResponse {
 
   constructor(response: OpenAQApiParametersResponse) {
     this.meta = response.meta;
-    this.results = response.results.map((r) => new ResultParameters(r));
+    this.results = response.results.map(r => new ResultParameters(r));
   }
 }
 
@@ -168,6 +168,6 @@ export class OpenAQApiLocationsResponse {
 
   constructor(response: OpenAQApiLocationsResponse) {
     this.meta = new Meta(response.meta);
-    this.results = response.results.map((r) => new ResultLocations(r));
+    this.results = response.results.map(r => new ResultLocations(r));
   }
 }

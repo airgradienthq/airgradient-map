@@ -29,10 +29,7 @@ export class TasksHttp {
               this.logger.warn(
                 `Request failed: ${error.response.status} - ${JSON.stringify(error.response.data)}`,
               );
-              throw new HttpException(
-                error.response.data,
-                error.response.status,
-              );
+              throw new HttpException(error.response.data, error.response.status);
             } else {
               // No response or network error
               this.logger.error(`Request error: ${error.message}`);

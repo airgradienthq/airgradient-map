@@ -1,10 +1,4 @@
-import {
-  UsePipes,
-  ValidationPipe,
-  Controller,
-  Get,
-  Query,
-} from '@nestjs/common';
+import { UsePipes, ValidationPipe, Controller, Get, Query } from '@nestjs/common';
 import { UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import { MeasurementService } from './measurement.service';
@@ -52,14 +46,13 @@ export class MeasurementController {
     @Query() { measure }: MeasureTypeQuery,
     @Query() area: AreaQuery,
   ): Promise<Pagination<MeasurementEntity>> {
-    const measurementEntity =
-      await this.measurementService.getLastMeasurementsByArea(
-        area.xmin,
-        area.ymin,
-        area.xmax,
-        area.ymax,
-        measure,
-      );
+    const measurementEntity = await this.measurementService.getLastMeasurementsByArea(
+      area.xmin,
+      area.ymin,
+      area.xmax,
+      area.ymax,
+      measure,
+    );
     return new Pagination(measurementEntity, null, null);
   }
 
@@ -74,15 +67,14 @@ export class MeasurementController {
     @Query() { measure }: MeasureTypeQuery,
     @Query() area: AreaQuery,
   ): Promise<Pagination<MeasurementClusterModel>> {
-    const measurementClusterModel =
-      await this.measurementService.getLastMeasurementsByCluster(
-        area.xmin,
-        area.ymin,
-        area.xmax,
-        area.ymax,
-        area.zoom,
-        measure,
-      );
+    const measurementClusterModel = await this.measurementService.getLastMeasurementsByCluster(
+      area.xmin,
+      area.ymin,
+      area.xmax,
+      area.ymax,
+      area.zoom,
+      measure,
+    );
     return new Pagination(measurementClusterModel, null, null);
   }
 }

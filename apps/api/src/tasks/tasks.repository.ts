@@ -10,9 +10,7 @@ class TasksRepository {
   private readonly logger = new Logger(TasksRepository.name);
 
   async getAll() {
-    const result = await this.databaseService.runQuery(
-      'SELECT * FROM measurement;',
-    );
+    const result = await this.databaseService.runQuery('SELECT * FROM measurement;');
     return result.rows;
   }
 
@@ -23,9 +21,7 @@ class TasksRepository {
       const query = `SELECT id FROM owner WHERE owner_name = 'airgradient'`;
       const result = await this.databaseService.runQuery(query);
       if (result.rowCount === 0) {
-        throw new NotFoundException(
-          'Airgradient record not found in owner table',
-        );
+        throw new NotFoundException('Airgradient record not found in owner table');
       }
 
       ownerId = result.rows[0].id;
@@ -52,18 +48,16 @@ class TasksRepository {
         };
 
         const locationValues = data
-          .flatMap(
-            ({ locationId, locationName, timezone, latitude, longitude }) => {
-              // Skip row if coordinate empty
-              if (latitude === null && longitude === null) {
-                return [];
-              }
-              // Build postgis point value then return formatted row
-              const geometry = `'POINT(${latitude} ${longitude})'`;
-              const licensesFmt = `ARRAY['CC BY-SA 4.0']`;
-              return `(${locationId},'Small Sensor',${licensesFmt},'${escapeSingleQuote(locationName)}','${timezone}',${geometry},'AirGradient')`;
-            },
-          )
+          .flatMap(({ locationId, locationName, timezone, latitude, longitude }) => {
+            // Skip row if coordinate empty
+            if (latitude === null && longitude === null) {
+              return [];
+            }
+            // Build postgis point value then return formatted row
+            const geometry = `'POINT(${latitude} ${longitude})'`;
+            const licensesFmt = `ARRAY['CC BY-SA 4.0']`;
+            return `(${locationId},'Small Sensor',${licensesFmt},'${escapeSingleQuote(locationName)}','${timezone}',${geometry},'AirGradient')`;
+          })
           .join(',');
 
         const locationQuery = `
@@ -135,8 +129,7 @@ class TasksRepository {
             // Build postgis point value then return formatted row
             const geometry = `'POINT(${coordinate[0]} ${coordinate[1]})'`;
             // Build licenses data type
-            const licensesFmt =
-              licenses !== null ? `ARRAY[${licenses}]` : 'ARRAY[]::VARCHAR[]';
+            const licensesFmt = licenses !== null ? `ARRAY[${licenses}]` : 'ARRAY[]::VARCHAR[]';
             return `('${ownerName}','${escapeSingleQuote(locationName)}',${referenceId},'${sensorType}','${timezone}',${licensesFmt},'OpenAQ','${providerName}',${geometry})`;
           },
         )

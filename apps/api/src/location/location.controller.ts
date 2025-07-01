@@ -1,21 +1,10 @@
-import {
-  UsePipes,
-  ValidationPipe,
-  Controller,
-  Get,
-  Param,
-  Query,
-} from '@nestjs/common';
+import { UsePipes, ValidationPipe, Controller, Get, Param, Query } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import FindOneParams from 'src/utils/findOneParams';
 import PaginationQuery from 'src/utils/paginationQuery';
 import { LocationService } from './location.service';
 import LocationEntity from './location.entity';
-import {
-  ApiNotFoundResponse,
-  ApiOkResponse,
-  ApiOperation,
-} from '@nestjs/swagger';
+import { ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ApiPaginatedResponse, Pagination } from 'src/utils/pagination.dto';
 import MeasureTypeQuery from 'src/utils/measureTypeQuery';
 import TimeseriesQuery from './timeseriesQuery';
@@ -29,17 +18,10 @@ export class LocationController {
   private readonly logger = new Logger(LocationController.name);
 
   @Get()
-  @ApiPaginatedResponse(
-    LocationEntity,
-    'Retrieve detailed information for all locations',
-    '',
-  )
+  @ApiPaginatedResponse(LocationEntity, 'Retrieve detailed information for all locations', '')
   @UsePipes(new ValidationPipe({ transform: true }))
   async getLocations(@Query() { page, pagesize }: PaginationQuery) {
-    const locationsEntity = await this.locationService.getLocations(
-      page,
-      pagesize,
-    );
+    const locationsEntity = await this.locationService.getLocations(page, pagesize);
     return new Pagination(locationsEntity, page, pagesize);
   }
 
@@ -59,9 +41,7 @@ export class LocationController {
   @ApiOkResponse({ type: LocationMeasuresDto })
   @ApiNotFoundResponse()
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getLastmeasuresByLocationId(
-    @Param() { id }: FindOneParams,
-  ): Promise<LocationMeasuresDto> {
+  async getLastmeasuresByLocationId(@Param() { id }: FindOneParams): Promise<LocationMeasuresDto> {
     const result = await this.locationService.getLocationLastMeasures(id);
     return new LocationMeasuresDto(result);
   }
@@ -86,8 +66,7 @@ export class LocationController {
       measure,
     );
     const timeseriesDto = history.map(
-      (timeseries: TimeseriesDto) =>
-        new TimeseriesDto(timeseries.timebucket, timeseries.value),
+      (timeseries: TimeseriesDto) => new TimeseriesDto(timeseries.timebucket, timeseries.value),
     );
 
     return new Pagination(timeseriesDto, null, null);
