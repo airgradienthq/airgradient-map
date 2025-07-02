@@ -4,7 +4,7 @@ import FindOneParams from 'src/utils/findOneParams';
 import PaginationQuery from 'src/utils/paginationQuery';
 import { LocationService } from './location.service';
 import LocationEntity from './location.entity';
-import { ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiBadRequestResponse, ApiParam } from '@nestjs/swagger';
 import { ApiPaginatedResponse, Pagination } from 'src/utils/pagination.dto';
 import MeasureTypeQuery from 'src/utils/measureTypeQuery';
 import TimeseriesQuery from './timeseriesQuery';
@@ -12,13 +12,18 @@ import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
 
 @Controller('map/api/v1/locations')
+@ApiTags('Locations')
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
   private readonly logger = new Logger(LocationController.name);
 
   @Get()
-  @ApiPaginatedResponse(LocationEntity, 'Retrieve detailed information for all locations', '')
+  @ApiOperation({
+    summary: 'Get all monitoring locations',
+    description: 'Retrieve detailed information about all air quality monitoring locations including coordinates, owner info, and sensor specifications.',
+  })
+  @ApiPaginatedResponse(LocationEntity, 'Successfully retrieved all locations', '')
   @UsePipes(new ValidationPipe({ transform: true }))
   async getLocations(@Query() { page, pagesize }: PaginationQuery) {
     const locationsEntity = await this.locationService.getLocations(page, pagesize);
@@ -27,19 +32,41 @@ export class LocationController {
 
   @Get(':id')
   @ApiOperation({
-    summary: 'Retrieve detailed information for specific location id',
+    summary: 'Get specific location details',
+    description: 'Retrieve comprehensive information for a single monitoring location by its unique identifier.',
   })
-  @ApiOkResponse({ type: LocationEntity })
-  @ApiNotFoundResponse()
+  @ApiParam({
+    name: 'id',
+    description: 'Unique location identifier',
+    example: 12345,
+    type: Number,
+  })
+  @ApiOkResponse({ 
+    type: LocationEntity,
+    description: 'Location details successfully retrieved'
+  })
+  @ApiNotFoundResponse({ description: 'Location not found' })
+  @ApiBadRequestResponse({ description: 'Invalid location ID format' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getLocationById(@Param() { id }: FindOneParams) {
     return await this.locationService.getLocationById(id);
   }
 
   @Get(':id/measures/current')
-  @ApiOperation({ summary: 'Retrieve measures of a location' })
-  @ApiOkResponse({ type: LocationMeasuresDto })
-  @ApiNotFoundResponse()
+  @ApiOperation({ 
+    summary: 'Get latest measurements for a location',
+    description: 'Retrieve the most recent air quality measurements for a specific monitoring location.'
+  })
+  @ApiParam({
+    name: 'id', 
+    description: 'Location identifier',
+    example: 12345
+  })
+  @ApiOkResponse({ 
+    type: LocationMeasuresDto,
+    description: 'Latest measurements successfully retrieved'
+  })
+  @ApiNotFoundResponse({ description: 'Location not found or no recent measurements available' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getLastmeasuresByLocationId(@Param() { id }: FindOneParams): Promise<LocationMeasuresDto> {
     const result = await this.locationService.getLocationLastMeasures(id);
@@ -47,11 +74,22 @@ export class LocationController {
   }
 
   @Get(':id/measures/history')
+  @ApiOperation({
+    summary: 'Get historical measurements for a location',
+    description: 'Retrieve time-series data for a specific location within a date range. Supports various bucket sizes for data aggregation.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier', 
+    example: 12345
+  })
   @ApiPaginatedResponse(
     TimeseriesDto,
-    'Retrieve history measures of a location based on range of timestamp',
+    'Historical data successfully retrieved',
     'start and end query format is "yyyy-mm-dd hh:mm" or "yyyy-mm-dd"; bucketsize query follow ISO 8601 duration format',
   )
+  @ApiBadRequestResponse({ description: 'Invalid date format, bucket size, or date range' })
+  @ApiNotFoundResponse({ description: 'Location not found' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getmeasuresHistoryByLocationIdl(
     @Param() { id }: FindOneParams,
