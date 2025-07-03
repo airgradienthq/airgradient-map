@@ -72,6 +72,7 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import { useStorage } from '@vueuse/core';
+  import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
@@ -107,6 +108,8 @@
       value: MeasureNames.CO2
     }
   ];
+
+  const updateMapDebounced = createVueDebounce(updateMap, 300);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -262,7 +265,7 @@
       markers.clearLayers();
       markers.addData(geoJsonMapData);
     } else {
-      updateMap();
+      updateMapDebounced();
     }
   }
 
