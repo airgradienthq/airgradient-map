@@ -4,7 +4,14 @@ import FindOneParams from 'src/utils/findOneParams';
 import PaginationQuery from 'src/utils/paginationQuery';
 import { LocationService } from './location.service';
 import LocationEntity from './location.entity';
-import { ApiNotFoundResponse, ApiOkResponse, ApiOperation, ApiTags, ApiBadRequestResponse, ApiParam } from '@nestjs/swagger';
+import {
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+  ApiBadRequestResponse,
+  ApiParam,
+} from '@nestjs/swagger';
 import { ApiPaginatedResponse, Pagination } from 'src/utils/pagination.dto';
 import MeasureTypeQuery from 'src/utils/measureTypeQuery';
 import TimeseriesQuery from './timeseriesQuery';
@@ -21,7 +28,8 @@ export class LocationController {
   @Get()
   @ApiOperation({
     summary: 'Get all monitoring locations',
-    description: 'Retrieve detailed information about all air quality monitoring locations including coordinates, owner info, and sensor specifications.',
+    description:
+      'Retrieve detailed information about all air quality monitoring locations including coordinates, owner info, and sensor specifications.',
   })
   @ApiPaginatedResponse(LocationEntity, 'Successfully retrieved all locations', '')
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -33,7 +41,8 @@ export class LocationController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get specific location details',
-    description: 'Retrieve comprehensive information for a single monitoring location by its unique identifier.',
+    description:
+      'Retrieve comprehensive information for a single monitoring location by its unique identifier.',
   })
   @ApiParam({
     name: 'id',
@@ -41,9 +50,9 @@ export class LocationController {
     example: 12345,
     type: Number,
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     type: LocationEntity,
-    description: 'Location details successfully retrieved'
+    description: 'Location details successfully retrieved',
   })
   @ApiNotFoundResponse({ description: 'Location not found' })
   @ApiBadRequestResponse({ description: 'Invalid location ID format' })
@@ -53,18 +62,19 @@ export class LocationController {
   }
 
   @Get(':id/measures/current')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get latest measurements for a location',
-    description: 'Retrieve the most recent air quality measurements for a specific monitoring location.'
+    description:
+      'Retrieve the most recent air quality measurements for a specific monitoring location.',
   })
   @ApiParam({
-    name: 'id', 
+    name: 'id',
     description: 'Location identifier',
-    example: 12345
+    example: 12345,
   })
-  @ApiOkResponse({ 
+  @ApiOkResponse({
     type: LocationMeasuresDto,
-    description: 'Latest measurements successfully retrieved'
+    description: 'Latest measurements successfully retrieved',
   })
   @ApiNotFoundResponse({ description: 'Location not found or no recent measurements available' })
   @UsePipes(new ValidationPipe({ transform: true }))
@@ -76,12 +86,13 @@ export class LocationController {
   @Get(':id/measures/history')
   @ApiOperation({
     summary: 'Get historical measurements for a location',
-    description: 'Retrieve time-series data for a specific location within a date range. Supports various bucket sizes for data aggregation.',
+    description:
+      'Retrieve time-series data for a specific location within a date range. Supports various bucket sizes for data aggregation.',
   })
   @ApiParam({
     name: 'id',
-    description: 'Location identifier', 
-    example: 12345
+    description: 'Location identifier',
+    example: 12345,
   })
   @ApiPaginatedResponse(
     TimeseriesDto,
