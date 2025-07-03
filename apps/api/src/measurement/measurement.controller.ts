@@ -5,7 +5,7 @@ import { MeasurementService } from './measurement.service';
 import { Pagination, ApiPaginatedResponse } from 'src/utils/pagination.dto';
 import AreaQuery from './areaQuery';
 import MeasureTypeQuery from '../utils/measureTypeQuery';
-import MeasurementEntity from './measurement.entity';
+import { MeasurementEntity } from './measurement.entity';
 import MeasurementClusterModel from './measurementCluster.model';
 import PaginationQuery from 'src/utils/paginationQuery';
 

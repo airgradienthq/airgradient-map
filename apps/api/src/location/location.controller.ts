@@ -3,7 +3,7 @@ import { Logger } from '@nestjs/common';
 import FindOneParams from 'src/utils/findOneParams';
 import PaginationQuery from 'src/utils/paginationQuery';
 import { LocationService } from './location.service';
-import LocationEntity from './location.entity';
+import { LocationEntity } from './location.entity';
 import { ApiNotFoundResponse, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { ApiPaginatedResponse, Pagination } from 'src/utils/pagination.dto';
 import MeasureTypeQuery from 'src/utils/measureTypeQuery';

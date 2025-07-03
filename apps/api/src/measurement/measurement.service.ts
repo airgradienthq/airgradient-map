@@ -3,6 +3,8 @@ import MeasurementRepository from './measurement.repository';
 import Supercluster from 'supercluster';
 import MeasurementCluster from './measurementCluster.model';
 import { ConfigService } from '@nestjs/config';
+import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { MeasurementEntity } from './measurement.entity';
 
 @Injectable()
 export class MeasurementService {
@@ -36,8 +38,21 @@ export class MeasurementService {
     xMax: number,
     yMax: number,
     measure?: string,
-  ) {
-    return await this.measurementRepository.retrieveLatestByArea(xMin, yMin, xMax, yMax, measure);
+  ): Promise<MeasurementEntity[]> {
+    const measurements = await this.measurementRepository.retrieveLatestByArea(
+      xMin,
+      yMin,
+      xMax,
+      yMax,
+      measure,
+    );
+    if (measure === 'pm25') {
+      return measurements.map(point => {
+        const correctedPM = getEPACorrectedPM(point.pm25, point.rhum);
+        return { ...point, pm25: correctedPM };
+      });
+    }
+    return measurements;
   }
 
   async getLastMeasurementsByCluster(
@@ -67,6 +82,8 @@ export class MeasurementService {
     // converting to .geojson features array
     let geojson = new Array<any>();
     locations.map(point => {
+      const value =
+        measurementType === 'pm25' ? getEPACorrectedPM(point.pm25, point.rhum) : point[measure];
       geojson.push({
         type: 'Feature',
         geometry: {
@@ -77,7 +94,7 @@ export class MeasurementService {
           locationId: point.locationId,
           locationName: point.locationName,
           sensorType: point.sensorType,
-          value: point[measure],
+          value,
         },
       });
     });
