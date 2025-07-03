@@ -8,6 +8,7 @@
     elevation="6"
     rounded="lg"
     class="toast-snackbar"
+    multi-line
   >
     <div class="d-flex align-center">
       <v-icon :icon="toastIcon" class="mr-3" size="20" />
@@ -20,12 +21,16 @@
         size="small"
         variant="text"
         @click="hideToast"
+        aria-label="Close notification"
       />
     </template>
   </v-snackbar>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useToast } from '~/composables/useToast';
+
 const { toast, hideToast } = useToast();
 
 const isVisible = computed({
@@ -64,5 +69,19 @@ const toastIcon = computed(() => {
 .toast-message {
   font-weight: 500;
   line-height: 1.4;
+  word-break: break-word;
+}
+
+.toast-snackbar :deep(.v-snackbar__wrapper) {
+  pointer-events: auto;
+  max-width: 400px;
+}
+
+@media (max-width: 600px) {
+  .toast-snackbar :deep(.v-snackbar__wrapper) {
+    max-width: 90vw;
+    margin-left: 5vw;
+    margin-right: 5vw;
+  }
 }
 </style>

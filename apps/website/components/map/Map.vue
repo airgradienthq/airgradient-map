@@ -72,11 +72,13 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import { useStorage } from '@vueuse/core';
+  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
+  const { handleApiError } = useApiErrorHandler();
   const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
@@ -230,6 +232,9 @@
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
+      
+      // Show user-friendly error message
+      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -317,7 +322,7 @@
   }
 
   .is-reference {
-    border: 2px solid var(--main-white-color);
+    border: 2px solid var(--main-white-color);  
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
   }
 

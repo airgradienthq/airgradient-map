@@ -1,5 +1,4 @@
-import { readonly } from 'vue';
-import { ref } from 'vue';
+import { readonly, ref } from 'vue';
 
 export interface ToastOptions {
   message: string;
@@ -8,11 +7,11 @@ export interface ToastOptions {
   persistent?: boolean;
 }
 
-export const useToast = () => {
-  const toast = ref<ToastOptions | null>(null);
+const globalToast = ref<ToastOptions | null>(null);
 
+export const useToast = () => {
   const showToast = (options: ToastOptions) => {
-    toast.value = {
+    globalToast.value = {
       type: 'info',
       timeout: 4000,
       persistent: false,
@@ -37,11 +36,11 @@ export const useToast = () => {
   };
 
   const hideToast = () => {
-    toast.value = null;
+    globalToast.value = null;
   };
 
   return {
-    toast: readonly(toast),
+    toast: readonly(globalToast),
     showToast,
     showSuccess,
     showError,
