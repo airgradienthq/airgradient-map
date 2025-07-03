@@ -1,4 +1,3 @@
-// apps/website/composables/useToast.ts
 import { readonly } from 'vue';
 import { ref } from 'vue';
 
