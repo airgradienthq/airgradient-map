@@ -3,7 +3,8 @@ import { DocumentBuilder } from '@nestjs/swagger';
 export const createSwaggerConfig = () => {
   return new DocumentBuilder()
     .setTitle('AirGradient Map API')
-    .setDescription(`
+    .setDescription(
+      `
 **AirGradient Map API** - Access real-time and historical air quality data from the global AirGradient monitoring network.
 
 ## Measurement Types
@@ -22,12 +23,13 @@ All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to 
 - AirGradient community sensors (CC-BY-SA 4.0)
 - OpenAQ integration (CC-BY 4.0)
 - Updates every 5-15 minutes
-`)
+`,
+    )
     .setVersion('1.0')
     .setContact(
-      'AirGradient Support', 
-      'https://www.airgradient.com/support/', 
-      'support@airgradient.com'
+      'AirGradient Support',
+      'https://www.airgradient.com/support/',
+      'support@airgradient.com',
     )
     .addServer('https://map-data-int.airgradient.com', 'Integration Server')
     .addServer('http://localhost:3001', 'Local Development')
