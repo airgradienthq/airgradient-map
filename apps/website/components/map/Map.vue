@@ -1,4 +1,4 @@
-<template>
+L<template>
   <div class="map-info-btn-box">
     <UiIconButton
       :ripple="false"
@@ -72,6 +72,7 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import { useStorage } from '@vueuse/core';
+  import slideReveal from '~/utils/slideReveal';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
@@ -399,29 +400,26 @@
     width: 300px !important;
     max-width: 300px !important;
     margin: 10px 10px 0 auto !important;
+  }
 
-    form {
-      padding-left: 30px;
-      background-image: url('/assets/images/icons/search.svg');
-      background-position: 5px center;
-      background-size: 20px;
+  .leaflet-geosearch-bar form {
+    padding-left: 0;
+    background-image: none;
+  }
 
-      input {
-        height: 36px !important;
-        font-size: 16px !important;
-      }
-    }
-
-    .reset {
-      color: var(--grayColor700) !important;
-      line-height: 36px !important;
-      font-size: 16px !important;
-    }
+  .leaflet-geosearch-bar form input {
+    padding-left: 30px !important;
+    background-image: url('/assets/images/icons/search.svg');
+    background-position: 5px center;
+    background-size: 20px;
+    background-repeat: no-repeat;
+    height: 36px !important;
+    font-size: 16px !important;
   }
 
   .leaflet-control-geosearch .results.active {
-    width: calc(100% + 25px);
-    margin-left: -25px;
+    width: 100% !important;
+    margin-left: 0 !important;
   }
 
   .results > .active,
@@ -429,6 +427,10 @@
     color: var(--primary-color);
     border-radius: 4px;
     border-color: transparent;
+  }
+
+  .leaflet-control-geosearch .results > *::before {
+    display: none !important;
   }
 
   .map-controls {
@@ -504,5 +506,65 @@
     top: 90px;
     left: 10px;
     z-index: 999;
+  }
+
+  /* Increase spacing between results */
+  .leaflet-control-geosearch .results > * {
+    display: flex;
+    align-items: center;
+    height: 40px; /* increased from 36px */
+    line-height: 40px; /* match height for vertical centering */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    width: 100%;
+    padding-right: 8px;
+    position: relative;
+    margin-bottom: 4px; /* add spacing between items */
+    font-size: 18px; /* ensure consistent font size */
+    background: transparent; /* prevent background shift on hover */
+    transition: background 0.2s, height 0.2s, line-height 0.2s, font-size 0.2s;
+  }
+
+  /* Ensure inner text is also single-line and fills parent */
+  .leaflet-control-geosearch .results > * span,
+  .leaflet-control-geosearch .results > * div {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    height: 40px;
+    line-height: 40px;
+    font-size: 18px; /* match parent */
+  }
+
+  /* On hover, expand only the hovered result to show full text */
+  .leaflet-control-geosearch .results > *:hover,
+  .leaflet-control-geosearch .results > *.active {
+    height: auto;
+    line-height: 1.5; /* more readable when expanded */
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    z-index: 2;
+    background: var(--light-primary-color, #f5f5f5) !important;
+    border-radius: 4px;
+    font-size: 18px; /* keep font size consistent */
+  }
+
+  /* Also expand the inner text on hover */
+  .leaflet-control-geosearch .results > *:hover span,
+  .leaflet-control-geosearch .results > *:hover div,
+  .leaflet-control-geosearch .results > *.active span,
+  .leaflet-control-geosearch .results > *.active div {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    height: auto;
+    line-height: 1.5;
+    font-size: 18px; /* keep font size consistent */
   }
 </style>
