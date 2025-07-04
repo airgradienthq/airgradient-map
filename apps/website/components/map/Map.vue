@@ -232,7 +232,7 @@
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
-      
+
       // Show user-friendly error message
       handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
@@ -322,7 +322,7 @@
   }
 
   .is-reference {
-    border: 2px solid var(--main-white-color);  
+    border: 2px solid var(--main-white-color);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
   }
 

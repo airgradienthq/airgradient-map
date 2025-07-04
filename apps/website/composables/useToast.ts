@@ -15,7 +15,7 @@ export const useToast = () => {
       type: 'info',
       timeout: 4000,
       persistent: false,
-      ...options,
+      ...options
     };
   };
 
@@ -46,6 +46,6 @@ export const useToast = () => {
     showError,
     showWarning,
     showInfo,
-    hideToast,
+    hideToast
   };
 };
