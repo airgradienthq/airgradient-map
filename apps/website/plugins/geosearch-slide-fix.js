@@ -1,0 +1,1 @@
+// Removed all code that applied slide-left or transform to geosearch results to disable shifting animation. 

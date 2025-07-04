@@ -46,7 +46,13 @@ class LocationRepository {
       return results.rows.map((location: Partial<LocationEntity>) => new LocationEntity(location));
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException('Error query locations information');
+      throw new InternalServerErrorException({
+        message: 'LOC_001: Failed to retrieve locations',
+        operation: 'retrieveLocations',
+        parameters: { offset, limit },
+        error: error.message,
+        code: 'LOC_001',
+      });
     }
   }
 
@@ -80,13 +86,24 @@ class LocationRepository {
 
       const location = result.rows[0];
       if (!location) {
-        throw new NotFoundException();
+        throw new NotFoundException({
+          message: 'LOC_002: Location not found',
+          operation: 'retrieveLocationById',
+          parameters: { id },
+          code: 'LOC_002',
+        });
       }
 
       return new LocationEntity(location);
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException('Error query location information by id');
+      throw new InternalServerErrorException({
+        message: 'LOC_003: Failed to retrieve location by id',
+        operation: 'retrieveLocationById',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_003',
+      });
     }
   }
 
@@ -113,14 +130,23 @@ class LocationRepository {
 
       const lastMeasurements = result.rows[0];
       if (!lastMeasurements) {
-        throw new NotFoundException();
+        throw new NotFoundException({
+          message: 'LOC_004: Last measures not found for location',
+          operation: 'retrieveLastMeasuresByLocationId',
+          parameters: { id },
+          code: 'LOC_004',
+        });
       }
       return lastMeasurements;
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error query last measures of specific location by id',
-      );
+      throw new InternalServerErrorException({
+        message: 'LOC_005: Failed to retrieve last measures by location id',
+        operation: 'retrieveLastMeasuresByLocationId',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_005',
+      });
     }
   }
 
@@ -158,9 +184,13 @@ class LocationRepository {
       return results.rows;
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        `Error query measures history of specific location by id (${error.message})`,
-      );
+      throw new InternalServerErrorException({
+        message: 'LOC_006: Failed to retrieve location measures history',
+        operation: 'retrieveLocationMeasuresHistory',
+        parameters: { id, start, end, bucketSize, measure },
+        error: error.message,
+        code: 'LOC_006',
+      });
     }
   }
 }
