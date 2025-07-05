@@ -133,7 +133,7 @@ class LocationRepository {
     ];
     try {
       const now = new Date();
-      const cigaretteData: Record<string, number | null> = {};
+      const cigaretteData: Record<string, number> = {};
       for (const timeframe of timeframes) {
         const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
         const end = now.toISOString();
