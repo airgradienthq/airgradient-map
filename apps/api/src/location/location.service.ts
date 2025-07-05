@@ -18,6 +18,10 @@ export class LocationService {
     return await this.locationRepository.retrieveLastMeasuresByLocationId(id);
   }
 
+  async getCigarettesSmoked(id: number) {
+    return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
+  }
+
   async getLocationMeasuresHistory(
     id: number,
     start: string,

@@ -10,6 +10,7 @@ import MeasureTypeQuery from 'src/utils/measureTypeQuery';
 import TimeseriesQuery from './timeseriesQuery';
 import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
+import CigarettesSmokedDto from './cigarettesSmoked.dto';
 
 @Controller('map/api/v1/locations')
 export class LocationController {
@@ -44,6 +45,17 @@ export class LocationController {
   async getLastmeasuresByLocationId(@Param() { id }: FindOneParams): Promise<LocationMeasuresDto> {
     const result = await this.locationService.getLocationLastMeasures(id);
     return new LocationMeasuresDto(result);
+  }
+
+  @Get(':id/cigarettes/smoked')
+  @ApiOperation({ 
+    summary: 'Retrieve number of cigarettes smoked equivalent to amount of air pollution' })
+  @ApiOkResponse({ type: CigarettesSmokedDto })
+  @ApiNotFoundResponse()
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getCigarettesSmoked(@Param() { id }: FindOneParams): Promise<CigarettesSmokedDto> {
+    const result = await this.locationService.getCigarettesSmoked(id);
+    return new CigarettesSmokedDto(result);
   }
 
   @Get(':id/measures/history')
