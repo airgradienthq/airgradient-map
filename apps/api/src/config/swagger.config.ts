@@ -25,7 +25,7 @@ All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to 
 - Updates every 5-15 minutes
 `,
     )
-    .setVersion('1.0')
+    .setVersion('0.0.1')
     .setContact(
       'AirGradient Support',
       'https://www.airgradient.com/support/',
