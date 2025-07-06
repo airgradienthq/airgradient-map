@@ -17,6 +17,16 @@ services:
       - POSTGRES_USER=${DATABASE_USER}
     networks:
       - dev
+  
+  redis:
+    container_name: redis-mono
+    image: redis:8-alpine
+    ports:
+      - 6379:6379
+    volumes:
+      - redisdata:/data
+    networks:
+      - dev
 
   mapapi:
     container_name: mapapi-mono
@@ -32,6 +42,7 @@ services:
       - dev
     depends_on:
       - postgrex
+      - redis
 
   app:
     container_name: website-mono
@@ -56,4 +67,4 @@ networks:
 
 volumes:
   pgdata:
-
+  redisdata:
