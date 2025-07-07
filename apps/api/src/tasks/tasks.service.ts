@@ -23,14 +23,14 @@ export class TasksService {
 
   private readonly logger = new Logger(TasksService.name);
 
-  //@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  @Cron('*/30 * * * *')
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncAirgradientLocations() {
     const start = Date.now();
 
     // Fetch data from the airgradient external API
     const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
     const data = await this.http.fetch<AirgradientModel[]>(url);
+    this.logger.log(`AirGradient total public data: ${data.length}`);
 
     // map location data for upsert function
     const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
@@ -52,13 +52,15 @@ export class TasksService {
     // TODO need to iterate every 500?
   }
 
-  @Cron('*/5 * * * *')
+  @Cron('*/15 * * * *')
+  async getAirgradientLatest() {
+    this.logger.log('Run job retrieve AirGradient latest value');
     const start = Date.now();
 
     // Fetch data from the airgradient external API
     const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
     const data = await this.http.fetch<AirgradientModel[]>(url);
-    this.logger.debug('AirGradient total public data: ' + data.length);
+    this.logger.log(`AirGradient total public data: ${data.length}`);
 
     await this.tasksRepository.insertNewAirgradientLatest(data);
     // TODO: Add success check
@@ -67,7 +69,7 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
-    this.logger.debug('Run job sync OpenAQ locations');
+    this.logger.log('Run job sync OpenAQ locations');
     const providersId = [118, 119, 70]; // air4thai, airnow, eea
 
     const before = Date.now();
@@ -89,7 +91,7 @@ export class TasksService {
 
     let locationIds = await this.tasksRepository.retrieveOpenAQLocationId();
     if (locationIds === null) {
-      // NOTE: Right now ingore until runSyncOpenAQLocations() already triggered
+      // NOTE: Right now ignore until runSyncOpenAQLocations() already triggered
       this.logger.warn('No openaq locationId found');
       return;
     }
