@@ -10,7 +10,7 @@ import MeasureTypeQuery from 'src/utils/measureTypeQuery';
 import TimeseriesQuery from './timeseriesQuery';
 import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
-import CigarettesSmokedDto from './cigarettesSmoked.dto';
+import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
 
 @Controller('map/api/v1/locations')
 export class LocationController {
@@ -48,8 +48,9 @@ export class LocationController {
   }
 
   @Get(':id/cigarettes/smoked')
-  @ApiOperation({ 
-    summary: 'Retrieve number of cigarettes smoked equivalent to amount of air pollution' })
+  @ApiOperation({
+    summary: 'Retrieve number of cigarettes smoked equivalent to amount of air pollution',
+  })
   @ApiOkResponse({ type: CigarettesSmokedDto })
   @ApiNotFoundResponse()
   @UsePipes(new ValidationPipe({ transform: true }))

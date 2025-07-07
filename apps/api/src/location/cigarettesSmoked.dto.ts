@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-class CigarettesSmoked {
+export class CigarettesSmokedDto {
   @ApiProperty()
   last24hours: number;
 
@@ -13,9 +13,7 @@ class CigarettesSmoked {
   @ApiProperty()
   last365days: number;
 
-  constructor(partial: Partial<CigarettesSmoked>) {
+  constructor(partial: Partial<CigarettesSmokedDto>) {
     Object.assign(this, partial);
   }
 }
-
-export default CigarettesSmoked;

@@ -138,13 +138,7 @@ class LocationRepository {
         const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
         const end = now.toISOString();
 
-        const rows = await this.retrieveLocationMeasuresHistory(
-          id,
-          start,
-          end,
-          '1 day',
-          'pm25',
-        );
+        const rows = await this.retrieveLocationMeasuresHistory(id, start, end, '1 day', 'pm25');
 
         let sum = 0;
         for (const row of rows) {
@@ -156,9 +150,7 @@ class LocationRepository {
       return cigaretteData;
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException(
-        'Error query retrieve cigarettes smoked',
-      );
+      throw new InternalServerErrorException('Error query retrieve cigarettes smoked');
     }
   }
 
