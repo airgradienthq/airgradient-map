@@ -16,7 +16,7 @@ export class TasksService {
     private readonly tasksRepository: TasksRepository,
     private readonly http: TasksHttp,
     private readonly configService: ConfigService,
-    private readonly redis: RedisCacheService,
+    private readonly redisCacheService: RedisCacheService,
   ) {
     const apiKey = this.configService.get<string>('API_KEY_OPENAQ');
     if (apiKey) {
@@ -41,9 +41,9 @@ export class TasksService {
       this.logger.debug(
         `Successfully insert new airgradient latest measures. Time spend ${duration}ms`,
       );
-
-      // Flush all Redis data to guarantee cache consistency after database updates.
-      await this.redis.flushdb();
+      
+      // Flush all redis-cache data to guarantee cache consistency after database updates.
+      await this.redisCacheService.flushdb();
     }
   }
 
