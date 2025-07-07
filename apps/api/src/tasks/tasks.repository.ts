@@ -3,8 +3,31 @@ import DatabaseService from 'src/database/database.service';
 import { AirgradientModel } from './tasks.model';
 import { Logger } from '@nestjs/common';
 
+export type UpsertLocationOwnerInput = {
+  ownerName: string | null;
+  ownerUrl: string | null;
+  ownerDescription: string | null;
+  locationReferenceId: number;
+  locationName: string | null;
+  sensorType: string;
+  timezone: string;
+  coordinateLatitude: number | null;
+  coordinateLongitude: number | null;
+  licenses: string[] | null;
+  provider: string;
+};
+
+function formatLicenses(arr: string[] | null | undefined): string {
+  if (!arr || arr.length === 0) {
+    return 'ARRAY[]::VARCHAR[]';
+  }
+
+  const quoted = arr.map(value => `'${value}'`);
+  return `ARRAY[${quoted.join(',')}]`;
+}
+
 @Injectable()
-class TasksRepository {
+export class TasksRepository {
   constructor(private readonly databaseService: DatabaseService) {}
 
   private readonly logger = new Logger(TasksRepository.name);
@@ -14,98 +37,10 @@ class TasksRepository {
     return result.rows;
   }
 
-  async insertAg(raw: AirgradientModel[]) {
-    // Retrieve ownerId of airgradient from database first
-    var ownerId = -1;
-    try {
-      const query = `SELECT id FROM owner WHERE owner_name = 'airgradient'`;
-      const result = await this.databaseService.runQuery(query);
-      if (result.rowCount === 0) {
-        throw new NotFoundException('Airgradient record not found in owner table');
-      }
-
-      ownerId = result.rows[0].id;
-    } catch (error) {
-      this.logger.error(error);
-      return false;
-    }
-
-    this.logger.debug(`Airgradient owner_id is ${ownerId}`);
-
-    try {
-      // Insert per 200 data
-      const chunk = 200;
-      for (let idx = 0; idx < raw.length; idx += chunk) {
-        const data = raw.slice(idx, idx + chunk);
-
-        // TODO: Need to do an offline check, if offline, don't insert?
-        // Insert into location table
-        const escapeSingleQuote = (str: string) => {
-          if (str === null) {
-            return null;
-          }
-          return str.replace(/'/g, "''");
-        };
-
-        const locationValues = data
-          .flatMap(({ locationId, locationName, timezone, latitude, longitude }) => {
-            // Skip row if coordinate empty
-            if (latitude === null && longitude === null) {
-              return [];
-            }
-            // Build postgis point value then return formatted row
-            const geometry = `'POINT(${latitude} ${longitude})'`;
-            const licensesFmt = `ARRAY['CC BY-SA 4.0']`;
-            return `(${locationId},'Small Sensor',${licensesFmt},'${escapeSingleQuote(locationName)}','${timezone}',${geometry},'AirGradient')`;
-          })
-          .join(',');
-
-        const locationQuery = `
-            INSERT INTO public."location" (owner_id, reference_id, sensor_type, licenses, location_name, timezone, coordinate, provider)
-            SELECT 
-                ${ownerId}, t.reference_id, t.sensor_type::sensor_type_enum, t.licenses, t.location_name, t.timezone, t.coordinate, t.provider
-            FROM (
-                VALUES ${locationValues}  
-            ) AS t(reference_id, sensor_type, licenses, location_name, timezone, coordinate, provider)
-            ON CONFLICT (reference_id, data_source) DO NOTHING;
-        `;
-
-        const measurementValues = data
-          .map(
-            ({ locationId, pm02, pm10, atmp, rhum, rco2, timestamp }) =>
-              `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}')`,
-          )
-          .join(', ');
-
-        const measurementQuery = `
-            INSERT INTO public."measurement" (location_id, pm25, pm10, atmp, rhum, rco2, measured_at)
-            SELECT
-                location.id, t.pm25, t.pm10, t.atmp, t.rhum, t.rco2, t.measured_at::timestamp
-            FROM (
-                VALUES ${measurementValues}
-            ) AS t(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at)
-            JOIN public."location"
-            ON location.data_source = 'AirGradient' AND t.reference_id = location.reference_id
-            ON CONFLICT (location_id, measured_at) DO NOTHING;
-        `;
-        // TODO: Is unique key needed for measurements??? Is it affecting performance?
-        // TODO: Maybe can use postgres prepare statement later on?
-
-        await this.databaseService.runQuery('BEGIN');
-        await this.databaseService.runQuery(locationQuery);
-        await this.databaseService.runQuery(measurementQuery);
-        await this.databaseService.runQuery('COMMIT');
-      }
-
-      return true;
-    } catch (error) {
-      await this.databaseService.runQuery('ROLLBACK');
-      this.logger.error(error);
-      return false;
-    }
-  }
-
-  async upsertOpenAQLocations(locations: any[]) {
+  async upsertLocationsAndOwners(
+    dataSource: string,
+    locationOwnerInput: UpsertLocationOwnerInput[],
+  ) {
     const escapeSingleQuote = (str: string) => {
       if (str === null) {
         return null;
@@ -114,23 +49,40 @@ class TasksRepository {
     };
 
     try {
-      const locationValues = locations
+      const locationValues = locationOwnerInput
         .flatMap(
           ({
-            referenceId,
-            locationName,
-            providerName,
             ownerName,
+            ownerUrl,
+            ownerDescription,
+            locationReferenceId,
+            locationName,
             sensorType,
             timezone,
-            coordinate,
+            coordinateLatitude,
+            coordinateLongitude,
             licenses,
+            provider,
           }) => {
+            // Skip row if coordinate empty
+            if (coordinateLatitude === null && coordinateLongitude === null) {
+              return [];
+            }
+
+            // Skip if location name is empty
+            if (locationName === null) {
+              return [];
+            }
+
+            // Validate owner name if its empty and escape single quote if any
+            const validatedOwnerName =
+              ownerName !== null ? escapeSingleQuote(ownerName) : 'unknown';
             // Build postgis point value then return formatted row
-            const geometry = `'POINT(${coordinate[0]} ${coordinate[1]})'`;
+            const geometry = `'POINT(${coordinateLatitude} ${coordinateLongitude})'`;
             // Build licenses data type
-            const licensesFmt = licenses !== null ? `ARRAY[${licenses}]` : 'ARRAY[]::VARCHAR[]';
-            return `('${ownerName}','${escapeSingleQuote(locationName)}',${referenceId},'${sensorType}','${timezone}',${licensesFmt},'OpenAQ','${providerName}',${geometry})`;
+            const licensesFmt = formatLicenses(licenses);
+
+            return `('${validatedOwnerName}','${escapeSingleQuote(locationName)}',${locationReferenceId},'${sensorType}','${timezone}',${licensesFmt},'${dataSource}','${provider}',${geometry})`;
           },
         )
         .join(',');
@@ -234,5 +186,3 @@ class TasksRepository {
     }
   }
 }
-
-export default TasksRepository;
