@@ -150,6 +150,42 @@ export class TasksRepository {
     }
   }
 
+  async insertNewAirgradientLatest(data: AirgradientModel[]) {
+    try {
+      const measurementValues = data
+        .map(
+          ({ locationId, pm02, pm10, atmp, rhum, rco2, timestamp }) =>
+            `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}')`,
+        )
+        .join(', ');
+
+      const query = `
+          INSERT INTO public."measurement" (
+              location_id, pm25, pm10, atmp, rhum, rco2, measured_at
+          )
+          SELECT
+              loc.id AS location_id,
+              m.pm25,
+              m.pm10,
+              m.atmp,
+              m.rhum,
+              m.rco2,
+              m.measured_at::timestamp
+          FROM (
+            VALUES ${measurementValues}
+          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at)
+          JOIN public."location" loc
+              ON loc.data_source = 'AirGradient'
+             AND loc.reference_id = m.reference_id
+          ON CONFLICT (location_id, measured_at) DO NOTHING;
+        `;
+
+      await this.databaseService.runQuery(query);
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   async retrieveOpenAQLocationId(): Promise<object | null> {
     try {
       const result = await this.databaseService.runQuery(

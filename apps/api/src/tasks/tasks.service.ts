@@ -31,7 +31,6 @@ export class TasksService {
     // Fetch data from the airgradient external API
     const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
     const data = await this.http.fetch<AirgradientModel[]>(url);
-    this.logger.debug('Total data: ' + data.length);
 
     // map location data for upsert function
     const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
@@ -53,8 +52,20 @@ export class TasksService {
     // TODO need to iterate every 500?
   }
 
-  //@Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   @Cron('*/5 * * * *')
+    const start = Date.now();
+
+    // Fetch data from the airgradient external API
+    const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
+    const data = await this.http.fetch<AirgradientModel[]>(url);
+    this.logger.debug('AirGradient total public data: ' + data.length);
+
+    await this.tasksRepository.insertNewAirgradientLatest(data);
+    // TODO: Add success check
+    // TODO need to iterate every 500?
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
     this.logger.debug('Run job sync OpenAQ locations');
     const providersId = [118, 119, 70]; // air4thai, airnow, eea
