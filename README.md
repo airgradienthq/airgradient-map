@@ -15,7 +15,7 @@ The old app’s tech stack can’t scale to meet our requirements, so we’ve bu
 
 ## 💬 Join the Discussion on Discord
 
-Have questions or want to share feedback? Join our community on [Discord](https://discord.gg/9Fgpq5fJ) to chat, ask questions, and collaborate with other contributors!
+Have questions or want to share feedback? Join our community on [Discord](https://discord.com/invite/fWx7muwqCA) to chat, ask questions, and collaborate with other contributors!
 
 ---
 

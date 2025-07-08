@@ -1,7 +1,8 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { LogLevel, Logger } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { SwaggerModule } from '@nestjs/swagger';
+import { createSwaggerConfig } from './config/swagger.config';
 
 async function bootstrap() {
   // Setup logger
@@ -29,14 +30,9 @@ async function bootstrap() {
     origin: originList,
   });
 
-  // Setup swagger
-  const config = new DocumentBuilder()
-    .setTitle('AirGradient Map API')
-    .setDescription('AirGradient Map API')
-    .setVersion('1.0')
-    .addTag('map')
-    .build();
-  const documentFactory = () => SwaggerModule.createDocument(app, config);
+  // Setup Swagger
+  const swaggerConfig = createSwaggerConfig();
+  const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('map/api/v1/docs', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3000);

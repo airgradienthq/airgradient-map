@@ -3,6 +3,7 @@ import { UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import { MeasurementService } from './measurement.service';
 import { Pagination, ApiPaginatedResponse } from 'src/utils/pagination.dto';
+import { ApiTags } from '@nestjs/swagger';
 import AreaQuery from './areaQuery';
 import MeasureTypeQuery from '../utils/measureTypeQuery';
 import { MeasurementEntity } from './measurement.entity';
@@ -10,6 +11,7 @@ import MeasurementClusterModel from './measurementCluster.model';
 import PaginationQuery from 'src/utils/paginationQuery';
 
 @Controller('map/api/v1/measurements')
+@ApiTags('Measurements')
 @UseInterceptors(ClassSerializerInterceptor)
 export class MeasurementController {
   constructor(private readonly measurementService: MeasurementService) {}
