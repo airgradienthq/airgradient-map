@@ -1,4 +1,3 @@
-Location
 <template>
   <UiDialog
     :title="props.dialog?.data.location.locationName"
@@ -14,8 +13,7 @@ Location
           <v-chip>
             {{
               mapLocationData?.sensorType === SensorType.reference ? 'Reference' : 'Small Sensor'
-            }}</v-chip
-          >
+            }}</v-chip>
         </div>
       </v-card-title>
     </template>
@@ -64,6 +62,13 @@ Location
       <ClientOnly>
         <div class="chart-container">
           <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
+          <div v-else-if="!loading && historyError" class="error-state">
+            <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
+            <p>Unable to load historical data</p>
+            <v-btn @click="retryFetchHistory" variant="outlined" color="primary">
+              Retry
+            </v-btn>
+          </div>
         </div>
       </ClientOnly>
       <div class="mt-4">
@@ -93,8 +98,7 @@ Location
           <span v-if="locationDetails?.dataSource === 'OpenAQ'">
             {{ locationDetails?.provider }} and
             <a href="https://openaq.org/" target="_blank">
-              OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a
-            >
+              OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a>
           </span>
 
           <span v-if="locationDetails?.dataSource === 'AirGradient'">
@@ -113,319 +117,344 @@ Location
 </template>
 
 <script setup lang="ts">
-  import {
-    ColorsLegendSize,
-    DialogSize,
-    HistoricalDataTimeZone,
-    HistoricalDataTimeZoneConfig,
-    HistoryBucket,
-    HistoryPeriod,
-    HistoryPeriodConfig,
-    LocationDetails,
-    MeasureNames,
-    SensorType
-  } from '~/types';
-  import { onMounted, ref, Ref, watch, computed, onUnmounted } from 'vue';
-  import { Bar } from 'vue-chartjs';
-  import { ChartData, ChartOptions } from 'chart.js';
+import {
+  ColorsLegendSize,
+  DialogSize,
+  HistoricalDataTimeZone,
+  HistoricalDataTimeZoneConfig,
+  HistoryBucket,
+  HistoryPeriod,
+  HistoryPeriodConfig,
+  LocationDetails,
+  MeasureNames,
+  SensorType
+} from '~/types';
+import { onMounted, ref, Ref, watch, computed, onUnmounted } from 'vue';
+import { Bar } from 'vue-chartjs';
+import { ChartData, ChartOptions } from 'chart.js';
 
-  import { DialogInstance, AGMapLocationData, LocationHistoryData } from '~/types';
-  import { useGeneralConfigStore } from '~/store/general-config-store';
-  import { useRuntimeConfig } from 'nuxt/app';
-  import { getDateRangeFromToday } from '~/utils/date';
-  import { HISTORY_PERIODS } from '~/constants/shared/chart-periods';
-  import { useChartjsOptions } from '~/composables/shared/historical-data/useChartJsOptions';
-  import { useChartjsData } from '~/composables/shared/historical-data/useChartJsData';
-  import { MEASURE_LABELS_SUBSCRIPTS } from '~/constants/shared/measure-labels';
-  import { pm25ToAQI } from '~/utils/aqi';
-  import { getAQIColor, getCO2Color, getPM25Color } from '~/utils';
-  import { MEASURE_UNITS } from '~/constants/shared/measure-units';
-  import { useChartJsAnnotations } from '~/composables/shared/historical-data/useChartJsAnnotations';
-  import { useIntervalRefresh } from '~/composables/shared/useIntervalRefresh';
-  import {
-    MINUTELY_HISTORICAL_DATA_REFRESH_INTERVAL,
-    HOURLY_HISTORICAL_DATA_REFRESH_INTERVAL
-  } from '~/constants/map/refresh-interval';
-  import { HISTORICAL_DATA_TIMEZONE_OPTIONS } from '~/constants';
-  import { useHistoricalDataTimezone } from '~/composables/shared/useHistoricalDataTimezone';
-  import { AnnotationOptions } from 'chartjs-plugin-annotation';
-  import { DateTime } from 'luxon';
+import { DialogInstance, AGMapLocationData, LocationHistoryData } from '~/types';
+import { useGeneralConfigStore } from '~/store/general-config-store';
+import { useRuntimeConfig } from 'nuxt/app';
+import { getDateRangeFromToday } from '~/utils/date';
+import { HISTORY_PERIODS } from '~/constants/shared/chart-periods';
+import { useChartjsOptions } from '~/composables/shared/historical-data/useChartJsOptions';
+import { useChartjsData } from '~/composables/shared/historical-data/useChartJsData';
+import { MEASURE_LABELS_SUBSCRIPTS } from '~/constants/shared/measure-labels';
+import { pm25ToAQI } from '~/utils/aqi';
+import { getAQIColor, getCO2Color, getPM25Color } from '~/utils';
+import { MEASURE_UNITS } from '~/constants/shared/measure-units';
+import { useChartJsAnnotations } from '~/composables/shared/historical-data/useChartJsAnnotations';
+import { useIntervalRefresh } from '~/composables/shared/useIntervalRefresh';
+import {
+  MINUTELY_HISTORICAL_DATA_REFRESH_INTERVAL,
+  HOURLY_HISTORICAL_DATA_REFRESH_INTERVAL
+} from '~/constants/map/refresh-interval';
+import { HISTORICAL_DATA_TIMEZONE_OPTIONS } from '~/constants';
+import { useHistoricalDataTimezone } from '~/composables/shared/useHistoricalDataTimezone';
+import { AnnotationOptions } from 'chartjs-plugin-annotation';
+import { DateTime } from 'luxon';
+import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
 
-  const props = defineProps<{
-    dialog: DialogInstance<{ location: AGMapLocationData }>;
-  }>();
+const props = defineProps<{
+  dialog: DialogInstance<{ location: AGMapLocationData }>;
+}>();
 
-  const apiUrl = useRuntimeConfig().public.apiUrl;
-  const generalConfigStore = useGeneralConfigStore();
-  const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
-  const mapLocationData: Ref<AGMapLocationData> = ref(null);
-  const locationHistoryData: Ref<LocationHistoryData> = ref(null);
-  const locationDetails: Ref<LocationDetails> = ref(null);
-  const chartData: Ref<ChartData<'bar'>> = ref(null);
-  const chartOptions: Ref<ChartOptions<'bar'>> = ref(null);
-  const historyLoading: Ref<boolean> = ref(false);
-  const detailsLoading: Ref<boolean> = ref(false);
-  const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
-  const timezoneSelectShown: Ref<boolean> = computed(() => {
-    const userOffset = DateTime.now().toFormat('ZZ');
-    const locationOffset = DateTime.now().setZone(locationDetails?.value?.timezone).toFormat('ZZ');
-    return userOffset !== locationOffset;
-  });
-  const historicalDataTimeZoneOptions: Ref<HistoricalDataTimeZoneConfig[]> = computed(() => {
-    return HISTORICAL_DATA_TIMEZONE_OPTIONS.map(option => {
-      let label = option.label;
-      const timezone =
-        option.value === HistoricalDataTimeZone.USER
-          ? userTimezone
-          : locationDetails?.value?.timezone;
-      if (timezone) {
-        label = getTimezoneLabel(timezone);
-      }
-      return {
-        value: option.value,
-        label
-      };
-    });
-  });
+const apiUrl = useRuntimeConfig().public.apiUrl;
+const generalConfigStore = useGeneralConfigStore();
+const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
+const { handleApiError } = useApiErrorHandler();
 
-  const selectedHistoricalDataTimeZoneConfig: Ref<HistoricalDataTimeZoneConfig> = computed(() => {
-    return historicalDataTimeZoneOptions.value.find(
-      option => option.value === generalConfigStore.selectedHistoricalDataTimeZoneConfig
-    );
-  });
+const mapLocationData: Ref<AGMapLocationData> = ref(null);
+const locationHistoryData: Ref<LocationHistoryData> = ref(null);
+const locationDetails: Ref<LocationDetails> = ref(null);
+const chartData: Ref<ChartData<'bar'>> = ref(null);
+const chartOptions: Ref<ChartOptions<'bar'>> = ref(null);
+const historyLoading: Ref<boolean> = ref(false);
+const detailsLoading: Ref<boolean> = ref(false);
+const historyError: Ref<boolean> = ref(false);
+const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
 
-  const refreshIntervalDuration = computed(() => {
-    const period = generalConfigStore.selectedHistoryPeriod;
-    return period.defaultBucketSize === HistoryBucket.MINUTES_15
-      ? MINUTELY_HISTORICAL_DATA_REFRESH_INTERVAL
-      : HOURLY_HISTORICAL_DATA_REFRESH_INTERVAL;
-  });
+const timezoneSelectShown: Ref<boolean> = computed(() => {
+  const userOffset = DateTime.now().toFormat('ZZ');
+  const locationOffset = DateTime.now().setZone(locationDetails?.value?.timezone).toFormat('ZZ');
+  return userOffset !== locationOffset;
+});
 
-  const { startRefreshInterval, stopRefreshInterval, resetIntervalDuration } = useIntervalRefresh(
-    () => {
-      chartOptions.value.animation = false;
-      return fetchLocationHistory(mapLocationData.value?.locationId);
-    },
-    refreshIntervalDuration.value,
-    {
-      skipFirstRefresh: true,
-      onError: error => {
-        console.error('Failed to refresh historical data:', error);
-      },
-      skipOnVisibilityHidden: true
+const historicalDataTimeZoneOptions: Ref<HistoricalDataTimeZoneConfig[]> = computed(() => {
+  return HISTORICAL_DATA_TIMEZONE_OPTIONS.map(option => {
+    let label = option.label;
+    const timezone =
+      option.value === HistoricalDataTimeZone.USER
+        ? userTimezone
+        : locationDetails?.value?.timezone;
+    if (timezone) {
+      label = getTimezoneLabel(timezone);
     }
-  );
-
-  const currentValueData: Ref<{
-    bgColor: string;
-    value: number;
-    textColor: string;
-    labelHTML: string;
-    unit: string;
-  }> = computed(() => {
-    if (!locationHistoryData.value) {
-      return null;
-    }
-
-    let colorConfig: { bgColor: string; textColorClass: string } = {
-      bgColor: '',
-      textColorClass: ''
-    };
-
-    let value = Math.round(mapLocationData.value.value);
-
-    switch (generalConfigStore.selectedMeasure) {
-      case MeasureNames.PM_AQI:
-        value = pm25ToAQI(value);
-        colorConfig = getAQIColor(value);
-        break;
-      case MeasureNames.CO2:
-        colorConfig = getCO2Color(value);
-        break;
-      default:
-        colorConfig = getPM25Color(value);
-        break;
-    }
-
     return {
-      bgColor: colorConfig.bgColor,
-      value: value,
-      unit: MEASURE_UNITS[generalConfigStore.selectedMeasure],
-      labelHTML: MEASURE_LABELS_SUBSCRIPTS[generalConfigStore.selectedMeasure],
-      textColor: colorConfig.textColorClass
+      value: option.value,
+      label
     };
   });
+});
 
-  async function fetchLocationDetails(locationId: number): Promise<void> {
-    detailsLoading.value = true;
-    try {
-      const response = await $fetch<LocationDetails>(`${apiUrl}/locations/${locationId}`, {
+const selectedHistoricalDataTimeZoneConfig: Ref<HistoricalDataTimeZoneConfig> = computed(() => {
+  return historicalDataTimeZoneOptions.value.find(
+    option => option.value === generalConfigStore.selectedHistoricalDataTimeZoneConfig
+  );
+});
+
+const refreshIntervalDuration = computed(() => {
+  const period = generalConfigStore.selectedHistoryPeriod;
+  return period.defaultBucketSize === HistoryBucket.MINUTES_15
+    ? MINUTELY_HISTORICAL_DATA_REFRESH_INTERVAL
+    : HOURLY_HISTORICAL_DATA_REFRESH_INTERVAL;
+});
+
+const { startRefreshInterval, stopRefreshInterval, resetIntervalDuration } = useIntervalRefresh(
+  () => {
+    chartOptions.value.animation = false;
+    return fetchLocationHistory(mapLocationData.value?.locationId);
+  },
+  refreshIntervalDuration.value,
+  {
+    skipFirstRefresh: true,
+    onError: error => {
+      handleApiError(error, 'Failed to refresh chart data');
+    },
+    skipOnVisibilityHidden: true
+  }
+);
+
+const currentValueData: Ref<{
+  bgColor: string;
+  value: number;
+  textColor: string;
+  labelHTML: string;
+  unit: string;
+}> = computed(() => {
+  if (!locationHistoryData.value) {
+    return null;
+  }
+
+  let colorConfig: { bgColor: string; textColorClass: string } = {
+    bgColor: '',
+    textColorClass: ''
+  };
+
+  let value = Math.round(mapLocationData.value.value);
+
+  switch (generalConfigStore.selectedMeasure) {
+    case MeasureNames.PM_AQI:
+      value = pm25ToAQI(value);
+      colorConfig = getAQIColor(value);
+      break;
+    case MeasureNames.CO2:
+      colorConfig = getCO2Color(value);
+      break;
+    default:
+      colorConfig = getPM25Color(value);
+      break;
+  }
+
+  return {
+    bgColor: colorConfig.bgColor,
+    value: value,
+    unit: MEASURE_UNITS[generalConfigStore.selectedMeasure],
+    labelHTML: MEASURE_LABELS_SUBSCRIPTS[generalConfigStore.selectedMeasure],
+    textColor: colorConfig.textColorClass
+  };
+});
+
+async function fetchLocationDetails(locationId: number): Promise<void> {
+  detailsLoading.value = true;
+  try {
+    const response = await $fetch<LocationDetails>(`${apiUrl}/locations/${locationId}`, {
+      retry: 1
+    });
+    locationDetails.value = response;
+  } catch (error) {
+    handleApiError(error, 'Failed to load location details');
+  } finally {
+    detailsLoading.value = false;
+  }
+}
+
+async function fetchLocationHistory(locationId: number): Promise<LocationHistoryData> {
+  historyLoading.value = true;
+  historyError.value = false;
+  
+  const { start, end } = getDateRangeFromToday(
+    generalConfigStore.selectedHistoryPeriod.unit,
+    generalConfigStore.selectedHistoryPeriod.count
+  );
+  const measure =
+    generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
+      ? MeasureNames.PM25
+      : generalConfigStore.selectedMeasure;
+
+  try {
+    const response = await $fetch<LocationHistoryData>(
+      `${apiUrl}/locations/${locationId}/measures/history`,
+      {
+        params: {
+          start,
+          end,
+          bucketSize: generalConfigStore.selectedHistoryPeriod.defaultBucketSize,
+          measure
+        },
         retry: 1
-      });
-      locationDetails.value = response;
-    } catch (error) {
-      console.error('Failed to fetch location details:', error);
-    } finally {
-      detailsLoading.value = false;
-    }
-  }
-
-  async function fetchLocationHistory(locationId: number): Promise<LocationHistoryData> {
-    historyLoading.value = true;
-    const { start, end } = getDateRangeFromToday(
-      generalConfigStore.selectedHistoryPeriod.unit,
-      generalConfigStore.selectedHistoryPeriod.count
+      }
     );
-    const measure =
-      generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
-        ? MeasureNames.PM25
-        : generalConfigStore.selectedMeasure;
-
-    try {
-      const response = await $fetch<LocationHistoryData>(
-        `${apiUrl}/locations/${locationId}/measures/history`,
-        {
-          params: {
-            start,
-            end,
-            bucketSize: generalConfigStore.selectedHistoryPeriod.defaultBucketSize,
-            measure
-          },
-          retry: 1
-        }
-      );
-      locationHistoryData.value = response;
-
-      return response;
-    } catch (error) {
-      console.error('Failed to fetch location history:', error);
-      return null;
-    } finally {
-      historyLoading.value = false;
-    }
+    locationHistoryData.value = response;
+    return response;
+  } catch (error) {
+    historyError.value = true;
+    handleApiError(error, 'Failed to load historical data');
+    return null;
+  } finally {
+    historyLoading.value = false;
   }
+}
 
-  function handleHistoricalDataTimeZoneChange(timezone: HistoricalDataTimeZone) {
-    useGeneralConfigStore().setSelectedHistoricalDataTimeZoneConfig(timezone);
-  }
-
-  function handleChartPeriodChange(period: HistoryPeriod) {
-    chartOptions.value.animation = {
-      duration: 100
-    };
-    const periodConfig = HISTORY_PERIODS.find(
-      (periodConfig: HistoryPeriodConfig) => periodConfig.value === period
-    );
-    useGeneralConfigStore().setSelectedHistoryPeriod(periodConfig);
+function retryFetchHistory() {
+  if (mapLocationData.value?.locationId) {
     fetchLocationHistory(mapLocationData.value.locationId);
-    resetIntervalDuration(refreshIntervalDuration.value);
   }
+}
 
-  onMounted(() => {
-    mapLocationData.value = props.dialog?.data.location;
-    if (mapLocationData.value) {
-      fetchLocationHistory(mapLocationData.value.locationId);
-      fetchLocationDetails(mapLocationData.value.locationId);
-      startRefreshInterval();
-    }
-  });
+function handleHistoricalDataTimeZoneChange(timezone: HistoricalDataTimeZone) {
+  useGeneralConfigStore().setSelectedHistoricalDataTimeZoneConfig(timezone);
+}
 
-  onUnmounted(() => {
-    stopRefreshInterval();
-  });
+function handleChartPeriodChange(period: HistoryPeriod) {
+  chartOptions.value.animation = {
+    duration: 100
+  };
+  const periodConfig = HISTORY_PERIODS.find(
+    (periodConfig: HistoryPeriodConfig) => periodConfig.value === period
+  );
+  useGeneralConfigStore().setSelectedHistoryPeriod(periodConfig);
+  fetchLocationHistory(mapLocationData.value.locationId);
+  resetIntervalDuration(refreshIntervalDuration.value);
+}
 
-  watch(locationHistoryData, (newData: LocationHistoryData) => {
-    if (newData && newData.data) {
-      const { chartData: data, chartValues } = useChartjsData({
-        data: newData.data,
-        measure: generalConfigStore.selectedMeasure
-      });
-      chartData.value = data;
+onMounted(() => {
+  mapLocationData.value = props.dialog?.data.location;
+  if (mapLocationData.value) {
+    fetchLocationHistory(mapLocationData.value.locationId);
+    fetchLocationDetails(mapLocationData.value.locationId);
+    startRefreshInterval();
+  }
+});
 
-      const annotations = useChartJsAnnotations({
-        data: chartValues
-      });
+onUnmounted(() => {
+  stopRefreshInterval();
+});
 
-      chartOptions.value = useChartjsOptions({
-        measure: generalConfigStore.selectedMeasure,
-        animated: true,
-        annotations,
-        timezone:
-          selectedHistoricalDataTimeZoneConfig.value.value === HistoricalDataTimeZone.USER
-            ? userTimezone
-            : locationDetails?.value?.timezone
-      });
-    }
-  });
+watch(locationHistoryData, (newData: LocationHistoryData) => {
+  if (newData && newData.data) {
+    const { chartData: data, chartValues } = useChartjsData({
+      data: newData.data,
+      measure: generalConfigStore.selectedMeasure
+    });
+    chartData.value = data;
 
-  watch(selectedHistoricalDataTimeZoneConfig, (newConfig: HistoricalDataTimeZoneConfig) => {
-    if (!chartOptions.value) {
-      return;
-    }
+    const annotations = useChartJsAnnotations({
+      data: chartValues
+    });
+
     chartOptions.value = useChartjsOptions({
       measure: generalConfigStore.selectedMeasure,
       animated: true,
-      annotations: chartOptions.value.plugins.annotation.annotations as Record<
-        string,
-        AnnotationOptions
-      >,
+      annotations,
       timezone:
-        newConfig.value === HistoricalDataTimeZone.LOCAL ? locationDetails?.value?.timezone : null
+        selectedHistoricalDataTimeZoneConfig.value.value === HistoricalDataTimeZone.USER
+          ? userTimezone
+          : locationDetails?.value?.timezone
     });
+  }
+});
+
+watch(selectedHistoricalDataTimeZoneConfig, (newConfig: HistoricalDataTimeZoneConfig) => {
+  if (!chartOptions.value) {
+    return;
+  }
+  chartOptions.value = useChartjsOptions({
+    measure: generalConfigStore.selectedMeasure,
+    animated: true,
+    annotations: chartOptions.value.plugins.annotation.annotations as Record<
+      string,
+      AnnotationOptions
+    >,
+    timezone:
+      newConfig.value === HistoricalDataTimeZone.LOCAL ? locationDetails?.value?.timezone : null
   });
+});
 </script>
 
 <style lang="scss" scoped>
+.chart-container {
+  height: 350px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
   .chart-container {
-    height: 350px;
-    width: 100%;
+    height: 270px;
   }
+}
 
-  @media (max-width: 768px) {
-    .chart-container {
-      height: 270px;
-    }
-  }
+.location-name {
+  white-space: normal;
+  text-align: center;
+}
 
-  .location-name {
-    white-space: normal;
-    text-align: center;
-  }
+.chart-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
 
-  .chart-controls {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-  }
+.period-control {
+  max-width: 165px;
+}
 
-  .period-control {
-    max-width: 165px;
-  }
+.tz-control {
+  max-width: fit-content;
+}
 
-  .tz-control {
-    max-width: fit-content;
-  }
+.current-values {
+  border-radius: 5px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+}
 
-  .current-values {
-    border-radius: 5px;
-    display: flex;
-    gap: 15px;
-    align-items: center;
-    justify-content: center;
-  }
+.text-dark .measure-icon {
+  filter: brightness(0) invert(0);
+}
 
-  .text-dark .measure-icon {
-    filter: brightness(0) invert(0);
-  }
+.unit-label {
+  font-size: var(--font-size-sm);
+}
 
-  .unit-label {
-    font-size: var(--font-size-sm);
-  }
+.current-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
 
-  .current-label {
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-medium);
-  }
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  text-align: center;
+  color: #666;
+}
 </style>

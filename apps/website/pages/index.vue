@@ -3,35 +3,13 @@
     <Map />
   </ClientOnly>
 </template>
-<script lang="ts" setup>
-  import { useHead } from 'nuxt/app';
 
-  useHead({
-    title: 'AirGradient Global Air Quality Map',
-    meta: [
-      {
-        name: 'description',
-        content: 'Check real-time air quality data around the world using our interactive map.'
-      },
-      {
-        name: 'keywords',
-        content: 'air quality, AQI, real-time air pollution, air monitoring, world air quality'
-      }
-    ],
-    script: [
-      {
-        type: 'application/ld+json',
-        children: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'WebPage',
-          name: 'AirGradient Global Air Quality Map',
-          description: 'View live air quality data from various locations worldwide.',
-          mainEntity: {
-            '@type': 'Place',
-            name: 'World'
-          }
-        })
-      }
-    ]
-  });
+<script setup lang="ts">
+import { useToast } from '~/composables/useToast'
+const { showSuccess, showError, showWarning, showInfo } = useToast()
+
+const testSuccess = () => showSuccess('Success message!')
+const testError = () => showError('Error message!')
+const testWarning = () => showWarning('Warning message!')
+const testInfo = () => showInfo('Info message!')
 </script>
