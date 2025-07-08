@@ -124,39 +124,7 @@
       }
     }
 
-    .ag-dropdown-control .v-list-item {
-      position: relative;
-      overflow: hidden;
-      transition: height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      height: 40px;
-      max-height: 40px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-    .ag-dropdown-control .v-list-item .v-list-item-title {
-      display: block !important;
-      width: 100% !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
-      transition:
-        white-space 0.2s,
-        height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .ag-dropdown-control .v-list-item:hover {
-      height: auto !important;
-      max-height: none !important;
-      white-space: normal;
-      z-index: 2;
-    }
-    .ag-dropdown-control .v-list-item:hover .v-list-item-title {
-      white-space: normal !important;
-      overflow: visible !important;
-      text-overflow: unset !important;
-      word-break: break-word !important;
-      height: auto !important;
-      font-weight: bold !important;
-    }
+
   }
   // Ensure dropdown menu gets our class
   .ag-dropdown-menu {
