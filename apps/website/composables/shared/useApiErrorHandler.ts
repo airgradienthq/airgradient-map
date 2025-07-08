@@ -3,7 +3,7 @@ import { useToast } from '~/composables/useToast';
 export const useApiErrorHandler = () => {
   const { showError } = useToast();
 
-  const handleApiError = (error: any, customMessage?: string) => {
+  const handleApiError = (error: unknown, customMessage?: string) => {
     if (customMessage) {
       showError(customMessage);
       return;

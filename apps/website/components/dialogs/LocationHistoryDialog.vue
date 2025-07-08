@@ -66,7 +66,7 @@
           <div v-else-if="!loading && historyError" class="error-state">
             <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
             <p>Unable to load historical data</p>
-            <v-btn @click="retryFetchHistory" variant="outlined" color="primary"> Retry </v-btn>
+            <v-btn variant="outlined" color="primary" @click="retryFetchHistory"> Retry </v-btn>
           </div>
         </div>
       </ClientOnly>
