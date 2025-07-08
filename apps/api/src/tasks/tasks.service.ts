@@ -44,7 +44,21 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
     this.logger.debug('Run job sync OpenAQ locations');
-    const providersId = [118, 119, 70]; // air4thai, airnow, eea
+    const providers = [
+      { sourceName: 'air4thai', id: 118 },
+      { sourceName: 'airnow', id: 119 },
+      { sourceName: 'eea', id: 70 },
+      { sourceName: 'Australia - Queensland', id: 154 },
+      { sourceName: 'Australia - Tasmania', id: 156 },
+      { sourceName: 'Chile - SINCA', id: 164 },
+      { sourceName: 'CPCB', id: 168 },
+      { sourceName: 'canterbury-nz', id: 17 },
+      { sourceName: 'korea-air', id: 69 },
+      { sourceName: 'japan-soramame', id: 63 },
+      { sourceName: 'Sinaica Mexico', id: 223 },
+      { sourceName: 'Taiwan', id: 279 },
+    ];
+    const providersId = providers.map(p => p.id);
 
     const before = Date.now();
 
@@ -172,7 +186,13 @@ export class TasksService {
         locations.push(location);
       }
 
-      this.tasksRepository.upsertOpenAQLocations(locations);
+      if (locations.length > 0) {
+        this.tasksRepository.upsertOpenAQLocations(locations);
+      } else {
+        this.logger.debug(
+          `No locations for the provider id '${providerId}' on page ${pageCounter}`,
+        );
+      }
 
       // Sometimes `found` field is a string
       const t = typeof data.meta.found;
