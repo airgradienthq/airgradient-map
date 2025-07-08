@@ -10,6 +10,13 @@
     </UiIconButton>
   </div>
 
+  <div class="map-geolocation-btn-box">
+    <UiGeolocationButton
+      @location-found="handleLocationFound"
+      @error="handleGeolocationError"
+    />
+  </div>
+
   <UiProgressBar :show="loading"></UiProgressBar>
   <div id="map">
     <div class="map-controls">
@@ -71,6 +78,7 @@
   import { useIntervalRefresh } from '~/composables/shared/useIntervalRefresh';
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
+  import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import { useStorage } from '@vueuse/core';
 
   const loading = ref<boolean>(false);
@@ -264,6 +272,26 @@
     } else {
       updateMap();
     }
+  }
+
+  /**
+   * Handle successful geolocation
+   */
+  function handleLocationFound(lat: number, lng: number): void {
+    if (mapInstance) {
+      mapInstance.flyTo([lat, lng], 12, {
+        animate: true,
+        duration: 1.2
+      });
+    }
+  }
+
+  /**
+   * Handle geolocation error
+   */
+  function handleGeolocationError(message: string): void {
+    console.error('Geolocation error:', message);
+    // Could show a toast notification here if available
   }
 
   onMounted(() => {
@@ -502,6 +530,13 @@
   .map-info-btn-box {
     position: absolute;
     top: 90px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .map-geolocation-btn-box {
+    position: absolute;
+    top: 134px;
     left: 10px;
     z-index: 999;
   }
