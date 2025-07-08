@@ -11,10 +11,7 @@
   </div>
 
   <div class="map-geolocation-btn-box">
-    <UiGeolocationButton
-      @location-found="handleLocationFound"
-      @error="handleGeolocationError"
-    />
+    <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
   </div>
 
   <UiProgressBar :show="loading"></UiProgressBar>

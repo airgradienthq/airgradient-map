@@ -20,7 +20,7 @@
   }
 
   const emit = defineEmits<GeolocationButtonEmits>();
-  
+
   const { isLoading, error, getCurrentLocation } = useGeolocation();
 
   /**
@@ -28,7 +28,7 @@
    */
   const handleGeolocation = async () => {
     const location = await getCurrentLocation();
-    
+
     if (location) {
       emit('locationFound', location.lat, location.lng);
     } else if (error.value) {

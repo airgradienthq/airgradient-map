@@ -33,12 +33,12 @@ export const useGeolocation = () => {
               enableHighAccuracy: false
             });
           });
-          
+
           return {
             lat: position.coords.latitude,
             lng: position.coords.longitude
           };
-        } catch (geoError) {
+        } catch {
           // Fall back to IP geolocation if browser geolocation fails
           console.log('Browser geolocation failed, falling back to IP geolocation');
         }
@@ -46,17 +46,17 @@ export const useGeolocation = () => {
 
       // Fallback to IP-based geolocation
       const response = await fetch('https://ipapi.co/json/');
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.reason || 'Geolocation service error');
       }
-      
+
       return {
         lat: data.latitude,
         lng: data.longitude,
