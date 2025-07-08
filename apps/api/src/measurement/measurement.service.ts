@@ -29,7 +29,13 @@ export class MeasurementService {
 
   async getLastMeasurements(measure?: string, page = 1, pagesize = 100) {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    return await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
+    const measurements = await this.measurementRepository.retrieveLatest(
+      offset,
+      pagesize,
+      measure,
+    );
+
+    return this.setEPACorrectedPM(measurements);
   }
 
   async getLastMeasurementsByArea(
@@ -46,13 +52,8 @@ export class MeasurementService {
       yMax,
       measure,
     );
-    if (measure === 'pm25') {
-      return measurements.map(point => {
-        const correctedPM = getEPACorrectedPM(point.pm25, point.rhum);
-        return { ...point, pm25: correctedPM };
-      });
-    }
-    return measurements;
+
+    return this.setEPACorrectedPM(measurements);
   }
 
   async getLastMeasurementsByCluster(
@@ -64,7 +65,7 @@ export class MeasurementService {
     measure?: string,
   ): Promise<MeasurementCluster[]> {
     // Default set to pm25 if not provided
-    let measurementType = measure === null ? 'pm25' : measure;
+    measure = measure || 'pm25';
 
     // Query locations by certain area with measurementType as the value
     const locations = await this.measurementRepository.retrieveLatestByArea(
@@ -72,7 +73,7 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
-      measurementType,
+      measure,
     );
     if (locations.length === 0) {
       // Directly return if query result empty
@@ -83,7 +84,7 @@ export class MeasurementService {
     let geojson = new Array<any>();
     locations.map(point => {
       const value =
-        measurementType === 'pm25' ? getEPACorrectedPM(point.pm25, point.rhum) : point[measure];
+      measure === 'pm25' ? getEPACorrectedPM(point.pm25, point.rhum) : point[measure];
       geojson.push({
         type: 'Feature',
         geometry: {
@@ -123,5 +124,14 @@ export class MeasurementService {
     );
 
     return clustersModel;
+  }
+
+  private setEPACorrectedPM(measurements: MeasurementEntity[]) {
+    return measurements.map(point => {
+      if (point.pm25 || point.pm25 === 0) {
+        point.pm25 = getEPACorrectedPM(point.pm25, point.rhum);
+      }
+      return point;
+    });
   }
 }

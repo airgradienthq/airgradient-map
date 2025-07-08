@@ -17,10 +17,8 @@ export class LocationService {
 
   async getLocationLastMeasures(id: number) {
     const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
-    return {
-      ...results,
-      pm25: getEPACorrectedPM(results.pm25, results.rhum),
-    };
+    results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
+    return results;
   }
 
   async getLocationMeasuresHistory(
