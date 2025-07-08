@@ -41,7 +41,7 @@ export class TasksService {
       this.logger.debug(
         `Successfully insert new airgradient latest measures. Time spend ${duration}ms`,
       );
-      
+
       // Flush all redis-cache data to guarantee cache consistency after database updates.
       await this.redisCacheService.flushdb();
     }
