@@ -9,7 +9,9 @@ export const useApiErrorHandler = () => {
       return;
     }
 
-    const status = error?.response?.status;
+    const status = (error && typeof error === 'object' && 'response' in error && (error as any).response?.status)
+      ? (error as any).response.status
+      : undefined;
     switch (status) {
       case 404:
         showError('Data not found');
