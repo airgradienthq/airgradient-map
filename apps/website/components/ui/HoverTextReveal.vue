@@ -1,9 +1,5 @@
 <template>
-  <div
-    ref="elementRef"
-    class="hover-text-reveal"
-    :style="{ maxWidth: maxWidth }"
-  >
+  <div ref="elementRef" class="hover-text-reveal" :style="{ maxWidth: maxWidth }">
     <slot />
   </div>
 </template>
@@ -48,4 +44,4 @@
     white-space: nowrap;
     text-overflow: ellipsis;
   }
-</style> 
+</style>

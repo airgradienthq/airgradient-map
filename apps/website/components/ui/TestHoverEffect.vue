@@ -1,18 +1,20 @@
 <template>
   <div class="test-hover-container">
     <h3>Test Hover Text Reveal Effects</h3>
-    
+
     <div class="test-item">
       <label>Directive Test (v-slide-reveal):</label>
       <div v-slide-reveal class="test-text">
-        This is a very long text that should slide left on hover and then slide back to the beginning
+        This is a very long text that should slide left on hover and then slide back to the
+        beginning
       </div>
     </div>
 
     <div class="test-item">
       <label>Component Test (HoverTextReveal):</label>
       <HoverTextReveal class="test-text">
-        This is another very long text that should slide left on hover and then slide back to the beginning
+        This is another very long text that should slide left on hover and then slide back to the
+        beginning
       </HoverTextReveal>
     </div>
 
@@ -75,4 +77,4 @@
   .css-hover-test:hover span {
     transform: translateX(-60px);
   }
-</style> 
+</style>

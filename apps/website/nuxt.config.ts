@@ -45,9 +45,7 @@ export default defineNuxtConfig({
     ],
     '@nuxtjs/leaflet'
   ],
-  plugins: [
-    { src: '~/plugins/geosearch-slide-fix.js', mode: 'client' }
-  ],
+  plugins: [{ src: '~/plugins/geosearch-slide-fix.js', mode: 'client' }],
   nitro: {
     output: {
       dir: process.env.NODE_ENV === 'development' ? '.output-dev' : '.output',

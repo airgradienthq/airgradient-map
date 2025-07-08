@@ -139,7 +139,9 @@
       white-space: nowrap !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
-      transition: white-space 0.2s, height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition:
+        white-space 0.2s,
+        height 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .ag-dropdown-control .v-list-item:hover {
       height: auto !important;
