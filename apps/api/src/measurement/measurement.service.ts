@@ -29,11 +29,7 @@ export class MeasurementService {
 
   async getLastMeasurements(measure?: string, page = 1, pagesize = 100) {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    const measurements = await this.measurementRepository.retrieveLatest(
-      offset,
-      pagesize,
-      measure,
-    );
+    const measurements = await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
 
     return this.setEPACorrectedPM(measurements);
   }
@@ -83,8 +79,7 @@ export class MeasurementService {
     // converting to .geojson features array
     let geojson = new Array<any>();
     locations.map(point => {
-      const value =
-      measure === 'pm25' ? getEPACorrectedPM(point.pm25, point.rhum) : point[measure];
+      const value = measure === 'pm25' ? getEPACorrectedPM(point.pm25, point.rhum) : point[measure];
       geojson.push({
         type: 'Feature',
         geometry: {
