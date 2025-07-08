@@ -10,29 +10,29 @@
 </template>
 
 <script lang="ts" setup>
-import { getPlatform, isNativeApp } from '~/utils';
-import { useHead } from 'nuxt/app';
-import GlobalToast from './components/ui/GlobalToast.vue'
+  import { getPlatform, isNativeApp } from '~/utils';
+  import { useHead } from 'nuxt/app';
+  import GlobalToast from './components/ui/GlobalToast.vue';
 
-useHead({
-  title: 'AirGradient Map'
-});
+  useHead({
+    title: 'AirGradient Map'
+  });
 
-if (process.client) {
-  if (isNativeApp()) {
-    console.log('App is running in a native environment (Capacitor)');
-    const platform = getPlatform();
-    document.body.classList.add('native-app');
+  if (process.client) {
+    if (isNativeApp()) {
+      console.log('App is running in a native environment (Capacitor)');
+      const platform = getPlatform();
+      document.body.classList.add('native-app');
 
-    console.log('Platform:', platform);
-    if (platform === 'ios') {
-      document.body.classList.add('ios');
+      console.log('Platform:', platform);
+      if (platform === 'ios') {
+        document.body.classList.add('ios');
+      } else {
+        document.body.classList.add('android');
+      }
     } else {
-      document.body.classList.add('android');
+      console.log('App is running in a web environment');
+      document.body.classList.add('web-app');
     }
-  } else {
-    console.log('App is running in a web environment');
-    document.body.classList.add('web-app');
   }
-}
 </script>

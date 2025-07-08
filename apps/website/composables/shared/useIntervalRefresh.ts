@@ -29,7 +29,7 @@ export function useIntervalRefresh<T>(
       options?.onSuccess?.();
     } catch (error) {
       const err = error as Error;
-      
+
       if (options?.onError) {
         options.onError(err);
       } else {
