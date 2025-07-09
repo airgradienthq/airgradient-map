@@ -1,4 +1,17 @@
 import { useToast } from '~/composables/useToast';
+interface ApiError {
+  response?: {
+    status?: number;
+  };
+}
+
+const hasResponse = (error: unknown): error is ApiError => {
+  return (
+    error &&
+    typeof error === 'object' &&
+    'response' in error
+  );
+};
 
 export const useApiErrorHandler = () => {
   const { showError } = useToast();
@@ -9,13 +22,8 @@ export const useApiErrorHandler = () => {
       return;
     }
 
-    const status =
-      error &&
-      typeof error === 'object' &&
-      'response' in error &&
-      (error as unknown).response?.status
-        ? (error as any).response.status
-        : undefined;
+    const status = hasResponse(error) ? error.response?.status : undefined;
+    
     switch (status) {
       case 404:
         showError('Data not found');
