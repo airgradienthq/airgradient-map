@@ -20,7 +20,7 @@
       <div class="row justify-center">
         <div v-if="error?.statusCode === 404" class="col-md-6 text-center mb-5 mb-md-0">
           <img 
-            src="https://www.airgradient.com/images/404.jpg" 
+            src="./assets/images/404.jpg" 
             class="img-fluid"
             alt="404 Error"
           />
