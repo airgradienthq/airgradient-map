@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
-import DatabaseModule from './database/database.module';
-import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
+
+import DatabaseModule from './database/database.module';
+import RedisCacheModule from './redis-cache/redis-cache.module';
+import { TasksModule } from './tasks/tasks.module';
 import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
 
@@ -23,6 +25,15 @@ import { LocationModule } from './location/location.module';
         user: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASSWORD'),
         database: configService.get('DATABASE_NAME'),
+      }),
+    }),
+    RedisCacheModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        host: configService.get('REDIS_HOST'),
+        port: +configService.get<number>('REDIS_PORT'),
+        db: +configService.get<number>('REDIS_DB') || 0,
       }),
     }),
     MeasurementModule,

@@ -6,7 +6,7 @@ AirGradient Map API is a backend service that stores and serves air quality data
 
 ### Backend Service
 
-API docs are available [here](https://map-data-int.airgradient.com/map/api/v1/docs) or if service available locally, go to http://localhost:3000/map/api/v1/docs. 
+API docs are available [here](https://map-data-int.airgradient.com/map/api/v1/docs) or if service available locally, go to http://localhost:3001/map/api/v1/docs. 
 
 #### Tasks
 

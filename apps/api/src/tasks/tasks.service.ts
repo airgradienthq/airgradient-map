@@ -1,10 +1,12 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import TasksRepository from './tasks.repository';
+import { ConfigService } from '@nestjs/config';
+
 import { TasksHttp } from './tasks.http';
 import { AirgradientModel } from './tasks.model';
-import { ConfigService } from '@nestjs/config';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
+import TasksRepository from './tasks.repository';
+import RedisCacheService from '../redis-cache/redis-cache.service';
 
 @Injectable()
 export class TasksService {
@@ -14,6 +16,7 @@ export class TasksService {
     private readonly tasksRepository: TasksRepository,
     private readonly http: TasksHttp,
     private readonly configService: ConfigService,
+    private readonly redisCacheService: RedisCacheService,
   ) {
     const apiKey = this.configService.get<string>('API_KEY_OPENAQ');
     if (apiKey) {
@@ -38,6 +41,9 @@ export class TasksService {
       this.logger.debug(
         `Successfully insert new airgradient latest measures. Time spend ${duration}ms`,
       );
+
+      // Flush all redis-cache data to guarantee cache consistency after database updates.
+      await this.redisCacheService.flushdb();
     }
   }
 
