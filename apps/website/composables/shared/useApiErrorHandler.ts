@@ -1,16 +1,15 @@
 import { useToast } from '~/composables/useToast';
+
+// Define a type for API errors with response property
 interface ApiError {
   response?: {
     status?: number;
   };
 }
 
+// Type guard to check if error has response property
 const hasResponse = (error: unknown): error is ApiError => {
-  return (
-    error &&
-    typeof error === 'object' &&
-    'response' in error
-  );
+  return error && typeof error === 'object' && 'response' in error;
 };
 
 export const useApiErrorHandler = () => {
@@ -23,7 +22,7 @@ export const useApiErrorHandler = () => {
     }
 
     const status = hasResponse(error) ? error.response?.status : undefined;
-    
+
     switch (status) {
       case 404:
         showError('Data not found');
