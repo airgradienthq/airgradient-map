@@ -5,6 +5,7 @@ import { TasksHttp } from './tasks.http';
 import { AirgradientModel } from './tasks.model';
 import { ConfigService } from '@nestjs/config';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
+import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
 
 @Injectable()
 export class TasksService {
@@ -44,21 +45,7 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
     this.logger.debug('Run job sync OpenAQ locations');
-    const providers = [
-      { sourceName: 'air4thai', id: 118 },
-      { sourceName: 'airnow', id: 119 },
-      { sourceName: 'eea', id: 70 },
-      { sourceName: 'Australia - Queensland', id: 154 },
-      { sourceName: 'Australia - Tasmania', id: 156 },
-      { sourceName: 'Chile - SINCA', id: 164 },
-      { sourceName: 'CPCB', id: 168 },
-      { sourceName: 'canterbury-nz', id: 17 },
-      { sourceName: 'korea-air', id: 69 },
-      { sourceName: 'japan-soramame', id: 63 },
-      { sourceName: 'Sinaica Mexico', id: 223 },
-      { sourceName: 'Taiwan', id: 279 },
-    ];
-    const providersId = providers.map(p => p.id);
+    const providersId = OPENAQ_PROVIDERS.map(p => p.id);
 
     const before = Date.now();
 
