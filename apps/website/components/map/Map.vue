@@ -545,24 +545,5 @@ L
   .leaflet-control-geosearch .results > *.active {
     background: var(--light-primary-color, #f5f5f5) !important;
     border-radius: 4px;
-    /* Remove all expansion and animation effects */
-    height: 40px;
-    line-height: 40px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 18px;
-  }
-
-  .leaflet-control-geosearch .results > *:hover span,
-  .leaflet-control-geosearch .results > *:hover div,
-  .leaflet-control-geosearch .results > *.active span,
-  .leaflet-control-geosearch .results > *.active div {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    height: 40px;
-    line-height: 40px;
-    font-size: 18px;
   }
 </style>
