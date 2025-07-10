@@ -1,11 +1,5 @@
 import { ref, Ref } from 'vue';
-
-export interface GeolocationResult {
-  lat: number;
-  lng: number;
-  city?: string;
-  country?: string;
-}
+import { GeolocationResult } from '~/types/shared/geolocation';
 
 /**
  * Composable for IP-based geolocation functionality
@@ -24,27 +18,6 @@ export const useGeolocation = () => {
     error.value = null;
 
     try {
-      // Try browser geolocation first (more accurate)
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              timeout: 5000,
-              enableHighAccuracy: false
-            });
-          });
-
-          return {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-        } catch {
-          // Fall back to IP geolocation if browser geolocation fails
-          console.log('Browser geolocation failed, falling back to IP geolocation');
-        }
-      }
-
-      // Fallback to IP-based geolocation
       const response = await fetch('https://ipapi.co/json/');
 
       if (!response.ok) {
