@@ -5,6 +5,7 @@ import { TasksHttp } from './tasks.http';
 import { AirgradientModel } from './tasks.model';
 import { ConfigService } from '@nestjs/config';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
+import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
 
 @Injectable()
 export class TasksService {
@@ -44,7 +45,7 @@ export class TasksService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
     this.logger.debug('Run job sync OpenAQ locations');
-    const providersId = [118, 119, 70]; // air4thai, airnow, eea
+    const providersId = OPENAQ_PROVIDERS.map(p => p.id);
 
     const before = Date.now();
 
@@ -172,7 +173,13 @@ export class TasksService {
         locations.push(location);
       }
 
-      this.tasksRepository.upsertOpenAQLocations(locations);
+      if (locations.length > 0) {
+        this.tasksRepository.upsertOpenAQLocations(locations);
+      } else {
+        this.logger.debug(
+          `No locations for the provider id '${providerId}' on page ${pageCounter}`,
+        );
+      }
 
       // Sometimes `found` field is a string
       const t = typeof data.meta.found;
