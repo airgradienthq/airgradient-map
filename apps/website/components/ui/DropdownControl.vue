@@ -8,7 +8,6 @@
     class="ag-dropdown-control"
     variant="outlined"
     :density="props.size === DropdownSize.NORMAL ? 'comfortable' : 'compact'"
-    :menu-props="{ contentClass: 'ag-dropdown-menu' }"
     @update:modelValue="handleChange"
   />
 </template>
@@ -123,9 +122,5 @@
         border-color: var(--main-disabled-color);
       }
     }
-  }
-  // Ensure dropdown menu gets our class
-  .ag-dropdown-menu {
-    // No extra styles needed, just for targeting
   }
 </style>
