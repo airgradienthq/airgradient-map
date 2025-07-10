@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Validate, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
+import {
+  IsString,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'IsStartBeforeEnd', async: false })
 class IsStartBeforeEndConstraint implements ValidatorConstraintInterface {
@@ -10,7 +16,7 @@ class IsStartBeforeEndConstraint implements ValidatorConstraintInterface {
     const endDate = new Date(object.end);
     return startDate < endDate;
   }
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage() {
     return 'Start date must be before end date';
   }
 }
