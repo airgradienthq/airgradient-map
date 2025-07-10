@@ -21,9 +21,60 @@
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast';
 
+  /**
+   * Toast notification types supported by the component
+   */
+  export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+  /**
+   * Toast color mapping for Vuetify components
+   */
+  export type ToastColor = 'success' | 'error' | 'warning' | 'info';
+
+  /**
+   * Toast icon mapping for Material Design Icons
+   */
+  export type ToastIcon = 'mdi-check-circle' | 'mdi-alert-circle' | 'mdi-alert' | 'mdi-information';
+
+  const props = defineProps({
+    /**
+     * Custom location for the toast position.
+     * @type {string}
+     * @default 'top right'
+     */
+    location: {
+      type: String,
+      default: 'top right'
+    },
+    /**
+     * Custom timeout duration in milliseconds.
+     * @type {number | string}
+     * @default 5000
+     */
+    timeout: {
+      type: [Number, String],
+      default: 5000
+    },
+    /**
+     * Whether to show the close button.
+     * @type {boolean}
+     * @default true
+     */
+    closable: {
+      type: Boolean,
+      default: true
+    }
+  });
+
+  // Toast composable for global state management
   const { toast, hideToast } = useToast();
 
-  const getColor = (type?: string) => {
+  /**
+   * Maps toast type to corresponding Vuetify color theme.
+   * @param {ToastType} type - The toast type to map.
+   * @returns {ToastColor} The corresponding Vuetify color theme.
+   */
+  const getColor = (type?: ToastType): ToastColor => {
     switch (type) {
       case 'success':
         return 'success';
@@ -36,7 +87,12 @@
     }
   };
 
-  const getIcon = (type?: string) => {
+  /**
+   * Maps toast type to corresponding Material Design Icon.
+   * @param {ToastType} type - The toast type to map.
+   * @returns {ToastIcon} The corresponding MDI icon name.
+   */
+  const getIcon = (type?: ToastType): ToastIcon => {
     switch (type) {
       case 'success':
         return 'mdi-check-circle';
@@ -49,7 +105,14 @@
     }
   };
 
-  const onUpdate = (value: boolean) => {
-    if (!value) hideToast();
+  /**
+   * Handles the snackbar model value update event.
+   * Triggers hideToast when the snackbar is closed.
+   * @param {boolean} value - The new model value from v-snackbar.
+   */
+  const onUpdate = (value: boolean): void => {
+    if (!value) {
+      hideToast();
+    }
   };
 </script>
