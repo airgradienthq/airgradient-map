@@ -1,4 +1,4 @@
 export interface OpenAQProviderData {
-    sourceName: string;
-    id: number;
+  sourceName: string;
+  id: number;
 }
