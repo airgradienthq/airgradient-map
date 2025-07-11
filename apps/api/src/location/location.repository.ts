@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
-import LocationEntity from './location.entity';
+import { LocationEntity } from './location.entity';
 import { MeasureType } from 'src/utils/measureTypeQuery';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
@@ -165,10 +165,16 @@ class LocationRepository {
 
     const validationQuery = hasValidation ? `AND m.${measure} BETWEEN $5 AND $6` : '';
 
+    // For pm25, we need both pm25 and rhum for EPA correction
+    const selectClause =
+      measure === 'pm25'
+        ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
+        : `round(avg(m.${measure})::NUMERIC , 2) AS value`;
+
     const query = `
             SELECT
                 date_bin($4, m.measured_at, $2) AS timebucket,
-                round(avg(m.${measure})::NUMERIC , 2) AS value
+                ${selectClause}
             FROM measurement m 
             WHERE 
                 m.location_id = $1 AND 

@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-class Location {
+export class LocationEntity {
   @ApiProperty()
   locationId: number;
 
@@ -47,9 +47,7 @@ class Location {
   @ApiProperty()
   timezone: string;
 
-  constructor(partial: Partial<Location>) {
+  constructor(partial: Partial<LocationEntity>) {
     Object.assign(this, partial);
   }
 }
-
-export default Location;
