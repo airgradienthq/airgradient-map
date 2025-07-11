@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
-import Measurement from './measurement.entity';
+import { MeasurementEntity } from './measurement.entity';
 import { MeasureType } from 'src/utils/measureTypeQuery';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
@@ -38,8 +38,13 @@ class MeasurementRepository {
         validationQuery = `AND m.${measure} BETWEEN $${paramsCount + 1} AND $${paramsCount + 2}`;
       }
 
-      query.selectQuery = `m.${measure}`;
-      query.whereQuery = `WHERE m.${measure} IS NOT NULL ${validationQuery}`;
+      if (measure === 'pm25') {
+        query.selectQuery = `m.pm25, m.rhum`;
+        query.whereQuery = `WHERE m.pm25 IS NOT NULL AND m.rhum IS NOT NULL ${validationQuery}`;
+      } else {
+        query.selectQuery = `m.${measure}`;
+        query.whereQuery = `WHERE m.${measure} IS NOT NULL ${validationQuery}`;
+      }
     }
     return query;
   }
@@ -48,7 +53,7 @@ class MeasurementRepository {
     offset: number = 0,
     limit: number = 100,
     measure?: string,
-  ): Promise<Measurement[]> {
+  ): Promise<MeasurementEntity[]> {
     const params = [offset, limit];
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
       measure,
@@ -92,7 +97,9 @@ class MeasurementRepository {
 
     try {
       const result = await this.databaseService.runQuery(query, params);
-      return result.rows.map((measurement: Partial<Measurement>) => new Measurement(measurement));
+      return result.rows.map(
+        (measurement: Partial<MeasurementEntity>) => new MeasurementEntity(measurement),
+      );
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({
@@ -111,7 +118,7 @@ class MeasurementRepository {
     xMax: number,
     yMax: number,
     measure?: string,
-  ): Promise<Measurement[]> {
+  ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
 
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
@@ -165,7 +172,9 @@ class MeasurementRepository {
       const result = await this.databaseService.runQuery(query, params);
 
       // Return rows while map the result first to measurement entity
-      return result.rows.map((measurement: Partial<Measurement>) => new Measurement(measurement));
+      return result.rows.map(
+        (measurement: Partial<MeasurementEntity>) => new MeasurementEntity(measurement),
+      );
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({

@@ -51,5 +51,4 @@ class TimeseriesQuery {
   @IsString()
   bucketSize: string;
 }
-
 export default TimeseriesQuery;

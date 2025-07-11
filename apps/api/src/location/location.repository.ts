@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
-import LocationEntity from './location.entity';
+import { LocationEntity } from './location.entity';
 import { MeasureType } from 'src/utils/measureTypeQuery';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
@@ -150,6 +150,36 @@ class LocationRepository {
     }
   }
 
+  async retrieveCigarettesSmokedByLocationId(id: number) {
+    const timeframes = [
+      { label: 'last24hours', days: 1 },
+      { label: 'last7days', days: 7 },
+      { label: 'last30days', days: 30 },
+      { label: 'last365days', days: 365 },
+    ];
+    try {
+      const now = new Date();
+      const cigaretteData: Record<string, number> = {};
+      for (const timeframe of timeframes) {
+        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
+        const end = now.toISOString();
+
+        const rows = await this.retrieveLocationMeasuresHistory(id, start, end, '1 day', 'pm25');
+
+        let sum = 0;
+        for (const row of rows) {
+          sum += parseFloat(row.value);
+        }
+        const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
+        cigaretteData[timeframe.label] = cigaretteNumber;
+      }
+      return cigaretteData;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException('Error query retrieve cigarettes smoked');
+    }
+  }
+
   async retrieveLocationMeasuresHistory(
     id: number,
     start: string,
@@ -161,10 +191,16 @@ class LocationRepository {
 
     const validationQuery = hasValidation ? `AND m.${measure} BETWEEN $5 AND $6` : '';
 
+    // For pm25, we need both pm25 and rhum for EPA correction
+    const selectClause =
+      measure === 'pm25'
+        ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
+        : `round(avg(m.${measure})::NUMERIC , 2) AS value`;
+
     const query = `
             SELECT
                 date_bin($4, m.measured_at, $2) AS timebucket,
-                round(avg(m.${measure})::NUMERIC , 2) AS value
+                ${selectClause}
             FROM measurement m 
             WHERE 
                 m.location_id = $1 AND 

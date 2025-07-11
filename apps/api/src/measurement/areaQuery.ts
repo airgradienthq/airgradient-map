@@ -2,44 +2,68 @@ import { IsOptional, IsNotEmpty, IsNumber, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
-class AreaQuery {
-  @ApiProperty({ description: 'south latitude of the area' })
-  @IsNotEmpty()
+export default class AreaQuery {
+  @ApiProperty({
+    description: 'West longitude (minimum longitude value) - leftmost boundary',
+    example: -122.4194,
+    type: Number,
+    minimum: -180,
+    maximum: 180,
+  })
   @IsNumber()
-  @Min(-90)
-  @Max(90)
+  @Min(-180)
+  @Max(180)
   @Type(() => Number)
   xmin: number;
 
-  @ApiProperty({ description: 'west longitude of the area' })
-  @IsNotEmpty()
-  @IsNumber()
-  @Min(-180)
-  @Max(180)
-  @Type(() => Number)
-  ymin: number;
-
-  @ApiProperty({ description: 'north latitude of the area' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'South latitude (minimum latitude value) - bottom boundary',
+    example: 37.7749,
+    type: Number,
+    minimum: -90,
+    maximum: 90,
+  })
   @IsNumber()
   @Min(-90)
   @Max(90)
   @Type(() => Number)
-  xmax: number;
+  ymin: number;
 
-  @ApiProperty({ description: 'east longitude of the area' })
-  @IsNotEmpty()
+  @ApiProperty({
+    description: 'East longitude (maximum longitude value) - rightmost boundary',
+    example: -122.4094,
+    type: Number,
+    minimum: -180,
+    maximum: 180,
+  })
   @IsNumber()
   @Min(-180)
   @Max(180)
   @Type(() => Number)
+  xmax: number;
+
+  @ApiProperty({
+    description: 'North latitude (maximum latitude value) - top boundary',
+    example: 37.7849,
+    type: Number,
+    minimum: -90,
+    maximum: 90,
+  })
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  @Type(() => Number)
   ymax: number;
 
-  @ApiProperty({ description: 'zoom level' })
+  @ApiProperty({
+    description: 'Map zoom level for clustering (higher values = more detailed clustering)',
+    example: 10,
+    type: Number,
+    minimum: 1,
+    maximum: 20,
+  })
   @IsOptional()
   @IsNumber()
   @Type(() => Number)
-  zoom: number;
+  zoom?: number;
 }
-
-export default AreaQuery;
