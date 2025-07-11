@@ -507,43 +507,4 @@ L
     left: 10px;
     z-index: 999;
   }
-
-  /* Increase spacing between results */
-  .leaflet-control-geosearch .results > * {
-    display: flex;
-    align-items: center;
-    height: 40px; /* increased from 36px */
-    line-height: 40px; /* match height for vertical centering */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    width: 100%;
-    padding-right: 8px;
-    position: relative;
-    margin-bottom: 4px; /* add spacing between items */
-    font-size: 18px; /* ensure consistent font size */
-    background: transparent; /* prevent background shift on hover */
-  }
-
-  /* Ensure inner text is also single-line and fills parent */
-  .leaflet-control-geosearch .results > * span,
-  .leaflet-control-geosearch .results > * div {
-    display: block;
-    flex: 1 1 auto;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    height: 40px;
-    line-height: 40px;
-    font-size: 18px; /* match parent */
-  }
-
-  /* On hover, show active state without animation or expansion */
-  .leaflet-control-geosearch .results > *:hover,
-  .leaflet-control-geosearch .results > *.active {
-    background: var(--light-primary-color, #f5f5f5) !important;
-    border-radius: 4px;
-  }
 </style>
