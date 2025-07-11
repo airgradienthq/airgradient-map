@@ -1,5 +1,6 @@
 import { readonly } from 'vue';
 import { onUnmounted, ref } from 'vue';
+import { useToast } from '~/composables/useToast';
 
 export function useIntervalRefresh<T>(
   refreshFunction: () => Promise<T>,
@@ -11,6 +12,7 @@ export function useIntervalRefresh<T>(
     skipOnVisibilityHidden?: boolean;
   }
 ) {
+  const { showError } = useToast();
   const isRefreshIntervalActive = ref(false);
   const intervalRef = ref<NodeJS.Timeout | null>(null);
 
@@ -26,7 +28,13 @@ export function useIntervalRefresh<T>(
       refreshFunction();
       options?.onSuccess?.();
     } catch (error) {
-      options?.onError?.(error as Error);
+      const err = error as Error;
+
+      if (options?.onError) {
+        options.onError(err);
+      } else {
+        showError('Failed to refresh data');
+      }
     }
   };
 
@@ -55,7 +63,7 @@ export function useIntervalRefresh<T>(
     }
   };
 
-  onUnmounted(() => stop());
+  onUnmounted(() => stopRefreshInterval());
 
   return {
     isRefreshIntervalActive: readonly(isRefreshIntervalActive),

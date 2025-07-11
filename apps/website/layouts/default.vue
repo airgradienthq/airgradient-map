@@ -8,6 +8,9 @@
 
   <!-- Internal company Footer component - commented out for open source version -->
   <!-- <Footer /> -->
+
+  <!-- Global Toast Component -->
+  <GlobalToast />
 </template>
 
 <script setup lang="ts"></script>
