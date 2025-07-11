@@ -417,22 +417,6 @@ L
     font-size: 16px !important;
   }
 
-  .leaflet-control-geosearch .results.active {
-    width: 100% !important;
-    margin-left: 0 !important;
-  }
-
-  .results > .active,
-  .leaflet-control-geosearch .results > :hover {
-    color: var(--primary-color);
-    border-radius: 4px;
-    border-color: transparent;
-  }
-
-  .leaflet-control-geosearch .results > *::before {
-    display: none !important;
-  }
-
   .map-controls {
     position: absolute;
     top: 60px;
