@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional } from 'class-validator';
+import { IsOptional, IsNumber, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -11,6 +11,8 @@ export default class AreaQuery {
     maximum: 180,
   })
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   @Type(() => Number)
   xmin: number;
 
@@ -22,6 +24,8 @@ export default class AreaQuery {
     maximum: 90,
   })
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   @Type(() => Number)
   ymin: number;
 
@@ -33,6 +37,8 @@ export default class AreaQuery {
     maximum: 180,
   })
   @IsNumber()
+  @Min(-180)
+  @Max(180)
   @Type(() => Number)
   xmax: number;
 
@@ -44,6 +50,8 @@ export default class AreaQuery {
     maximum: 90,
   })
   @IsNumber()
+  @Min(-90)
+  @Max(90)
   @Type(() => Number)
   ymax: number;
 
