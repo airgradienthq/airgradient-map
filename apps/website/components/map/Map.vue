@@ -72,7 +72,6 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import { useStorage } from '@vueuse/core';
-  // Merge both imports - keeping both the toast error handling and debounce functionality
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
 

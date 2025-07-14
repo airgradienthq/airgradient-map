@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast';
-  import { ToastType, type ToastColor, type ToastIcon } from '~/types/shared/ui';
+  import { ToastType } from '~/types/shared/ui';
 
   const props = defineProps({
     /**
@@ -57,10 +57,8 @@
 
   /**
    * Maps toast type to corresponding Vuetify color theme.
-   * @param {ToastType} type - The toast type to map.
-   * @returns {ToastColor} The corresponding Vuetify color theme.
    */
-  const getColor = (type?: ToastType): ToastColor => {
+  const getColor = (type?: ToastType): string => {
     switch (type) {
       case ToastType.SUCCESS:
         return 'success';
@@ -76,10 +74,8 @@
 
   /**
    * Maps toast type to corresponding Material Design Icon.
-   * @param {ToastType} type - The toast type to map.
-   * @returns {ToastIcon} The corresponding MDI icon name.
    */
-  const getIcon = (type?: ToastType): ToastIcon => {
+  const getIcon = (type?: ToastType): string => {
     switch (type) {
       case ToastType.SUCCESS:
         return 'mdi-check-circle';
@@ -96,7 +92,6 @@
   /**
    * Handles the snackbar model value update event.
    * Triggers hideToast when the snackbar is closed.
-   * @param {boolean} value - The new model value from v-snackbar.
    */
   const onUpdate = (value: boolean): void => {
     if (!value) {
