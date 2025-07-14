@@ -4,12 +4,15 @@
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
+      <GlobalToast />
     </div>
   </Transition>
 </template>
+
 <script lang="ts" setup>
   import { getPlatform, isNativeApp } from '~/utils';
   import { useHead } from 'nuxt/app';
+  import GlobalToast from './components/ui/GlobalToast.vue';
 
   useHead({
     title: 'AirGradient Map'
