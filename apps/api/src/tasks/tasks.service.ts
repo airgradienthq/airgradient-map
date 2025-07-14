@@ -5,6 +5,7 @@ import { TasksHttp } from './tasks.http';
 import { AirgradientModel } from './tasks.model';
 import { ConfigService } from '@nestjs/config';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
+import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
 
 @Injectable()
 export class TasksService {
@@ -52,7 +53,7 @@ export class TasksService {
     // TODO need to iterate every 500?
   }
 
-  @Cron('*/15 * * * *')
+  @Cron('*/1 * * * *')
   async getAirgradientLatest() {
     this.logger.log('Run job retrieve AirGradient latest value');
     const start = Date.now();
@@ -69,8 +70,9 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
-    this.logger.log('Run job sync OpenAQ locations');
-    const providersId = [118, 119, 70]; // air4thai, airnow, eea
+
+    this.logger.debug('Run job sync OpenAQ locations');
+    const providersId = OPENAQ_PROVIDERS.map(p => p.id);
 
     const before = Date.now();
 
