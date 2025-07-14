@@ -35,3 +35,20 @@ export enum MarkersLegendSize {
   SMALL = 'small',
   MEDIUM = 'medium'
 }
+
+export enum ToastType {
+  SUCCESS = 'success',
+  ERROR = 'error',
+  WARNING = 'warning',
+  INFO = 'info'
+}
+
+export type ToastColor = 'success' | 'error' | 'warning' | 'info';
+
+export type ToastIcon = 'mdi-check-circle' | 'mdi-alert-circle' | 'mdi-alert' | 'mdi-information';
+
+export interface Toast {
+  message: string;
+  type: ToastType;
+  show: boolean;
+}

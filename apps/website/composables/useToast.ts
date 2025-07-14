@@ -1,13 +1,10 @@
 import { ref, readonly } from 'vue';
+import { ToastType, type Toast } from '~/types/shared/ui';
 
-const toast = ref<{
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  show: boolean;
-} | null>(null);
+const toast = ref<Toast | null>(null);
 
 export const useToast = () => {
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+  const showToast = (message: string, type: ToastType = ToastType.INFO) => {
     toast.value = { message, type, show: true };
   };
 
@@ -17,10 +14,10 @@ export const useToast = () => {
     }
   };
 
-  const showSuccess = (message: string) => showToast(message, 'success');
-  const showError = (message: string) => showToast(message, 'error');
-  const showWarning = (message: string) => showToast(message, 'warning');
-  const showInfo = (message: string) => showToast(message, 'info');
+  const showSuccess = (message: string) => showToast(message, ToastType.SUCCESS);
+  const showError = (message: string) => showToast(message, ToastType.ERROR);
+  const showWarning = (message: string) => showToast(message, ToastType.WARNING);
+  const showInfo = (message: string) => showToast(message, ToastType.INFO);
 
   return {
     toast: readonly(toast),

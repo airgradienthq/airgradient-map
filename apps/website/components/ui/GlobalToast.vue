@@ -20,21 +20,7 @@
 
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast';
-
-  /**
-   * Toast notification types supported by the component
-   */
-  export type ToastType = 'success' | 'error' | 'warning' | 'info';
-
-  /**
-   * Toast color mapping for Vuetify components
-   */
-  export type ToastColor = 'success' | 'error' | 'warning' | 'info';
-
-  /**
-   * Toast icon mapping for Material Design Icons
-   */
-  export type ToastIcon = 'mdi-check-circle' | 'mdi-alert-circle' | 'mdi-alert' | 'mdi-information';
+  import { ToastType, type ToastColor, type ToastIcon } from '~/types/shared/ui';
 
   const props = defineProps({
     /**
@@ -76,12 +62,13 @@
    */
   const getColor = (type?: ToastType): ToastColor => {
     switch (type) {
-      case 'success':
+      case ToastType.SUCCESS:
         return 'success';
-      case 'error':
+      case ToastType.ERROR:
         return 'error';
-      case 'warning':
+      case ToastType.WARNING:
         return 'warning';
+      case ToastType.INFO:
       default:
         return 'info';
     }
@@ -94,12 +81,13 @@
    */
   const getIcon = (type?: ToastType): ToastIcon => {
     switch (type) {
-      case 'success':
+      case ToastType.SUCCESS:
         return 'mdi-check-circle';
-      case 'error':
+      case ToastType.ERROR:
         return 'mdi-alert-circle';
-      case 'warning':
+      case ToastType.WARNING:
         return 'mdi-alert';
+      case ToastType.INFO:
       default:
         return 'mdi-information';
     }
