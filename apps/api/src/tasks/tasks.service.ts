@@ -139,7 +139,7 @@ export class TasksService {
     var total = 0;
 
     while (finish === false) {
-      // Retrieve every 1000 data maximum, so it will sync to database every 500 row
+      // Retrieve every 500 data maximum, so it will sync to database every 500 row
       const url = `https://api.openaq.org/v3/locations?monitor=true&page=${pageCounter}&limit=500&providers_id=${providerId}`;
       const data = await this.http.fetch<OpenAQApiLocationsResponse>(url, {
         'x-api-key': this.openAQApiKey,
