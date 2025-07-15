@@ -12,19 +12,18 @@
   --secondary-color: var(--secondaryColor500);
   --main-transition: 0.2s ease-in-out;
 
-  --font-size-xs: 12px;
-  --font-size-sm: 14px;
+  --font-size-xs: 8px;
+  --font-size-sm: 12px;
   --font-size-base: 16px;
   --font-size-ml: 18px;
   --font-size-lg: 24px;
-  --font-size-xl: 32px;
+  --font-size-xl: 28px;
   --font-size-xxl: 42px;
   --font-size-xxxl: 60px;
 
   --font-weight-light: 400;
   --font-weight-medium: 500;
   --font-weight-bold: 700;
-
 
   // EXTENDED PRIMARY COLOR PALETTE
   --primaryColor900: #082338;
@@ -42,7 +41,7 @@
   --secondaryColor800: #7e3f08;
   --secondaryColor700: #b0580b;
   --secondaryColor600: #e2710e;
-  --secondaryColor500: #fc7e10;
+  --secondaryColor500: #FF6701;
   --secondaryColor400: #fc973f;
   --secondaryColor300: #fdb16f;
   --secondaryColor200: #fdcb9f;
@@ -51,20 +50,20 @@
   // EXTENDED GRAY COLOR PALETTE
   --grayColor900: #313131;
   --grayColor800: #595959;
-  --grayColor700: #7c7c7c;
+  --grayColor700: #7A756F;
   --grayColor600: #868686;
   --grayColor500: #a3a1a1;
-  --grayColor400: #bababa;
+  --grayColor400: #CFCEC3;
   --grayColor300: #d9d9d9;
-  --grayColor200: #e3e3e3;
-  --grayColor100: #f1f0f0;
+  --grayColor200: #EEEDE4;
+  --grayColor100: #F8F2EB;
 
   // MAP COLOR PALETTE
-  --airGreen: #1de208;
-  --airYellow: #e2e020;
-  --airOrange: #e26a05;
-  --airRed: #e20410;
-  --airPurple: #7f01e2;
+  --airGreen: #1DE206;
+  --airYellow: #E3E021;
+  --airOrange: #E16A04;
+  --airRed: #E20411;
+  --airPurple: #7F01E1;
   --airBrown: #903305;
   --airBlue: #1b75bc;
   --airGray: #778899;
@@ -88,4 +87,22 @@
   --successColor: #4caf50;
   --warningColor: #f2b74a;
   --infoColor: #25c4fe;
+
+  // HOMEPAGE COLORS
+  --ranking-purple: #AE2ECE;
+  --ranking-green: #007A31;
+  --ranking-red: #F84B5F;
+  --decoration-red: #EF6262;
+  --background-mascot: #F9D1B7;
+
+  // GUIDELINE COLORS
+  --who-guideline-bg: #D2F7D3;
+  --who-guideline-border: #005121;
+  --warning-bg: #FFF7D4;
+  --warning-border: #D19500;
+
+  // SHADOWS
+  --shadow-primary: 0px 4px 25px -5px rgba(0, 0, 0, 0.25);
+  --shadow-modal: 0px 4px 25px rgba(0, 0, 0, 0.25);
+  --modal-overlay: rgba(0, 0, 0, 0.2);
 }

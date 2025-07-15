@@ -12,6 +12,7 @@ body {
   font-family: var(--primary-font);
   -webkit-font-smoothing: antialiased;
   font-size: var(--font-size-base);
+  background: var(--grayColor100);
 }
 
 h1 {
@@ -33,8 +34,8 @@ h2 {
 
 h3 {
   font-size: var(--font-size-xl);
-  line-height: 1.2;
-  font-weight: var(--font-weight-medium);
+  line-height: 1.11;
+  font-weight: var(--font-weight-bold);
   font-family: var(--secondary-font);
   color: var(--main-text-color);
   margin-bottom: 36px;
@@ -52,7 +53,7 @@ h4 {
 h5 {
   font-size: var(--font-size-ml);
   font-weight: var(--font-weight-bold);
-  line-height: 1.2;
+  line-height: 1.22;
   color: var(--main-text-color);
   margin-bottom: 20px;
   font-family: var(--secondary-font);
@@ -67,7 +68,7 @@ p {
 p.small {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-light);
-  line-height: 1.2;
+  line-height: 1.33;
   font-family: var(--primary-font);
 }
 
@@ -75,6 +76,77 @@ small {
   font-size: var(--font-size-sm);
   color: var(--main-text-color);
   line-height: 1.2;
+}
+
+.aqi-value {
+  font-family: var(--secondary-font);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xl);
+  line-height: 1.21;
+  color: var(--main-white-color);
+}
+
+.aqi-status {
+  font-family: var(--secondary-font);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xl);
+  line-height: 1.11;
+  text-align: center;
+}
+
+.chart-label {
+  font-family: var(--secondary-font);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  line-height: 1.25;
+  text-align: center;
+  color: var(--main-white-color);
+}
+
+.time-label {
+  font-family: var(--primary-font);
+  font-weight: var(--font-weight-light);
+  font-size: var(--font-size-xs);
+  line-height: 1.625;
+  text-align: center;
+  color: var(--main-white-color);
+}
+
+.source-text {
+  font-family: var(--primary-font);
+  font-weight: var(--font-weight-light);
+  font-size: var(--font-size-sm);
+  line-height: 1.33;
+  text-align: center;
+  color: var(--grayColor700);
+}
+
+.label-uppercase {
+  font-family: var(--secondary-font);
+  font-weight: var(--font-weight-light);
+  font-size: var(--font-size-sm);
+  line-height: 1.25;
+  text-align: center;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--grayColor700);
+}
+
+.search-text {
+  font-family: var(--secondary-font);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-ml);
+  line-height: 1.22;
+  color: var(--grayColor400);
+}
+
+.guideline-text {
+  font-family: var(--secondary-font);
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-xs);
+  line-height: 1.25;
+  text-align: center;
+  color: var(--main-text-color);
 }
 
 @include mobile {
@@ -102,8 +174,17 @@ small {
     font-size: 18px;
     line-height: normal;
   }
-}
 
+  .aqi-value {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  .aqi-status {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+}
 
 .text-grey {
   color: var(--grayColor700);
@@ -115,6 +196,14 @@ small {
 
 .accent-text {
   color: var(--primary-color) !important;
+}
+
+.text-muted {
+  color: var(--grayColor700) !important;
+}
+
+.text-white {
+  color: var(--main-white-color) !important;
 }
 
 ul {
