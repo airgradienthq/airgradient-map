@@ -139,12 +139,22 @@ export class TasksService {
     var total = 0;
 
     while (finish === false) {
-      // Retrieve every 500 data maximum, so it will sync to database every 500 row
       const url = `https://api.openaq.org/v3/locations?monitor=true&page=${pageCounter}&limit=500&providers_id=${providerId}`;
-      const data = await this.http.fetch<OpenAQApiLocationsResponse>(url, {
-        'x-api-key': this.openAQApiKey,
-      });
-      // TODO: response error check
+      var data: OpenAQApiLocationsResponse;
+      try {
+        data = await this.http.fetch<OpenAQApiLocationsResponse>(url, {
+          'x-api-key': this.openAQApiKey,
+        });
+      } catch (error) {
+        if (error instanceof HttpException && error.getStatus() === 404) {
+          this.logger.debug('Requested page already empty for locations endpoint');
+          break;
+        } else {
+          break;
+        }
+      }
+
+      if (!data || !data.results) break;
 
       var locations = [];
       for (var i = 0; i < data.results.length; i++) {
@@ -153,14 +163,13 @@ export class TasksService {
         location['locationName'] = data.results[i].name;
         location['providerName'] = data.results[i].provider.name;
         location['ownerName'] = data.results[i].owner.name;
-        location['sensorType'] = 'Reference'; // NOTE: Hardcoded for now
+        location['sensorType'] = 'Reference';
         location['timezone'] = data.results[i].timezone;
         location['coordinate'] = [
           data.results[i].coordinates.latitude,
           data.results[i].coordinates.longitude,
         ];
 
-        // NOTE: Already formatted to 'license1','license2','license3'
         if (data.results[i].licenses !== null) {
           location['licenses'] = data.results[i].licenses
             .map(license => `'${license.name}'`)
@@ -169,34 +178,19 @@ export class TasksService {
           location['licenses'] = null;
         }
 
-        // Append with the other location
         locations.push(location);
       }
 
       if (locations.length > 0) {
         this.tasksRepository.upsertOpenAQLocations(locations);
-      } else {
-        this.logger.debug(
-          `No locations for the provider id '${providerId}' on page ${pageCounter}`,
-        );
+        total += locations.length;
       }
 
-      // Sometimes `found` field is a string
-      const t = typeof data.meta.found;
-      if (t === 'number') {
-        let foundInt = Number(data.meta.found);
-        total = total + Number(data.meta.found);
-
-        // Check if this batch is the last batch
-        if (foundInt <= data.meta.limit) {
-          finish = true;
-          this.logger.debug('Loop finish');
-        }
-      } else {
-        total = total + data.meta.limit;
+      if (data.results.length < 500) {
+        finish = true;
       }
 
-      pageCounter = pageCounter + 1;
+      pageCounter++;
     }
   }
 }
