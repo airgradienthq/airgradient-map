@@ -136,7 +136,6 @@ export class TasksService {
   async performSyncLocations(providerId: number) {
     var finish = false;
     var pageCounter = 1;
-    var total = 0;
 
     while (finish === false) {
       const url = `https://api.openaq.org/v3/locations?monitor=true&page=${pageCounter}&limit=500&providers_id=${providerId}`;
@@ -183,7 +182,6 @@ export class TasksService {
 
       if (locations.length > 0) {
         this.tasksRepository.upsertOpenAQLocations(locations);
-        total += locations.length;
       }
 
       if (data.results.length < 500) {
