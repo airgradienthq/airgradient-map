@@ -1,21 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import DatabaseService from 'src/database/database.service';
-import { AirgradientModel } from './tasks.model';
+import { Injectable } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
-export type UpsertLocationOwnerInput = {
-  ownerName: string | null;
-  ownerUrl: string | null;
-  ownerDescription: string | null;
-  locationReferenceId: number;
-  locationName: string | null;
-  sensorType: string;
-  timezone: string;
-  coordinateLatitude: number | null;
-  coordinateLongitude: number | null;
-  licenses: string[] | null;
-  provider: string;
-};
+import DatabaseService from 'src/database/database.service';
+import { AirgradientModel } from './tasks.model';
+import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
+import { escapeSingleQuote } from 'src/utils/escape-single-quote';
 
 function formatLicenses(arr: string[] | null | undefined): string {
   if (!arr || arr.length === 0) {
@@ -41,20 +30,12 @@ export class TasksRepository {
     dataSource: string,
     locationOwnerInput: UpsertLocationOwnerInput[],
   ) {
-    const escapeSingleQuote = (str: string) => {
-      if (str === null) {
-        return null;
-      }
-      return str.replace(/'/g, "''");
-    };
-
     try {
       const locationValues = locationOwnerInput
         .flatMap(
           ({
             ownerName,
             ownerUrl,
-            ownerDescription,
             locationReferenceId,
             locationName,
             sensorType,

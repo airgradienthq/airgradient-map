@@ -1,15 +1,21 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { TasksRepository, UpsertLocationOwnerInput } from './tasks.repository';
+import { ConfigService } from '@nestjs/config';
+
+import { TasksRepository } from './tasks.repository';
 import { TasksHttp } from './tasks.http';
 import { AirgradientModel } from './tasks.model';
-import { ConfigService } from '@nestjs/config';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
 import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
+import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
+import { SensorType } from 'src/types/shared/sensor-type';
+import { AG_DEFAULT_LICENSE } from 'src/constants/ag-default-license';
+import { OLD_AG_BASE_API_URL } from 'src/constants/old-ag-base-api-url';
 
 @Injectable()
 export class TasksService {
   private openAQApiKey = '';
+  private readonly logger = new Logger(TasksService.name);
 
   constructor(
     private readonly tasksRepository: TasksRepository,
@@ -22,14 +28,12 @@ export class TasksService {
     }
   }
 
-  private readonly logger = new Logger(TasksService.name);
-
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncAirgradientLocations() {
-    const start = Date.now();
+    // const start = Date.now();
 
     // Fetch data from the airgradient external API
-    const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
+    const url = OLD_AG_BASE_API_URL;
     const data = await this.http.fetch<AirgradientModel[]>(url);
     this.logger.log(`AirGradient total public data: ${data.length}`);
 
@@ -37,14 +41,13 @@ export class TasksService {
     const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
       ownerName: raw.publicContributorName,
       ownerUrl: raw.publicPlaceUrl,
-      ownerDescription: raw.publicPlaceUrl,
       locationReferenceId: raw.locationId,
       locationName: raw.publicLocationName,
-      sensorType: 'Small Sensor',
+      sensorType: SensorType.SMALL_SENSOR,
       timezone: raw.timezone,
       coordinateLatitude: raw.latitude,
       coordinateLongitude: raw.longitude,
-      licenses: ['CC BY-SA 4.0'],
+      licenses: [AG_DEFAULT_LICENSE],
       provider: 'AirGradient',
     }));
 
@@ -53,13 +56,13 @@ export class TasksService {
     // TODO need to iterate every 500?
   }
 
-  @Cron('*/1 * * * *')
+  @Cron('*/15 * * * *')
   async getAirgradientLatest() {
     this.logger.log('Run job retrieve AirGradient latest value');
-    const start = Date.now();
+    // const start = Date.now();
 
     // Fetch data from the airgradient external API
-    const url = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
+    const url = OLD_AG_BASE_API_URL;
     const data = await this.http.fetch<AirgradientModel[]>(url);
     this.logger.log(`AirGradient total public data: ${data.length}`);
 
@@ -70,7 +73,6 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
-
     this.logger.debug('Run job sync OpenAQ locations');
     const providersId = OPENAQ_PROVIDERS.map(p => p.id);
 
@@ -177,10 +179,10 @@ export class TasksService {
       const locationOwnerInput: UpsertLocationOwnerInput[] = data.results.map(raw => ({
         ownerName: raw.owner.name,
         ownerUrl: null,
-        ownerDescription: null,
+        // ownerDescription: null,
         locationReferenceId: raw.id,
         locationName: raw.name,
-        sensorType: 'Reference', // NOTE: Hardcoded
+        sensorType: SensorType.REFERENCE, // NOTE: Hardcoded
         timezone: raw.timezone,
         coordinateLatitude: raw.coordinates.latitude,
         coordinateLongitude: raw.coordinates.longitude,
