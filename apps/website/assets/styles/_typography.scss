@@ -34,7 +34,7 @@ h2 {
 
 h3 {
   font-size: var(--font-size-xl);
-  line-height: 1.11;
+  line-height: 1.1;
   font-weight: var(--font-weight-bold);
   font-family: var(--secondary-font);
   color: var(--main-text-color);
@@ -53,7 +53,7 @@ h4 {
 h5 {
   font-size: var(--font-size-ml);
   font-weight: var(--font-weight-bold);
-  line-height: 1.22;
+  line-height: 1.2;
   color: var(--main-text-color);
   margin-bottom: 20px;
   font-family: var(--secondary-font);
@@ -68,84 +68,12 @@ p {
 p.small {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-light);
-  line-height: 1.33;
+  line-height: 1.3;
   font-family: var(--primary-font);
 }
 
 small {
   font-size: var(--font-size-sm);
-  color: var(--main-text-color);
-  line-height: 1.2;
-}
-
-.aqi-value {
-  font-family: var(--secondary-font);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xl);
-  line-height: 1.21;
-  color: var(--main-white-color);
-}
-
-.aqi-status {
-  font-family: var(--secondary-font);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xl);
-  line-height: 1.11;
-  text-align: center;
-}
-
-.chart-label {
-  font-family: var(--secondary-font);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xs);
-  line-height: 1.25;
-  text-align: center;
-  color: var(--main-white-color);
-}
-
-.time-label {
-  font-family: var(--primary-font);
-  font-weight: var(--font-weight-light);
-  font-size: var(--font-size-xs);
-  line-height: 1.625;
-  text-align: center;
-  color: var(--main-white-color);
-}
-
-.source-text {
-  font-family: var(--primary-font);
-  font-weight: var(--font-weight-light);
-  font-size: var(--font-size-sm);
-  line-height: 1.33;
-  text-align: center;
-  color: var(--grayColor700);
-}
-
-.label-uppercase {
-  font-family: var(--secondary-font);
-  font-weight: var(--font-weight-light);
-  font-size: var(--font-size-sm);
-  line-height: 1.25;
-  text-align: center;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--grayColor700);
-}
-
-.search-text {
-  font-family: var(--secondary-font);
-  font-weight: var(--font-weight-medium);
-  font-size: var(--font-size-ml);
-  line-height: 1.22;
-  color: var(--grayColor400);
-}
-
-.guideline-text {
-  font-family: var(--secondary-font);
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xs);
-  line-height: 1.25;
-  text-align: center;
   color: var(--main-text-color);
 }
 
@@ -175,15 +103,11 @@ small {
     line-height: normal;
   }
 
-  .aqi-value {
+  .aqi-value-status {
     font-size: 24px;
     line-height: 1.2;
   }
 
-  .aqi-status {
-    font-size: 24px;
-    line-height: 1.2;
-  }
 }
 
 .text-grey {
@@ -206,6 +130,13 @@ small {
   color: var(--main-white-color) !important;
 }
 
+.font-primary {
+  font-family: var(--primary-font) !important;
+}
+
+.font-secondary {
+  font-family: var(--secondary-font) !important;
+}
 ul {
   font-size: 18px;
   list-style: square;
