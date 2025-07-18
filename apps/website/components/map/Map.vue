@@ -218,12 +218,19 @@ L
   async function updateMapData(): Promise<void> {
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
+      // Clamp latitude and longitude values to their valid ranges
+      const clampLat = (lat: number) => Math.max(-90, Math.min(90, lat));
+      const clampLng = (lng: number) => Math.max(-180, Math.min(180, lng));
+      const xmin = clampLng(bounds.getWest()); // longitude
+      const xmax = clampLng(bounds.getEast()); // longitude
+      const ymin = clampLat(bounds.getSouth()); // latitude
+      const ymax = clampLat(bounds.getNorth()); // latitude
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getSouth(),
-          ymin: bounds.getWest(),
-          xmax: bounds.getNorth(),
-          ymax: bounds.getEast(),
+          xmin,
+          ymin,
+          xmax,
+          ymax,
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
