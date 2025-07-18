@@ -20,7 +20,7 @@ export const useToast = () => {
   const showInfo = (message: string) => showToast(message, ToastType.INFO);
 
   return {
-    toast: readonly(toast),
+    toast,
     showSuccess,
     showError,
     showWarning,

@@ -3,18 +3,15 @@
     v-if="toast"
     v-model="toast.show"
     :color="getColor(toast?.type)"
-    location="top right"
-    timeout="5000"
+    location="bottom"
+    variant="outlined"
+    timeout="3000"
     @update:model-value="onUpdate"
   >
     <div class="d-flex align-center">
       <v-icon :icon="getIcon(toast?.type)" class="mr-2" />
       {{ toast?.message }}
     </div>
-
-    <template #actions>
-      <v-btn icon="mdi-close" variant="text" @click="hideToast" />
-    </template>
   </v-snackbar>
 </template>
 
@@ -69,3 +66,10 @@
     }
   };
 </script>
+
+<style>
+  .v-snackbar__wrapper {
+    background-color: var(--main-white-color) !important;
+    border: 2px solid currentColor;
+  }
+</style>
