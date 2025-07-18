@@ -72,6 +72,7 @@ export class TasksService {
     }
 
     const locationIdsLength = Object.keys(locationIds).length;
+    var maxPages = -1;
     var pageCounter = 1;
     var matchCounter = 0;
 
@@ -117,6 +118,18 @@ export class TasksService {
       if (batches.length > 0) {
         // Only insert if batch more than one
         this.tasksRepository.insertNewOpenAQLatest(batches);
+      }
+
+      if (maxPages === -1) {
+        const found = Number(data.meta.found);
+        const limit = Number(data.meta.limit);
+        if (!isNaN(found) && !isNaN(limit) && limit > 0) {
+          maxPages = Math.ceil(found / limit);
+        }
+      }
+      if (pageCounter == maxPages) {
+        this.logger.debug('Reached the last page of OpenAQ latest data.');
+        break;
       }
 
       pageCounter = pageCounter + 1;
