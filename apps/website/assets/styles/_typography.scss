@@ -12,6 +12,7 @@ body {
   font-family: var(--primary-font);
   -webkit-font-smoothing: antialiased;
   font-size: var(--font-size-base);
+  background: var(--grayColor100);
 }
 
 h1 {
@@ -33,8 +34,8 @@ h2 {
 
 h3 {
   font-size: var(--font-size-xl);
-  line-height: 1.2;
-  font-weight: var(--font-weight-medium);
+  line-height: 1.1;
+  font-weight: var(--font-weight-bold);
   font-family: var(--secondary-font);
   color: var(--main-text-color);
   margin-bottom: 36px;
@@ -67,14 +68,13 @@ p {
 p.small {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-light);
-  line-height: 1.2;
+  line-height: 1.3;
   font-family: var(--primary-font);
 }
 
 small {
   font-size: var(--font-size-sm);
   color: var(--main-text-color);
-  line-height: 1.2;
 }
 
 @include mobile {
@@ -102,8 +102,13 @@ small {
     font-size: 18px;
     line-height: normal;
   }
-}
 
+  .aqi-value-status {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+}
 
 .text-grey {
   color: var(--grayColor700);
@@ -117,6 +122,21 @@ small {
   color: var(--primary-color) !important;
 }
 
+.text-muted {
+  color: var(--grayColor700) !important;
+}
+
+.text-white {
+  color: var(--main-white-color) !important;
+}
+
+.font-primary {
+  font-family: var(--primary-font) !important;
+}
+
+.font-secondary {
+  font-family: var(--secondary-font) !important;
+}
 ul {
   font-size: 18px;
   list-style: square;
