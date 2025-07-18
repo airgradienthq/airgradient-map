@@ -1,3 +1,4 @@
+L
 <template>
   <div class="map-info-btn-box">
     <UiIconButton
@@ -219,12 +220,19 @@
   async function updateMapData(): Promise<void> {
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
+      // Clamp latitude and longitude values to their valid ranges
+      const clampLat = (lat: number) => Math.max(-90, Math.min(90, lat));
+      const clampLng = (lng: number) => Math.max(-180, Math.min(180, lng));
+      const xmin = clampLng(bounds.getWest()); // longitude
+      const xmax = clampLng(bounds.getEast()); // longitude
+      const ymin = clampLat(bounds.getSouth()); // latitude
+      const ymax = clampLat(bounds.getNorth()); // latitude
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getSouth(),
-          ymin: bounds.getWest(),
-          xmax: bounds.getNorth(),
-          ymax: bounds.getEast(),
+          xmin,
+          ymin,
+          xmax,
+          ymax,
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
@@ -432,36 +440,21 @@
     width: 300px !important;
     max-width: 300px !important;
     margin: 10px 10px 0 auto !important;
-
-    form {
-      padding-left: 30px;
-      background-image: url('/assets/images/icons/search.svg');
-      background-position: 5px center;
-      background-size: 20px;
-
-      input {
-        height: 36px !important;
-        font-size: 16px !important;
-      }
-    }
-
-    .reset {
-      color: var(--grayColor700) !important;
-      line-height: 36px !important;
-      font-size: 16px !important;
-    }
   }
 
-  .leaflet-control-geosearch .results.active {
-    width: calc(100% + 25px);
-    margin-left: -25px;
+  .leaflet-geosearch-bar form {
+    padding-left: 0;
+    background-image: none;
   }
 
-  .results > .active,
-  .leaflet-control-geosearch .results > :hover {
-    color: var(--primary-color);
-    border-radius: 4px;
-    border-color: transparent;
+  .leaflet-geosearch-bar form input {
+    padding-left: 30px !important;
+    background-image: url('/assets/images/icons/search.svg');
+    background-position: 5px center;
+    background-size: 20px;
+    background-repeat: no-repeat;
+    height: 36px !important;
+    font-size: 16px !important;
   }
 
   .map-controls {

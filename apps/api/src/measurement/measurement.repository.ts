@@ -102,7 +102,13 @@ class MeasurementRepository {
       );
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException('Error query latest measures');
+      throw new InternalServerErrorException({
+        message: 'MEAS_001: Failed to retrieve latest measurements',
+        operation: 'retrieveLatest',
+        parameters: { offset, limit, measure },
+        error: error.message,
+        code: 'MEAS_001',
+      });
     }
   }
 
@@ -171,7 +177,13 @@ class MeasurementRepository {
       );
     } catch (error) {
       this.logger.error(error);
-      throw new InternalServerErrorException('Error query latest measures by area');
+      throw new InternalServerErrorException({
+        message: 'MEAS_002: Failed to retrieve latest measurements by area',
+        operation: 'retrieveLatestByArea',
+        parameters: { xMin, yMin, xMax, yMax, measure },
+        error: error.message,
+        code: 'MEAS_002',
+      });
     }
   }
 }
