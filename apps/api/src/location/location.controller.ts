@@ -1,4 +1,12 @@
-import { UsePipes, ValidationPipe, Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
+import {
+  UsePipes,
+  ValidationPipe,
+  Controller,
+  Get,
+  Param,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import FindOneParams from 'src/utils/findOneParams';
 import PaginationQuery from 'src/utils/paginationQuery';
@@ -144,7 +152,8 @@ export class LocationController {
   @Get(':id/averages/daily')
   @ApiOperation({
     summary: 'Daily averages by location and date range',
-    description: 'Retrieve daily average values for a specific location within a specified date range',
+    description:
+      'Retrieve daily average values for a specific location within a specified date range',
   })
   @ApiParam({
     name: 'id',
@@ -168,11 +177,16 @@ export class LocationController {
     if (start > end) {
       throw new BadRequestException('Invalid date. Start date must be before the end date.');
     }
-    const maxRange = 365 * 24 * 60 * 60 * 1000;  // 1 year
-    if ((end.getTime() - start.getTime()) > maxRange) {
+    const maxRange = 365 * 24 * 60 * 60 * 1000; // 1 year
+    if (end.getTime() - start.getTime() > maxRange) {
       throw new BadRequestException('Max 1 year range.');
     }
-    const dailyAverages = await this.locationService.getDailyAverages(id, dailyAverage.start, dailyAverage.end, measure);
+    const dailyAverages = await this.locationService.getDailyAverages(
+      id,
+      dailyAverage.start,
+      dailyAverage.end,
+      measure,
+    );
     return {
       locationId: id,
       startDate: dailyAverage.start,

@@ -200,12 +200,7 @@ class LocationRepository {
     }
   }
 
-  async retrieveLocationDailyAverages(
-    id: number,
-    start: string,
-    end: string,
-    measure: string
-  ) {
+  async retrieveLocationDailyAverages(id: number, start: string, end: string, measure: string) {
     const params = [id, start, end];
     const query = `
             SELECT 
