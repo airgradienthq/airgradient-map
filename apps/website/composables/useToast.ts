@@ -1,4 +1,4 @@
-import { ref, readonly } from 'vue';
+import { ref } from 'vue';
 import { ToastType, type Toast } from '~/types/shared/ui';
 
 const toast = ref<Toast | null>(null);
