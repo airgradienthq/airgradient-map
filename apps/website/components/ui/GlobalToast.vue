@@ -22,36 +22,6 @@
   import { useToast } from '~/composables/useToast';
   import { ToastType } from '~/types/shared/ui';
 
-  const props = defineProps({
-    /**
-     * Custom location for the toast position.
-     * @type {string}
-     * @default 'top right'
-     */
-    location: {
-      type: String,
-      default: 'top right'
-    },
-    /**
-     * Custom timeout duration in milliseconds.
-     * @type {number | string}
-     * @default 5000
-     */
-    timeout: {
-      type: [Number, String],
-      default: 5000
-    },
-    /**
-     * Whether to show the close button.
-     * @type {boolean}
-     * @default true
-     */
-    closable: {
-      type: Boolean,
-      default: true
-    }
-  });
-
   // Toast composable for global state management
   const { toast, hideToast } = useToast();
 
