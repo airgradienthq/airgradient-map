@@ -1,4 +1,4 @@
-import { UsePipes, ValidationPipe, Controller, Get, Param, Query } from '@nestjs/common';
+import { UsePipes, ValidationPipe, Controller, Get, Param, Query, BadRequestException } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 import FindOneParams from 'src/utils/findOneParams';
 import PaginationQuery from 'src/utils/paginationQuery';
@@ -18,6 +18,8 @@ import TimeseriesQuery from './timeseriesQuery';
 import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
 import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
+import { LocationDailyAverageDto } from './locationDailyAverage.dto';
+import { DailyAverageQuery } from './dailyAverageQuery';
 
 @Controller('map/api/v1/locations')
 @ApiTags('Locations')
@@ -88,8 +90,13 @@ export class LocationController {
   @ApiOperation({
     summary: 'Retrieve number of cigarettes smoked equivalent to amount of air pollution',
   })
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier',
+    example: 12345,
+  })
   @ApiOkResponse({ type: CigarettesSmokedDto })
-  @ApiNotFoundResponse()
+  @ApiNotFoundResponse({ description: 'Location not found or no measurements available' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getCigarettesSmoked(@Param() { id }: FindOneParams): Promise<CigarettesSmokedDto> {
     const result = await this.locationService.getCigarettesSmoked(id);
@@ -132,5 +139,45 @@ export class LocationController {
     );
 
     return new Pagination(timeseriesDto, null, null);
+  }
+
+  @Get(':id/averages/daily')
+  @ApiOperation({
+    summary: 'Daily PM2.5 averages by location and date range',
+    description: 'Retrieve daily average PM2.5 values for a specific location within a specified date range',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier',
+    example: 12345,
+  })
+  @ApiOkResponse({
+    type: LocationDailyAverageDto,
+    description: 'Latest measurements successfully retrieved',
+  })
+  @ApiBadRequestResponse({ description: 'Invalid date format.' })
+  @ApiNotFoundResponse({ description: 'Location not found or no daily measurements available' })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getDailyAverage(
+    @Param() { id }: FindOneParams,
+    @Query() dailyAverage: DailyAverageQuery,
+    @Query() { measure }: MeasureTypeQuery,  // please hardcode to pm25 later
+  ): Promise<LocationDailyAverageDto> {
+    const start = new Date(dailyAverage.start);
+    const end = new Date(dailyAverage.end);
+    if (start > end) {
+      throw new BadRequestException('Invalid date. Start date must be before the end date.');
+    }
+    const maxRange = 365 * 24 * 60 * 60 * 1000;  // 1 year
+    if ((end.getTime() - start.getTime()) > maxRange) {
+      throw new BadRequestException('Max 1 year range.');
+    }
+    const dailyAverages = await this.locationService.getDailyAverages(id, dailyAverage.start, dailyAverage.end, measure);
+    return {
+      locationId: id,
+      startDate: dailyAverage.start,
+      endDate: dailyAverage.end,
+      dailyAverages,
+    };
   }
 }

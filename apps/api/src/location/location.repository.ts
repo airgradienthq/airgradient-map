@@ -142,7 +142,7 @@ class LocationRepository {
 
         let sum = 0;
         for (const row of rows) {
-          sum += parseFloat(row.value);
+          sum += parseFloat(row.pm25);
         }
         const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
         cigaretteData[timeframe.label] = cigaretteNumber;
@@ -196,6 +196,54 @@ class LocationRepository {
       this.logger.error(error);
       throw new InternalServerErrorException(
         `Error query measures history of specific location by id (${error.message})`,
+      );
+    }
+  }
+
+  async retrieveLocationDailyAverages(
+    id: number,
+    start: string,
+    end: string,
+    measure?: string
+  ) {
+    const params = [id, start, end];
+    const query = `
+            SELECT 
+              ROUND(AVG(m.pm25)::NUMERIC, 2) AS value,
+              DATE(m.measured_at) AS date
+            FROM measurement m WHERE m.location_id = $1 AND
+            DATE(m.measured_at) BETWEEN DATE($2) AND DATE($3)
+            GROUP BY date
+            ORDER BY date;
+          `;
+    try {
+      const results = await this.databaseService.runQuery(query, params);
+      const dataMap = new Map<string, number>();
+
+      for (const row of results.rows) {
+        const normalizedDate = new Date(row.date).toISOString().split('T')[0];
+        dataMap.set(normalizedDate, parseFloat(row.value));
+      }
+
+      const dailyResults: { date: string; avgPM25: number | null }[] = [];
+      const current = new Date(start);
+      const endDate = new Date(end);
+
+      while (current <= endDate) {
+        const dateStr = current.toISOString().split('T')[0];
+        dailyResults.push({
+          date: dateStr,
+          avgPM25: dataMap.get(dateStr) ?? null,
+        });
+
+        current.setDate(current.getDate() + 1);
+      }
+
+      return dailyResults;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException(
+        `Error query measures daily average location by id (${error.message})`,
       );
     }
   }
