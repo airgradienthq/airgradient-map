@@ -4,7 +4,9 @@
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
-      <GlobalToast />
+      <ClientOnly>
+        <GlobalToast />
+      </ClientOnly>
     </div>
   </Transition>
 </template>
