@@ -143,13 +143,13 @@ export class LocationController {
 
   @Get(':id/averages/daily')
   @ApiOperation({
-    summary: 'Daily PM2.5 averages by location and date range',
-    description: 'Retrieve daily average PM2.5 values for a specific location within a specified date range',
+    summary: 'Daily averages by location and date range',
+    description: 'Retrieve daily average values for a specific location within a specified date range',
   })
   @ApiParam({
     name: 'id',
     description: 'Location identifier',
-    example: 12345,
+    example: 1,
   })
   @ApiOkResponse({
     type: LocationDailyAverageDto,
@@ -161,7 +161,7 @@ export class LocationController {
   async getDailyAverage(
     @Param() { id }: FindOneParams,
     @Query() dailyAverage: DailyAverageQuery,
-    @Query() { measure }: MeasureTypeQuery,  // please hardcode to pm25 later
+    @Query() { measure }: MeasureTypeQuery,
   ): Promise<LocationDailyAverageDto> {
     const start = new Date(dailyAverage.start);
     const end = new Date(dailyAverage.end);

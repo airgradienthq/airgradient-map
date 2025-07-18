@@ -204,12 +204,12 @@ class LocationRepository {
     id: number,
     start: string,
     end: string,
-    measure?: string
+    measure: string
   ) {
     const params = [id, start, end];
     const query = `
             SELECT 
-              ROUND(AVG(m.pm25)::NUMERIC, 2) AS value,
+              ROUND(AVG(m.${measure})::NUMERIC, 2) AS value,
               DATE(m.measured_at) AS date
             FROM measurement m WHERE m.location_id = $1 AND
             DATE(m.measured_at) BETWEEN DATE($2) AND DATE($3)
@@ -225,7 +225,7 @@ class LocationRepository {
         dataMap.set(normalizedDate, parseFloat(row.value));
       }
 
-      const dailyResults: { date: string; avgPM25: number | null }[] = [];
+      const dailyResults: { date: string; [key: string]: string | number | null }[] = [];
       const current = new Date(start);
       const endDate = new Date(end);
 
@@ -233,7 +233,7 @@ class LocationRepository {
         const dateStr = current.toISOString().split('T')[0];
         dailyResults.push({
           date: dateStr,
-          avgPM25: dataMap.get(dateStr) ?? null,
+          [`avg${measure.toUpperCase()}`]: dataMap.get(dateStr) ?? null,
         });
 
         current.setDate(current.getDate() + 1);

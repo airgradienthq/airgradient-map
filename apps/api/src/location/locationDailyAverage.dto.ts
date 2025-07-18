@@ -2,17 +2,17 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class LocationDailyAverageDto {
     @ApiProperty({
-        example: '12345',
+        example: '1',
     })
     locationId: number;
 
     @ApiProperty({
-        example: '2025-07-15',
+        example: '2025-04-16',
     })
     startDate: string;
 
     @ApiProperty({
-        example: '2025-07-16',
+        example: '2025-04-20',
     })
     endDate: string;
 
@@ -30,7 +30,7 @@ export class LocationDailyAverageDto {
             },
         },
     })
-    dailyAverages: { date:string; avgPM25: number | null }[];
+    dailyAverages: { date:string; [key: string]: string | number | null }[];
 
     constructor(partial: Partial<LocationDailyAverageDto>) {
         Object.assign(this, partial);

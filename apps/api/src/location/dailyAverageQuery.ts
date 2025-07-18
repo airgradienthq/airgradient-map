@@ -3,15 +3,15 @@ import { IsDateString } from 'class-validator';
 
 export class DailyAverageQuery {
     @ApiProperty({
-        default: '2025-02-01',
         description: 'Start date in format "YYYY-MM-DD"',
+        example: '2025-04-16',
     })
     @IsDateString()
     start: string;
 
     @ApiProperty({
-        default: '2025-02-07',
         description: 'End date in format "YYYY-MM-DD"',
+        example: '2025-04-20',
     })
     @IsDateString()
     end: string;
