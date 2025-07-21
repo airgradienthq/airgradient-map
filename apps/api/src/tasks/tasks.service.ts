@@ -35,12 +35,11 @@ export class TasksService {
     // Fetch data from the airgradient external API
     const url = OLD_AG_BASE_API_URL;
     const data = await this.http.fetch<AirgradientModel[]>(url);
-    this.logger.log(`AirGradient total public data: ${data.length}`);
+    this.logger.log(`Sync AirGradient locations with total public data: ${data.length}`);
 
     // map location data for upsert function
     const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
       ownerName: raw.publicContributorName,
-      ownerUrl: raw.publicPlaceUrl,
       locationReferenceId: raw.locationId,
       locationName: raw.publicLocationName,
       sensorType: SensorType.SMALL_SENSOR,
@@ -51,9 +50,8 @@ export class TasksService {
       provider: 'AirGradient',
     }));
 
+    // NOTE: optimization needed to upsert in chunk?
     await this.tasksRepository.upsertLocationsAndOwners('AirGradient', locationOwnerInput);
-    // TODO: Add success check
-    // TODO need to iterate every 500?
   }
 
   @Cron('*/15 * * * *')
@@ -64,11 +62,10 @@ export class TasksService {
     // Fetch data from the airgradient external API
     const url = OLD_AG_BASE_API_URL;
     const data = await this.http.fetch<AirgradientModel[]>(url);
-    this.logger.log(`AirGradient total public data: ${data.length}`);
+    this.logger.log(`Sync AirGradient latest measures total public data: ${data.length}`);
 
+    // NOTE: do optimization needed to insert in chunks?
     await this.tasksRepository.insertNewAirgradientLatest(data);
-    // TODO: Add success check
-    // TODO need to iterate every 500?
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -145,7 +142,7 @@ export class TasksService {
       this.logger.debug(matchCounter);
       if (batches.length > 0) {
         // Only insert if batch more than one
-        this.tasksRepository.insertNewOpenAQLatest(batches);
+        await this.tasksRepository.insertNewOpenAQLatest(batches);
       }
 
       pageCounter = pageCounter + 1;
@@ -178,8 +175,6 @@ export class TasksService {
       // map location data for upsert function
       const locationOwnerInput: UpsertLocationOwnerInput[] = data.results.map(raw => ({
         ownerName: raw.owner.name,
-        ownerUrl: null,
-        // ownerDescription: null,
         locationReferenceId: raw.id,
         locationName: raw.name,
         sensorType: SensorType.REFERENCE, // NOTE: Hardcoded
@@ -191,7 +186,6 @@ export class TasksService {
       }));
 
       await this.tasksRepository.upsertLocationsAndOwners('OpenAQ', locationOwnerInput);
-      // TODO: Add success check?
 
       // Sometimes `found` field is a string
       const t = typeof data.meta.found;
