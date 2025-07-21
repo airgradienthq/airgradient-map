@@ -35,7 +35,6 @@ export class TasksRepository {
         .flatMap(
           ({
             ownerName,
-            ownerUrl,
             locationReferenceId,
             locationName,
             sensorType,
