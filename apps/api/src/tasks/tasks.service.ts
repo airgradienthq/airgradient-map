@@ -190,7 +190,7 @@ export class TasksService {
         provider: raw.provider.name,
       }));
 
-      await this.tasksRepository.upsertLocationsAndOwners('AirGradient', locationOwnerInput);
+      await this.tasksRepository.upsertLocationsAndOwners('OpenAQ', locationOwnerInput);
       // TODO: Add success check?
 
       // Sometimes `found` field is a string
