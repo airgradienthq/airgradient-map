@@ -1,26 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsString,
-  Matches,
-  Validate,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
-  ValidationArguments,
-} from 'class-validator';
-
-@ValidatorConstraint({ name: 'IsStartBeforeEnd', async: false })
-class IsStartBeforeEndConstraint implements ValidatorConstraintInterface {
-  validate(start: string, args: ValidationArguments) {
-    const object: any = args.object;
-    if (!start || !object.end) return true;
-    const startDate = new Date(start);
-    const endDate = new Date(object.end);
-    return startDate < endDate;
-  }
-  defaultMessage() {
-    return 'Start date must be before end date';
-  }
-}
+import { IsString, Matches } from 'class-validator';
 
 class TimeseriesQuery {
   @ApiProperty({
@@ -31,7 +10,6 @@ class TimeseriesQuery {
   @Matches(/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/, {
     message: 'Date must be in format YYYY-MM-DD or YYYY-MM-DD HH:MM',
   })
-  @Validate(IsStartBeforeEndConstraint)
   start: string;
 
   @ApiProperty({
