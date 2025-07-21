@@ -6,15 +6,17 @@ AirGradient Map API is a backend service that stores and serves air quality data
 
 ### Backend Service
 
-API docs are available [here](https://map-data-int.airgradient.com/map/api/v1/docs) or if service available locally, go to http://localhost:3000/map/api/v1/docs. 
+API docs are available [here](https://map-data-int.airgradient.com/map/api/v1/docs) or if service available locally, go to http://localhost:3001/map/api/v1/docs. 
 
 #### Tasks
 
-The AirGradient Map API also runs a task that acts as a cron job, retrieving sensor locations and measurements from various data sources. The task is as follow:
+The AirGradient Map API also runs a task that acts as a cron job, retrieving sensor locations and measurements from various data sources. The task is as follows:
 
-1. Every 15 minutes: sync and retrieve sensor location with its latest measures from AirGradient public API
-2. Every day at midnight: sync sensor location from OpenAQ with _Reference_ type and specific provider (EEA, Air4Thai, AirNow)
-3. Every 1 hour: retrieve the latest sensor measurements from all records with OpenAQ as the data source 
+1. Every day at midnight, it will synchronize sensor locations from both AirGradient and OpenAQ.
+2. Every 15 minutes, it will retrieve the latest AirGradient sensor measurements.
+3. Every hour, it will retrieve the latest OpenAQ sensor measurements.
+
+*Note: For OpenAQ, only the **reference** sensor types from provider such as EEA, Air4Thai, AirNow, etc., are synchronized. Please see `openaq-providers.ts` for the full provider list*
 
 ### Database
 
@@ -22,21 +24,32 @@ Database is PostgreSQL with 2 extensions [PostGIS](https://postgis.net/) and [pg
 
 #### DB Schema
 
-![db schema](schema.png)
+![db schema](db-schema.png)
+
+**Constraints**
+
+- owner
+  - `id` ➝ Primary Key
+  - `owner_name` ➝ Unique
+- location
+  - `id` ➝ Primary Key
+  - `reference_id` and `data_source` ➝ Unique on combination
+- measurement
+  - `location_id` and `measured_at` ➝ Unique on combination
 
 **Description**
 
 - owner ➝ store owners of every sensors available on location table
 - location ➝ store sensors with each sensor have a unique properties such as coordinates, locations name, etc 
-  - location_id ➝ actual location id that provided by this service when sensor pulled from source 
-  - location_name ➝ the location name of the sensor
-  - reference_id ➝ location id of the sensor that provided by its source 
-  - sensor_type ➝ type of the sensor in enum type between  `Small Sensor` or `Reference`
-  - licences ➝ license of the sensor 
-  - timezone ➝ location timezone of the sensor in string format (eg. `Asia/Bangkok`)  
-  - coordinate ➝ coordinate of the sensor location in postgis _Point_ data type 
-  - data_source ➝ from which platform the sensor data is retrieved 
-  - provider ➝ which instances/entity that provide the sensor 
+  - `id` ➝ actual location id that provided by this service when sensor pulled from source 
+  - `location_name` ➝ the location name of the sensor
+  - `reference_id` ➝ location id of the sensor that provided by its source 
+  - `sensor_type` ➝ type of the sensor in enum type between  `Small Sensor` or `Reference`
+  - `licences` ➝ license of the sensor 
+  - `timezone` ➝ location timezone of the sensor in string format (eg. `Asia/Bangkok`)  
+  - `coordinate` ➝ coordinate of the sensor location in postgis _Point_ data type 
+  - `data_source` ➝ from which platform the sensor data is retrieved 
+  - `provider` ➝ which instances/entity that provide the sensor 
 - measurement ➝ store sensors measurements data 
 
 ## Development Setup
