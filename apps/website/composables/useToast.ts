@@ -1,4 +1,4 @@
-import { ref, readonly } from 'vue';
+import { ref } from 'vue';
 import { ToastType, type Toast } from '~/types/shared/ui';
 
 const toast = ref<Toast | null>(null);
@@ -20,7 +20,7 @@ export const useToast = () => {
   const showInfo = (message: string) => showToast(message, ToastType.INFO);
 
   return {
-    toast: readonly(toast),
+    toast,
     showSuccess,
     showError,
     showWarning,

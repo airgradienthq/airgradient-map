@@ -3,54 +3,21 @@
     v-if="toast"
     v-model="toast.show"
     :color="getColor(toast?.type)"
-    location="top right"
-    timeout="5000"
+    location="bottom"
+    variant="outlined"
+    timeout="3000"
     @update:model-value="onUpdate"
   >
     <div class="d-flex align-center">
       <v-icon :icon="getIcon(toast?.type)" class="mr-2" />
       {{ toast?.message }}
     </div>
-
-    <template #actions>
-      <v-btn icon="mdi-close" variant="text" @click="hideToast" />
-    </template>
   </v-snackbar>
 </template>
 
 <script setup lang="ts">
   import { useToast } from '~/composables/useToast';
   import { ToastType } from '~/types/shared/ui';
-
-  const props = defineProps({
-    /**
-     * Custom location for the toast position.
-     * @type {string}
-     * @default 'top right'
-     */
-    location: {
-      type: String,
-      default: 'top right'
-    },
-    /**
-     * Custom timeout duration in milliseconds.
-     * @type {number | string}
-     * @default 5000
-     */
-    timeout: {
-      type: [Number, String],
-      default: 5000
-    },
-    /**
-     * Whether to show the close button.
-     * @type {boolean}
-     * @default true
-     */
-    closable: {
-      type: Boolean,
-      default: true
-    }
-  });
 
   // Toast composable for global state management
   const { toast, hideToast } = useToast();
@@ -99,3 +66,10 @@
     }
   };
 </script>
+
+<style>
+  .v-snackbar__wrapper {
+    background-color: var(--main-white-color) !important;
+    border: 2px solid currentColor;
+  }
+</style>
