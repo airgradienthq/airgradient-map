@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, Matches } from 'class-validator';
+import { IsString } from 'class-validator';
 
 class TimeseriesQuery {
   @ApiProperty({
@@ -7,9 +7,6 @@ class TimeseriesQuery {
     description: 'Start date in format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM"',
   })
   @IsString()
-  @Matches(/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/, {
-    message: 'Date must be in format YYYY-MM-DD or YYYY-MM-DD HH:MM',
-  })
   start: string;
 
   @ApiProperty({
@@ -17,9 +14,6 @@ class TimeseriesQuery {
     description: 'End date in format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM"',
   })
   @IsString()
-  @Matches(/^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/, {
-    message: 'Date must be in format YYYY-MM-DD or YYYY-MM-DD HH:MM',
-  })
   end: string;
 
   @ApiProperty({
