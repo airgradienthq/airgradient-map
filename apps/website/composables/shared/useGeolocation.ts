@@ -1,45 +1,73 @@
 import { ref, Ref } from 'vue';
 import { GeolocationResult } from '~/types/shared/geolocation';
 
-/**
- * Composable for IP-based geolocation functionality
- * @returns Object with geolocation methods and state
- */
 export const useGeolocation = () => {
   const isLoading: Ref<boolean> = ref(false);
   const error: Ref<string | null> = ref(null);
 
-  /**
-   * Get user's location using IP-based geolocation
-   * @returns Promise<GeolocationResult | null>
-   */
   const getCurrentLocation = async (): Promise<GeolocationResult | null> => {
     isLoading.value = true;
     error.value = null;
 
+    const services = [
+      {
+        name: 'ipinfo.io',
+        url: 'https://ipinfo.io/json',
+        parser: (data: any) => ({
+          lat: parseFloat(data.loc.split(',')[0]),
+          lng: parseFloat(data.loc.split(',')[1]),
+          city: data.city,
+          country: data.country
+        })
+      },
+      {
+        name: 'ip-api.com',
+        url: 'http://ip-api.com/json/',
+        parser: (data: any) => ({
+          lat: data.lat,
+          lng: data.lon,
+          city: data.city,
+          country: data.country
+        })
+      }
+    ];
+
+    for (const service of services) {
+      try {
+        const response = await fetch(service.url, {
+          method: 'GET',
+          mode: 'cors', 
+          headers: {
+            'Accept': 'application/json',
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        const result = await service.parser(data);
+
+        if (result.lat && result.lng) {
+          return result;
+        }
+      } catch (err) {
+        continue;
+      }
+    }
+
+    throw new Error('All geolocation services failed');
+  };
+
+  const getLocationWithErrorHandling = async (): Promise<GeolocationResult | null> => {
     try {
-      const response = await fetch('https://ipapi.co/json/');
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.reason || 'Geolocation service error');
-      }
-
-      return {
-        lat: data.latitude,
-        lng: data.longitude,
-        city: data.city,
-        country: data.country_name
-      };
+      isLoading.value = true;
+      error.value = null;
+      return await getCurrentLocation();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to get location';
       error.value = errorMessage;
-      console.error('Geolocation error:', errorMessage);
       return null;
     } finally {
       isLoading.value = false;
@@ -49,6 +77,6 @@ export const useGeolocation = () => {
   return {
     isLoading,
     error,
-    getCurrentLocation
+    getCurrentLocation: getLocationWithErrorHandling
   };
 };
