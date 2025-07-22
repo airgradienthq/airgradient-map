@@ -1,6 +1,19 @@
 import { ref, Ref } from 'vue';
 import { GeolocationResult } from '~/types/shared/geolocation';
 
+interface IpInfoResponse {
+  loc: string;
+  city: string;
+  country: string;
+}
+
+interface IpApiResponse {
+  lat: number;
+  lon: number;
+  city: string;
+  country: string;
+}
+
 export const useGeolocation = () => {
   const isLoading: Ref<boolean> = ref(false);
   const error: Ref<string | null> = ref(null);
@@ -13,7 +26,7 @@ export const useGeolocation = () => {
       {
         name: 'ipinfo.io',
         url: 'https://ipinfo.io/json',
-        parser: (data: any) => ({
+        parser: (data: IpInfoResponse) => ({
           lat: parseFloat(data.loc.split(',')[0]),
           lng: parseFloat(data.loc.split(',')[1]),
           city: data.city,
@@ -23,7 +36,7 @@ export const useGeolocation = () => {
       {
         name: 'ip-api.com',
         url: 'http://ip-api.com/json/',
-        parser: (data: any) => ({
+        parser: (data: IpApiResponse) => ({
           lat: data.lat,
           lng: data.lon,
           city: data.city,
@@ -36,9 +49,9 @@ export const useGeolocation = () => {
       try {
         const response = await fetch(service.url, {
           method: 'GET',
-          mode: 'cors', 
+          mode: 'cors',
           headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json'
           }
         });
 
@@ -52,7 +65,7 @@ export const useGeolocation = () => {
         if (result.lat && result.lng) {
           return result;
         }
-      } catch (err) {
+      } catch {
         continue;
       }
     }
