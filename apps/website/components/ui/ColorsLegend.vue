@@ -3,21 +3,13 @@
     :class="['colors-info', { 'white-mode': isWhiteMode, small: size === ColorsLegendSize.SMALL }]"
   >
     <div class="color-labels mobile-legend">
-      <div v-for="(label, i) in labels" class="label-item top">
-        {{ i % 2 !== 0 ? label : '' }}
-      </div>
-    </div>
-
-    <div class="color-scala"></div>
-
-    <div class="color-labels mobile-legend">
-      <div v-for="(label, i) in labels" class="label-item">
-        {{ i % 2 === 0 ? label : '' }}
+      <div v-for="label in labels" :class="['label-item', `item-${label.toLowerCase()}`]">
+        {{ label }}
       </div>
     </div>
 
     <div class="color-labels desktop-legend">
-      <div v-for="label in labels" class="label-item">
+      <div v-for="label in labels" :class="['label-item', `item-${label.toLowerCase()}`]">
         {{ label }}
       </div>
     </div>
@@ -56,15 +48,20 @@
 
 <style lang="scss" scoped>
   .colors-info {
-    width: 100%;
+    width: 660px;
+    height: 85px;
+    border: 2px solid var(--grayColor400);
+    border-radius: 20px;
+    background-color: var(--main-white-color);
     display: flex;
     flex-direction: column;
-    gap: 5px;
-    font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-bold);
+    align-items: center;
+    justify-content: center;
   }
 
   .colors-info.small {
-    font-weight: var(--font-weight-light);
+    font-weight: var(--font-weight-bold);
     font-size: var(--font-size-sm);
 
     @media (max-width: 768px) {
@@ -78,46 +75,53 @@
       0 0 5px var(--main-white-color),
       0 0 4px var(--main-white-color);
     color: var(--main-text-color);
-    font-weight: 600;
-  }
-
-  .color-scala {
-    width: 100%;
-    height: 5px;
-    background-color: var(--main-white-color);
-    border-radius: 1px;
-    background-image: linear-gradient(
-      90deg,
-      var(--airGreen) 14%,
-      var(--airYellow) 17%,
-      var(--airYellow) 31%,
-      var(--airOrange) 34%,
-      var(--airOrange) 48%,
-      var(--airRed) 51%,
-      var(--airRed) 65%,
-      var(--airPurple) 68%,
-      var(--airPurple) 82%,
-      var(--airBrown) 85%,
-      var(--airBrown) 100%
-    );
+    font-weight: var(--font-weight-bold);
   }
 
   .color-labels {
     width: 100%;
     display: flex;
-    justify-content: space-around;
+    justify-content: space-evenly;
     align-items: center;
   }
 
   .label-item {
-    width: 17%;
+    width: 111px;
+    height: 34px;
+    display: flex;
     text-align: center;
-    align-self: flex-start;
-    line-height: 1.2;
+    justify-content: center;
+    align-items: center;
+    border-radius: 10px;
+    color: var(--main-white-color);
+    text-shadow: none;
+    font-family: var(--secondary-font);
+    font-size: var(--font-size-ml);
   }
 
   .label-item.top {
     align-self: flex-end;
+  }
+
+  .item-good {
+    background-color: var(--airGreen);
+  }
+
+  .item-moderate {
+    background-color: var(--airYellow);
+    color: var(--main-text-color);
+  }
+
+  .item-poor {
+    background-color: var(--airOrange);
+  }
+
+  .item-unhealthy {
+    background-color: var(--airRed);
+  }
+
+  .item-severe {
+    background-color: var(--airPurple);
   }
 
   @media (max-width: 779px) {
@@ -126,6 +130,20 @@
     }
     .mobile-legend {
       font-size: var(--font-size-sm);
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+    }
+    .label-item {
+      width: 84px;
+      height: 28px;
+      border-radius: 5px;
+      font-size: var(--font-size-ms);
+    }
+    .colors-info {
+      width: 326px;
+      height: 104px;
+      border-radius: 10px;
     }
   }
 
