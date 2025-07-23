@@ -2,6 +2,7 @@ interface LayoutLink {
   label: string;
   path: string;
   openBlank: boolean;
+  children?: LayoutLink[];
 }
 
 export type HeaderLink = LayoutLink;
