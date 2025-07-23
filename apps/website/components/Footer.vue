@@ -11,7 +11,7 @@
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
-            <h2 class="text-white">Be a Change Maker and Advocate for Clean Air!</h2>
+            <h2 class="text-white">Open Data <br>Real Impact <br>No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
                 target="_blank"
@@ -57,8 +57,16 @@
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
                   class="btn-small button-white"
-                  >Join our Newsletter</a
+                  >Join Newsletter</a
                 >
+                <a
+                  target="_blank"
+                  href="https://www.airgradient.com/blog/living-and-working-in-ukraine-during-war/"
+                  class="mt-1 ml-4"
+                >
+                  <div style="height: 15px; width: 50px; background-color: #0057b7"></div>
+                  <div style="height: 15px; width: 50px; background-color: #ffdd00"></div>
+                </a>
               </span>
             </div>
           </div>
@@ -69,15 +77,6 @@
             >181 M.10 Baan Nam Long Soi 2 Chiang Mai 50180, Thailand</span
           >
         </div>
-      </div>
-      <div class="container d-flex flag-ua justify-content-center align-items-center">
-        <a
-          target="_blank"
-          href="https://www.airgradient.com/blog/living-and-working-in-ukraine-during-war/"
-        >
-          <div style="height: 15px; width: 50px; background-color: #0057b7"></div>
-          <div style="height: 15px; width: 50px; background-color: #ffdd00"></div>
-        </a>
       </div>
     </div>
     <div class="bg-darkblue">
@@ -114,7 +113,7 @@
     }
 
     .footer-inner {
-      padding: 103px 0 30px !important;
+      padding: 103px 0 20px !important;
     }
 
     .flag-ua {
@@ -128,7 +127,7 @@
     }
 
     .footer-buttons {
-      gap: 30px;
+      gap: 20px;
       margin-bottom: 60px;
 
       a {
@@ -155,13 +154,14 @@
     }
 
     hr {
-      border-top: 1px solid var(--light-primary-color) !important;
+      border-top: 1px solid #d4ecff !important;
+      opacity: 1;
       width: 100%;
       margin: 39px 0;
     }
 
     h2 {
-      margin-bottom: 20px;
+      margin-bottom: 50px;
     }
 
     .social-links {
@@ -232,7 +232,7 @@
 
   @include desktop-lg {
     .footer-content {
-      margin: 0 60px !important;
+      margin: 0 30px !important;
     }
   }
 
@@ -245,10 +245,6 @@
       & .info-container {
         margin-right: 0;
         width: 100%;
-
-        h2 {
-          margin-bottom: 30px;
-        }
       }
 
       .footer-links-container {
@@ -261,7 +257,7 @@
 
       .footer-buttons {
         margin-bottom: 0;
-        row-gap: 20px !important;
+        gap: 20px !important;
       }
 
       .social-links {
