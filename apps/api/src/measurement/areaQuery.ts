@@ -7,8 +7,6 @@ export default class AreaQuery {
     description: 'West longitude (minimum longitude value) - leftmost boundary',
     example: -122.4194,
     type: Number,
-    minimum: -180,
-    maximum: 180,
   })
   @IsNumber()
   @Type(() => Number)
@@ -18,8 +16,6 @@ export default class AreaQuery {
     description: 'South latitude (minimum latitude value) - bottom boundary',
     example: 37.7749,
     type: Number,
-    minimum: -90,
-    maximum: 90,
   })
   @IsNumber()
   @Type(() => Number)
@@ -29,8 +25,6 @@ export default class AreaQuery {
     description: 'East longitude (maximum longitude value) - rightmost boundary',
     example: -122.4094,
     type: Number,
-    minimum: -180,
-    maximum: 180,
   })
   @IsNumber()
   @Type(() => Number)
@@ -40,8 +34,6 @@ export default class AreaQuery {
     description: 'North latitude (maximum latitude value) - top boundary',
     example: 37.7849,
     type: Number,
-    minimum: -90,
-    maximum: 90,
   })
   @IsNumber()
   @Type(() => Number)
@@ -51,8 +43,6 @@ export default class AreaQuery {
     description: 'Map zoom level for clustering (higher values = more detailed clustering)',
     example: 10,
     type: Number,
-    minimum: 1,
-    maximum: 20,
   })
   @IsOptional()
   @IsNumber()
