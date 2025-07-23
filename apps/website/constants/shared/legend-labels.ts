@@ -1,11 +1,4 @@
-export const PM25_LEGEND_LABELS = [
-  'Good',
-  'Moderate',
-  'Unhealthy Sensitive Groups',
-  'Unhealthy',
-  'Very Unhealthy',
-  'Hazardous'
-];
+export const PM25_LEGEND_LABELS = ['Good', 'Moderate', 'Poor', 'Unhealthy', 'Severe'];
 
 export const RCO2_LEGEND_LABELS = [
   'Excellent',

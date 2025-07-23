@@ -38,8 +38,14 @@
     >
     </LMap>
     <div v-if="isLegendShown" class="legend-box">
-      <UiMapMarkersLegend />
-      <UiColorsLegend />
+      <div class="legend-container">
+        <div class="legend-column">
+          <UiColorsLegend />
+        </div>
+        <div class="legend-column">
+          <UiMapMarkersLegend />
+        </div>
+      </div>
     </div>
   </div>
   <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
@@ -507,14 +513,28 @@
     bottom: 30px;
     left: 50%;
     z-index: 400;
-    width: 900px;
+    width: 1400px;
     transform: translateX(-50%);
-    max-width: 90%;
+    max-width: 100%;
     display: flex;
-    gap: 20px;
     flex-direction: column;
     align-items: center;
     text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
+  }
+
+  .legend-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .legend-column {
+    flex: 1 1 45%;
+    max-width: 50%;
+    display: flex;
+    justify-content: center;
   }
 
   .map-info-btn-box {
@@ -529,5 +549,19 @@
     top: 134px;
     left: 10px;
     z-index: 999;
+  }
+
+  @media (max-width: 1180px) {
+    .legend-column {
+      flex: 1 1 100%;
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 780px) {
+    .legend-container {
+      display: flex;
+      flex-direction: column-reverse;
+    }
   }
 </style>
