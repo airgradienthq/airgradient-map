@@ -11,7 +11,7 @@
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
-            <h2 class="text-white">Open Data <br>Real Impact <br>No Secrets.</h2>
+            <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
                 target="_blank"

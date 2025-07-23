@@ -19,31 +19,39 @@
         >
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse text-center" :class="{ show: isNavbarVisible }" id="navigation">
+        <div
+          class="collapse navbar-collapse text-center"
+          :class="{ show: isNavbarVisible }"
+          id="navigation"
+        >
           <ul class="navbar-nav ml-auto">
-            <li 
-              v-for="(link, index) in HEADER_LINKS_CONFIG" 
-              :key="index" 
+            <li
+              v-for="(link, index) in HEADER_LINKS_CONFIG"
+              :key="index"
               class="nav-item"
-              :class="{ 'dropdown': link.children }"
+              :class="{ dropdown: link.children }"
             >
-              <a 
+              <a
                 class="nav-link"
-                :class="{ 
+                :class="{
                   'dropdown-toggle': link.children
-                  }"
+                }"
                 :href="link.children ? '#' : link.path"
                 :target="link.openBlank ? '_blank' : ''"
-                @click="() => { link.children ? toggleDropdown(index) : null }"
+                @click="
+                  () => {
+                    link.children ? toggleDropdown(index) : null;
+                  }
+                "
               >
                 {{ link.label }}
                 <span v-if="link.children" class="dropdown-arrow"></span>
               </a>
               <div class="shadow">
-                <div 
-                  v-if="link.children" 
+                <div
+                  v-if="link.children"
                   class="dropdown-menu"
-                  :class="{ 'show': activeDropdown === index }"
+                  :class="{ show: activeDropdown === index }"
                 >
                   <a
                     v-for="(child, childIndex) in link.children"
@@ -73,7 +81,7 @@
   const toggleNavbar = () => {
     isNavbarVisible.value = !isNavbarVisible.value;
   };
-  
+
   const toggleDropdown = (index: number) => {
     activeDropdown.value = activeDropdown.value === index ? null : index;
   };
@@ -185,7 +193,7 @@
   }
 
   .dropdown.dropdown-true .dropdown-menu {
-    box-shadow: 0 2px 5px rgba(0, 0, 0, .2) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
   }
 
   .dropdown-item {
@@ -205,12 +213,24 @@
     text-align: center;
   }
 
-  .dropdown-item:nth-child(1) { transition-delay: 0.075s; }
-  .dropdown-item:nth-child(2) { transition-delay: 0.15s; }
-  .dropdown-item:nth-child(3) { transition-delay: 0.225s; }
-  .dropdown-item:nth-child(4) { transition-delay: 0.3s; }
-  .dropdown-item:nth-child(5) { transition-delay: 0.375s; }
-  .dropdown-item:nth-child(6) { transition-delay: 0.45s; }
+  .dropdown-item:nth-child(1) {
+    transition-delay: 0.075s;
+  }
+  .dropdown-item:nth-child(2) {
+    transition-delay: 0.15s;
+  }
+  .dropdown-item:nth-child(3) {
+    transition-delay: 0.225s;
+  }
+  .dropdown-item:nth-child(4) {
+    transition-delay: 0.3s;
+  }
+  .dropdown-item:nth-child(5) {
+    transition-delay: 0.375s;
+  }
+  .dropdown-item:nth-child(6) {
+    transition-delay: 0.45s;
+  }
 
   .dropdown-item:hover,
   .dropdown-item:focus {
@@ -232,9 +252,9 @@
       opacity: 1;
       visibility: visible;
       transform: translateX(-50%) scaleX(1);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, .2);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
-    
+
     .dropdown:hover .dropdown-item {
       transform: translateX(0);
       opacity: 1;

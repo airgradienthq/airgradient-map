@@ -95,7 +95,7 @@ export const HEADER_LINKS_CONFIG: HeaderLink[] = [
       {
         label: 'Support Forum',
         path: 'https://www.airgradient.com/support/',
-        openBlank: false,
+        openBlank: false
       },
       {
         label: 'Community & NGO Program',
