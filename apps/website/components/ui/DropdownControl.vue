@@ -1,37 +1,35 @@
 <template>
-  <div ref="dropdownRef" class="ag-dropdown-control">
-    <button
-      class="ag-dropdown-control__trigger"
-      :class="{
-        'ag-dropdown-control__trigger--disabled': disabled,
-        'ag-dropdown-control__trigger--open': isOpen,
-        'ag-dropdown-control__trigger--small': size === 'small'
-      }"
-      :disabled="disabled"
-      @click="toggleDropdown"
-    >
-      <span>{{ displayValue || placeholder }}</span>
-      <svg width="20" height="20" viewBox="0 0 24 24" :class="{ rotate: isOpen }">
+  <v-select
+    :model-value="selectedValue"
+    :items="options"
+    :placeholder="placeholder"
+    :disabled="disabled"
+    class="ag-dropdown-control"
+    :class="{
+      'ag-dropdown-control--small': size === 'small'
+    }"
+    item-title="label"
+    item-value="value"
+    variant="outlined"
+    hide-details
+    :menu-props="{ 
+      contentClass: 'ag-dropdown-menu',
+      location: 'bottom',
+      origin: 'top',
+      offset: 4
+    }"
+    @update:model-value="handleChange"
+  >
+    <template #append-inner>
+      <svg width="20" height="20" viewBox="0 0 24 24" class="ag-dropdown-control__icon">
         <path d="M8 5V19L19 12L8 5Z" fill="currentColor" />
       </svg>
-    </button>
-
-    <div v-if="isOpen" class="ag-dropdown-control__menu">
-      <div
-        v-for="option in options"
-        :key="option.value"
-        class="ag-dropdown-control__option"
-        :class="{ 'ag-dropdown-control__option--selected': option.value === selectedValue }"
-        @click="selectOption(option)"
-      >
-        {{ option.label }}
-      </div>
-    </div>
-  </div>
+    </template>
+  </v-select>
 </template>
 
 <script setup lang="ts">
-  import { PropType, ref, computed, onMounted, onUnmounted } from 'vue';
+  import { PropType } from 'vue';
   import { DropdownOption, DropdownSize } from '~/types';
 
   const props = defineProps({
@@ -59,150 +57,191 @@
 
   const emit = defineEmits(['update:modelValue', 'change']);
 
-  const dropdownRef = ref<HTMLElement>();
-  const isOpen = ref(false);
-
-  const displayValue = computed(() => {
-    const selected = props.options.find(option => option.value === props.selectedValue);
-    return selected?.label || null;
-  });
-
-  const toggleDropdown = () => {
-    if (!props.disabled) {
-      isOpen.value = !isOpen.value;
-    }
+  const handleChange = (value: string | number) => {
+    emit('update:modelValue', value);
+    emit('change', value);
   };
-
-  const selectOption = (option: DropdownOption) => {
-    emit('update:modelValue', option.value);
-    emit('change', option.value);
-    isOpen.value = false;
-  };
-
-  const handleClickOutside = (event: Event) => {
-    if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
-      isOpen.value = false;
-    }
-  };
-
-  onMounted(() => document.addEventListener('click', handleClickOutside));
-  onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 </script>
 
 <style lang="scss">
-  .ag-dropdown-control {
-    position: relative;
-    width: 100%;
-    font-family: var(--secondary-font);
+.ag-dropdown-control {
+  position: relative;
+  width: 100%;
+  font-family: var(--secondary-font);
 
-    &__trigger {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 11px 20px;
-      background-color: var(--main-white-color);
-      border: 2px solid var(--grayColor400);
-      border-radius: 100px;
-      font-family: var(--secondary-font);
-      font-weight: var(--font-weight-medium);
-      font-size: 14px;
-      line-height: 17px;
-      color: var(--main-text-color);
-      cursor: pointer;
-      transition: var(--main-transition);
-      min-height: 39px;
+  .v-field {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 20px !important;
+    background-color: var(--main-white-color) !important;
+    border: 2px solid var(--grayColor400) !important;
+    border-radius: 100px !important;
+    font-family: var(--secondary-font) !important;
+    font-weight: var(--font-weight-medium) !important;
+    font-size: 14px !important;
+    line-height: 28px !important;
+    color: var(--main-text-color) !important;
+    cursor: pointer !important;
+    transition: var(--main-transition) !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    max-height: 38px !important;
+    box-shadow: none !important;
+  }
 
-      &:hover:not(&--disabled) {
-        background-color: var(--primary-color);
-        color: var(--main-white-color);
-        border-color: var(--primary-color);
-      }
+  .v-field:hover:not(.v-field--disabled) {
+    background-color: var(--primary-color) !important;
+    color: var(--main-white-color) !important;
+    border-color: var(--primary-color) !important;
+  }
 
-      &--open {
-        background-color: var(--primary-color);
-        color: var(--main-white-color);
-        border-color: var(--primary-color);
-      }
+  .v-field--focused {
+    background-color: var(--primary-color) !important;
+    color: var(--main-white-color) !important;
+    border-color: var(--primary-color) !important;
+  }
 
-      &--disabled {
-        cursor: not-allowed;
-        color: var(--main-disabled-color);
-        border-color: var(--main-disabled-color);
+  .v-field--disabled {
+    cursor: not-allowed !important;
+    color: var(--main-disabled-color) !important;
+    border-color: var(--main-disabled-color) !important;
+    background-color: var(--main-white-color) !important;
+  }
 
-        &:hover {
-          background-color: var(--main-white-color);
-          color: var(--main-disabled-color);
-          border-color: var(--main-disabled-color);
-        }
-      }
+  .v-field--disabled:hover {
+    background-color: var(--main-white-color) !important;
+    color: var(--main-disabled-color) !important;
+    border-color: var(--main-disabled-color) !important;
+  }
 
-      &--small {
-        padding: 8px 16px;
-        font-size: 14px;
-        min-height: 35px;
-      }
+  .v-field__input {
+    flex: 1 !important;
+    font-family: var(--secondary-font) !important;
+    font-weight: var(--font-weight-medium) !important;
+    font-size: 14px !important;
+    line-height: 17px !important;
+    color: inherit !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+  }
 
-      svg {
-        transform: rotate(90deg);
-        transition: var(--main-transition);
-        flex-shrink: 0;
-      }
+  .v-field:hover:not(.v-field--disabled) .v-field__input,
+  .v-field--focused .v-field__input {
+    color: var(--main-white-color) !important;
+  }
 
-      .rotate {
-        transform: rotate(270deg);
-      }
-    }
+  .v-field--disabled .v-field__input {
+    color: var(--main-disabled-color) !important;
+  }
 
-    &__menu {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      margin-top: 4px;
-      background-color: var(--main-white-color);
-      border: 2px solid var(--grayColor400);
-      border-radius: 20px;
-      box-shadow: var(--shadow-primary);
-      max-height: 300px;
-      overflow-y: auto;
-    }
+  .v-field__outline,
+  .v-field__outline__start,
+  .v-field__outline__notch,
+  .v-field__outline__end {
+    display: none !important;
+    opacity: 0 !important;
+    border: none !important;
+  }
 
-    &__option {
-      padding: 12px 20px;
-      font-family: var(--secondary-font);
-      font-weight: var(--font-weight-medium);
-      font-size: 14px;
-      line-height: 17px;
-      color: var(--main-text-color);
-      cursor: pointer;
-      transition: var(--main-transition);
-      border-bottom: 1px solid var(--grayColor200);
+  &__icon {
+    transform: rotate(90deg) !important;
+    transition: var(--main-transition) !important;
+    flex-shrink: 0 !important;
+    width: 20px !important;
+    height: 20px !important;
+    color: currentColor !important;
+  }
 
-      &:first-child {
-        border-radius: 18px 18px 0 0;
-      }
+  .v-field--focused .ag-dropdown-control__icon {
+    transform: rotate(270deg) !important;
+  }
 
-      &:last-child {
-        border-bottom: none;
-        border-radius: 0 0 18px 18px;
-      }
+  .v-field__append-inner {
+    padding: 0 !important;
+    align-self: center !important;
+  }
 
-      &:only-child {
-        border-radius: 18px;
-      }
+  .v-select__menu-icon {
+    display: none !important;
+  }
 
-      &:hover {
-        background-color: var(--primary-color);
-        color: var(--main-white-color);
-      }
-
-      &--selected {
-        background-color: var(--light-primary-color);
-        color: var(--primary-color);
-        font-weight: var(--font-weight-bold);
-      }
+  &--small {
+    .v-field {
+      padding: 0 16px !important;
+      font-size: 14px !important;
+      line-height: 24px !important;
+      height: 36px !important;
+      min-height: 36px !important;
+      max-height: 36px !important;
     }
   }
+}
+
+.ag-dropdown-menu {
+  margin-top: 4px !important;
+  background-color: var(--main-white-color) !important;
+  border: 2px solid var(--grayColor400) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--shadow-primary) !important;
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 0 !important;
+
+  .v-list-item {
+    padding: 12px 20px !important;
+    font-family: var(--secondary-font) !important;
+    font-weight: var(--font-weight-medium) !important;
+    font-size: 14px !important;
+    line-height: 17px !important;
+    color: var(--main-text-color) !important;
+    cursor: pointer !important;
+    transition: var(--main-transition) !important;
+    border-bottom: 1px solid var(--grayColor200) !important;
+    border-radius: 0 !important;
+    min-height: auto !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    &:first-child {
+      border-radius: 18px 18px 0 0 !important;
+    }
+
+    &:last-child {
+      border-bottom: none !important;
+      border-radius: 0 0 18px 18px !important;
+    }
+
+    &:only-child {
+      border-radius: 18px !important;
+      border-bottom: none !important;
+    }
+
+    &:hover {
+      background-color: var(--primary-color) !important;
+      color: var(--main-white-color) !important;
+    }
+
+    &.v-list-item--active {
+      background-color: var(--light-primary-color) !important;
+      color: var(--primary-color) !important;
+      font-weight: var(--font-weight-bold) !important;
+    }
+
+    .v-list-item__content,
+    .v-list-item-title {
+      font-size: inherit !important;
+      font-weight: inherit !important;
+      line-height: inherit !important;
+      color: inherit !important;
+      padding: 0 !important;
+    }
+  }
+}
 </style>
