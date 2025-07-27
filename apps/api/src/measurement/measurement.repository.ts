@@ -157,7 +157,8 @@ class MeasurementRepository {
                 ST_Y(l.coordinate) AS latitude,
                 l.sensor_type AS "sensorType",
                 ${selectQuery},
-                lm.last_measured_at AS "measuredAt"
+                lm.last_measured_at AS "measuredAt",
+                l.data_source AS "dataSource"
             FROM 
                 latest_measurements lm
             JOIN 

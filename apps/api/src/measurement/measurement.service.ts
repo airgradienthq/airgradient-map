@@ -80,7 +80,7 @@ export class MeasurementService {
     let geojson = new Array<any>();
     locations.map(point => {
       const value =
-        measure === 'pm25' && point.sensorType == 'Small Sensor'
+        measure === 'pm25' && point.dataSource === 'AirGradient'
           ? getEPACorrectedPM(point.pm25, point.rhum)
           : point[measure];
       geojson.push({
@@ -93,6 +93,7 @@ export class MeasurementService {
           locationId: point.locationId,
           locationName: point.locationName,
           sensorType: point.sensorType,
+          dataSource: point.dataSource,
           value,
         },
       });
@@ -126,7 +127,7 @@ export class MeasurementService {
 
   private setEPACorrectedPM(measurements: MeasurementEntity[]) {
     return measurements.map(point => {
-      if ((point.sensorType == 'Small Sensor' && point.pm25) || point.pm25 === 0) {
+      if (point.dataSource === 'AirGradient' && (point.pm25 || point.pm25 === 0)) {
         point.pm25 = getEPACorrectedPM(point.pm25, point.rhum);
       }
       return point;
