@@ -110,18 +110,20 @@ class LocationRepository {
   async retrieveLastMeasuresByLocationId(id: number) {
     const query = `
             SELECT 
-                location_id AS "locationId",
-                pm25,
-                pm10,
-                atmp,
-                rhum,
-                rco2,
-                o3,
-                no2,
-                measured_at AS "measuredAt"
-            FROM measurement
-            WHERE location_id = $1
-            ORDER BY measured_at DESC 
+                m.location_id AS "locationId",
+                m.pm25,
+                m.pm10,
+                m.atmp,
+                m.rhum,
+                m.rco2,
+                m.o3,
+                m.no2,
+                m.measured_at AS "measuredAt",
+                l.sensor_type AS "sensorType"
+            FROM measurement m
+            JOIN location l ON m.location_id = l.id
+            WHERE m.location_id = $1
+            ORDER BY m.measured_at DESC 
             LIMIT 1;
         `;
 
@@ -200,13 +202,15 @@ class LocationRepository {
     const query = `
             SELECT
                 date_bin($4, m.measured_at, $2) AS timebucket,
-                ${selectClause}
-            FROM measurement m 
+                ${selectClause},
+                l.sensor_type AS sensorType
+            FROM measurement m
+            JOIN location l on m.location_id = l.id
             WHERE 
                 m.location_id = $1 AND 
                 m.measured_at BETWEEN $2 AND $3 
                 ${validationQuery}
-            GROUP BY timebucket
+            GROUP BY timebucket, sensorType
             ORDER BY timebucket;
         `;
 

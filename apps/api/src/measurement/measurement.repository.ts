@@ -40,7 +40,7 @@ class MeasurementRepository {
 
       if (measure === 'pm25') {
         query.selectQuery = `m.pm25, m.rhum`;
-        query.whereQuery = `WHERE m.pm25 IS NOT NULL AND m.rhum IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `WHERE m.pm25 IS NOT NULL ${validationQuery}`;
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `WHERE m.${measure} IS NOT NULL ${validationQuery}`;
