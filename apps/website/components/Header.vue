@@ -5,7 +5,7 @@
     <div class="container header-container">
       <nav class="navbar navbar-expand-lg navbar-light">
         <a target="_blank" class="navbar-brand" href="https://www.airgradient.com">
-          <img width="160" alt="AirGradient Logo" src="assets/images/logos/logo_blue.svg" />
+          <img class="logo-image" alt="AirGradient Logo" src="assets/images/logos/logo_blue.svg" />
         </a>
         <button
           class="navbar-toggler border-0"
@@ -20,9 +20,9 @@
           <span class="navbar-toggler-icon"></span>
         </button>
         <div
+          id="navigation"
           class="collapse navbar-collapse text-center"
           :class="{ show: isNavbarVisible }"
-          id="navigation"
         >
           <ul class="navbar-nav ml-auto">
             <li
@@ -34,7 +34,8 @@
               <a
                 class="nav-link"
                 :class="{
-                  'dropdown-toggle': link.children
+                  'dropdown-toggle': link.children,
+                  'active-dropdown': activeDropdown === index
                 }"
                 :href="link.children ? '#' : link.path"
                 :target="link.openBlank ? '_blank' : ''"
@@ -47,7 +48,7 @@
                 {{ link.label }}
                 <span v-if="link.children" class="dropdown-arrow"></span>
               </a>
-              <div class="shadow">
+              <div class="dropdown-shadow">
                 <div
                   v-if="link.children"
                   class="dropdown-menu"
@@ -73,7 +74,7 @@
 </template>
 <script setup lang="ts">
   import { HEADER_LINKS_CONFIG } from '~/constants/shared/header-links-config';
-  import { ref } from 'vue';
+  import { ref, onMounted, onBeforeUnmount } from 'vue';
 
   const isNavbarVisible = ref(false);
   const activeDropdown = ref<number | null>(null);
@@ -85,10 +86,31 @@
   const toggleDropdown = (index: number) => {
     activeDropdown.value = activeDropdown.value === index ? null : index;
   };
+
+  const closeDropdown = event => {
+    if (!(event.target as HTMLElement).closest('.dropdown') && activeDropdown != null) {
+      activeDropdown.value = null;
+    }
+  };
+
+  onMounted(() => {
+    document.addEventListener('click', closeDropdown);
+  });
+
+  onBeforeUnmount(() => {
+    document.removeEventListener('click', closeDropdown);
+  });
 </script>
 <style>
-  #map {
-    height: calc(100vh - 129px) !important;
+  .main-content {
+    min-height: calc(100svh - 125px);
+    background: var(--main-white-color);
+  }
+
+  @media (max-width: 991px) {
+    .main-content {
+      min-height: calc(100svh - 112px);
+    }
   }
 </style>
 
@@ -103,22 +125,22 @@
     padding: 0.25em 0.5em;
     cursor: pointer;
     line-height: 1.5;
-    background-color: #fff;
-    background-image: linear-gradient(to top, #f9f9f9, #fff 33%);
+    background-color: var(--main-white-color);
+    background-image: linear-gradient(to top, var(--select-gray), var(--main-white-color) 33%);
   }
 
   .active {
-    background-color: #1c75bc;
+    background-color: var(--primary-color);
     border-radius: 0px;
     height: 90px;
-    color: #fff !important;
+    color: var(--main-white-color) !important;
   }
 
   .active2 {
-    background-color: #114b79;
+    background-color: var(--active-primary);
     border-radius: 0px;
     height: 50px;
-    color: #fff !important;
+    color: var(--main-white-color) !important;
   }
 
   .navbar {
@@ -131,6 +153,10 @@
     line-height: 70px !important;
   }
 
+  .logo-image {
+    width: 160px;
+  }
+
   .join-us-btn {
     position: absolute;
     top: 0;
@@ -138,14 +164,14 @@
     border: none !important;
     margin-top: 12px;
     margin-right: 17px;
-    color: #1c75bc;
+    color: var(--primary-color);
     z-index: 999;
     transition: all 200ms ease-in-out;
   }
 
   .join-us-btn:hover {
-    background-color: #ffffff !important;
-    color: #02579a !important;
+    background-color: var(--main-white-color) !important;
+    color: var(--primaryColor700) !important;
   }
 
   .header-container {
@@ -155,7 +181,7 @@
   }
 
   .navbar-toggler {
-    color: #e8a325 !important;
+    color: var(--select-secondary) !important;
     border-width: 1px !important;
 
     &:focus {
@@ -172,18 +198,24 @@
     visibility: hidden;
     transform-origin: center top;
     transition: all 0.3s ease-in-out;
-    background-color: #f8f9fa;
+    border-top: 3px solid var(--primary-color);
     min-width: 250px;
     width: auto;
     position: absolute;
+    z-index: 1001;
     left: 50%;
     transform: translateX(-50%) scaleX(0);
     text-align: center;
   }
 
+  .dropdown-shadow {
+    box-shadow: var(--shadow-dropdown);
+    background-color: var(--dropdownColor);
+  }
+
   .nav-link:hover {
-    background-color: rgba(28, 117, 188, 0.1);
-    color: #1c75bc !important;
+    background-color: var(--navlinkColor);
+    color: var(--primary-color) !important;
   }
 
   .dropdown-arrow {
@@ -193,12 +225,12 @@
   }
 
   .dropdown.dropdown-true .dropdown-menu {
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    box-shadow: var(--shadow-dropdown) !important;
   }
 
   .dropdown-item {
     padding: 8px 20px;
-    color: #444;
+    color: var(--dropdown-text-color);
     font-weight: normal;
     line-height: 1.2;
     opacity: 0;
@@ -234,16 +266,16 @@
 
   .dropdown-item:hover,
   .dropdown-item:focus {
-    background-color: #f8f9fa;
-    color: #1c75bc;
-    border-left: 3px solid #1c75bc;
+    background-color: var(--dropdownColor);
+    color: var(--primary-color);
+    border-left: 3px solid var(--primary-color);
     font-weight: bold;
   }
 
   .dropdown-item.active {
-    background-color: #1c75bc;
-    color: white;
-    border-left: 3px solid #114b79;
+    background-color: var(--primaryColor500);
+    color: var(--main-white-color);
+    border-left: 3px solid var(--active-primary);
     font-weight: bold;
   }
 
@@ -252,7 +284,7 @@
       opacity: 1;
       visibility: visible;
       transform: translateX(-50%) scaleX(1);
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--shadow-dropdown);
     }
 
     .dropdown:hover .dropdown-item {
@@ -280,8 +312,7 @@
       padding: 0;
       padding-top: 7px;
       padding-bottom: -7px;
-      border-top: 3px solid #1c75bc;
-      color: #516376;
+      border-top: 3px solid var(--primary-color);
       transform: none !important;
       transition: none !important;
       opacity: 1 !important;
@@ -293,8 +324,12 @@
       }
     }
 
+    .active-dropdown {
+      background-color: var(--select-dropdown);
+    }
+
     .dropdown-item {
-      padding: 10 px 15px;
+      padding: 10px 15px;
       opacity: 1;
       visibility: visible;
     }

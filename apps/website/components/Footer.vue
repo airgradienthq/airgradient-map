@@ -35,7 +35,7 @@
                 <hr v-if="index !== FOOTER_LINKS_CONFIG.length - 1" class="d-block d-md-none" />
               </template>
             </div>
-            <hr class="d-none d-lg-block" />
+            <hr class="footer-divider d-none d-lg-block" />
             <div class="social-links">
               <h5 class="text-white">Connect with us</h5>
               <span class="d-flex flex-row social-links-inner">
@@ -64,8 +64,8 @@
                   href="https://www.airgradient.com/blog/living-and-working-in-ukraine-during-war/"
                   class="mt-1 ml-4"
                 >
-                  <div style="height: 15px; width: 50px; background-color: #0057b7"></div>
-                  <div style="height: 15px; width: 50px; background-color: #ffdd00"></div>
+                  <div class="ukraine-blue"></div>
+                  <div class="ukraine-yellow"></div>
                 </a>
               </span>
             </div>
@@ -148,13 +148,19 @@
 
     .copyright {
       p {
-        color: white;
+        color: var(--main-white-color);
         font-size: 14px;
       }
     }
 
     hr {
-      border-top: 1px solid #d4ecff !important;
+      border-top: 1px solid var(--light-primary-color) !important;
+      width: 100%;
+      margin: 39px 0;
+    }
+
+    hr.footer-divider {
+      border-top: 1px solid var(--primaryColor100) !important;
       opacity: 1;
       width: 100%;
       margin: 39px 0;
@@ -196,6 +202,18 @@
           }
         }
       }
+
+      .ukraine-blue {
+        height: 15px;
+        width: 50px;
+        background-color: #0057b7;
+      }
+
+      .ukraine-yellow {
+        height: 15px;
+        width: 50px;
+        background-color: #ffdd00;
+      }
     }
 
     .footer-links-container {
@@ -219,7 +237,7 @@
         a {
           line-height: 27px;
           text-decoration: none;
-          color: white;
+          color: var(--main-white-color);
 
           &:hover,
           &:focus {

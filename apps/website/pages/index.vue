@@ -1,8 +1,6 @@
 <template>
   <ClientOnly>
-    <div class="position-relative">
-      <Map />
-    </div>
+    <Map />
   </ClientOnly>
 </template>
 

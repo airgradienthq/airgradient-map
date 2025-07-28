@@ -1,48 +1,50 @@
 <template>
-  <div class="map-info-btn-box">
-    <UiIconButton
-      :ripple="false"
-      :size="ButtonSize.NORMAL"
-      icon="mdi-information-outline"
-      :style="'map'"
-      @click="isLegendShown = !isLegendShown"
-    >
-    </UiIconButton>
-  </div>
-
-  <div class="map-geolocation-btn-box">
-    <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
-  </div>
-
-  <UiProgressBar :show="loading"></UiProgressBar>
-  <div id="map">
-    <div class="map-controls">
-      <UiDropdownControl
-        :selected-value="generalConfigStore.selectedMeasure"
-        :options="measureSelectOptions"
-        :disabled="loading"
-        @change="handleMeasureChange"
+  <div class="map-wrapper">
+    <div class="map-info-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-information-outline"
+        :style="'map'"
+        @click="isLegendShown = !isLegendShown"
       >
-      </UiDropdownControl>
+      </UiIconButton>
     </div>
-    <LMap
-      ref="map"
-      class="map"
-      :maxBoundsViscosity="DEFAULT_MAP_VIEW_CONFIG.maxBoundsViscosity"
-      :maxBounds="DEFAULT_MAP_VIEW_CONFIG.maxBounds"
-      :zoom="Number(urlState.zoom)"
-      :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
-      :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
-      :center="[Number(urlState.lat), Number(urlState.long)]"
-      @ready="onMapReady"
-    >
-    </LMap>
-    <div v-if="isLegendShown" class="legend-box">
-      <UiMapMarkersLegend />
-      <UiColorsLegend />
+
+    <div class="map-geolocation-btn-box">
+      <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
+
+    <UiProgressBar :show="loading"></UiProgressBar>
+    <div id="map">
+      <div class="map-controls">
+        <UiDropdownControl
+          :selected-value="generalConfigStore.selectedMeasure"
+          :options="measureSelectOptions"
+          :disabled="loading"
+          @change="handleMeasureChange"
+        >
+        </UiDropdownControl>
+      </div>
+      <LMap
+        ref="map"
+        class="map"
+        :maxBoundsViscosity="DEFAULT_MAP_VIEW_CONFIG.maxBoundsViscosity"
+        :maxBounds="DEFAULT_MAP_VIEW_CONFIG.maxBounds"
+        :zoom="Number(urlState.zoom)"
+        :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
+        :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
+        :center="[Number(urlState.lat), Number(urlState.long)]"
+        @ready="onMapReady"
+      >
+      </LMap>
+      <div v-if="isLegendShown" class="legend-box">
+        <UiMapMarkersLegend />
+        <UiColorsLegend />
+      </div>
+    </div>
+    <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
   </div>
-  <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
 </template>
 
 <script lang="ts" setup>
@@ -314,6 +316,10 @@
 </script>
 
 <style lang="scss">
+  .map-wrapper {
+    position: relative;
+  }
+
   #map {
     height: calc(100vh - 5px);
   }
