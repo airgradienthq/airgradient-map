@@ -40,6 +40,9 @@ export class MeasurementEntity {
   @ApiProperty()
   measuredAt: Date;
 
+  @ApiProperty()
+  dataSource: string;
+
   constructor(partial: Partial<MeasurementEntity>) {
     Object.assign(this, partial);
   }
