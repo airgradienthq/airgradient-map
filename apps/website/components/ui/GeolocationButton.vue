@@ -3,8 +3,9 @@
     :ripple="false"
     :size="ButtonSize.NORMAL"
     :disabled="isLoading"
-    icon="mdi-crosshairs-gps"
-    :style="'map'"
+    icon="mdi-navigation"
+    :style="'light'"
+    class="rotated-navigation-icon"
     @click="handleGeolocation"
   >
   </UiIconButton>
@@ -36,3 +37,10 @@
     }
   };
 </script>
+
+<style scoped>
+  .rotated-navigation-icon :deep(.v-icon),
+  .rotated-navigation-icon :deep(svg) {
+    transform: rotate(45deg);
+  }
+</style>
