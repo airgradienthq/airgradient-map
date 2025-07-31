@@ -4,7 +4,7 @@
       :ripple="false"
       :size="ButtonSize.NORMAL"
       icon="mdi-information-outline"
-      :style="'map'"
+      :style="'light'"
       @click="isLegendShown = !isLegendShown"
     >
     </UiIconButton>
@@ -514,14 +514,14 @@
 
   .map-info-btn-box {
     position: absolute;
-    top: 90px;
+    top: 110px;
     left: 10px;
     z-index: 999;
   }
 
   .map-geolocation-btn-box {
     position: absolute;
-    top: 134px;
+    top: 154px;
     left: 10px;
     z-index: 999;
   }
