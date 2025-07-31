@@ -53,4 +53,9 @@ export class LocationService {
 
     return results;
   }
+
+  async getDailyAverages(id: number, start: string, end: string, measure?: string) {
+    let measureType = measure == null ? 'pm25' : measure;
+    return await this.locationRepository.retrieveLocationDailyAverages(id, start, end, measureType);
+  }
 }
