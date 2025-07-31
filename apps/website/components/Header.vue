@@ -126,7 +126,7 @@
     cursor: pointer;
     line-height: 1.5;
     background-color: var(--main-white-color);
-    background-image: linear-gradient(to top, var(--select-gray), var(--main-white-color) 33%);
+    background-image: linear-gradient(to top, #f9f9f9, var(--main-white-color) 33%);
   }
 
   .active {
@@ -137,7 +137,7 @@
   }
 
   .active2 {
-    background-color: var(--active-primary);
+    background-color: #114b79;
     border-radius: 0px;
     height: 50px;
     color: var(--main-white-color) !important;
@@ -181,7 +181,7 @@
   }
 
   .navbar-toggler {
-    color: var(--select-secondary) !important;
+    color: #e8a325 !important;
     border-width: 1px !important;
 
     &:focus {
@@ -209,12 +209,12 @@
   }
 
   .dropdown-shadow {
-    box-shadow: var(--shadow-dropdown);
-    background-color: var(--dropdownColor);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    background-color: #f8f9fa;
   }
 
   .nav-link:hover {
-    background-color: var(--navlinkColor);
+    background-color: rgba(28, 117, 188, 0.1);
     color: var(--primary-color) !important;
   }
 
@@ -225,12 +225,12 @@
   }
 
   .dropdown.dropdown-true .dropdown-menu {
-    box-shadow: var(--shadow-dropdown) !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
   }
 
   .dropdown-item {
     padding: 8px 20px;
-    color: var(--dropdown-text-color);
+    color: #444;
     font-weight: normal;
     line-height: 1.2;
     opacity: 0;
@@ -266,7 +266,7 @@
 
   .dropdown-item:hover,
   .dropdown-item:focus {
-    background-color: var(--dropdownColor);
+    background-color: #f8f9fa;
     color: var(--primary-color);
     border-left: 3px solid var(--primary-color);
     font-weight: bold;
@@ -275,7 +275,7 @@
   .dropdown-item.active {
     background-color: var(--primaryColor500);
     color: var(--main-white-color);
-    border-left: 3px solid var(--active-primary);
+    border-left: 3px solid #114b79;
     font-weight: bold;
   }
 
@@ -284,7 +284,7 @@
       opacity: 1;
       visibility: visible;
       transform: translateX(-50%) scaleX(1);
-      box-shadow: var(--shadow-dropdown);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     }
 
     .dropdown:hover .dropdown-item {
@@ -325,7 +325,7 @@
     }
 
     .active-dropdown {
-      background-color: var(--select-dropdown);
+      background-color: #e9ecef;
     }
 
     .dropdown-item {
