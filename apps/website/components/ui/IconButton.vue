@@ -92,12 +92,12 @@
     },
     /**
      * Style of the icon button.
-     * @type {'normal' | 'map'}
-     * @default 'normal'
+     * @type {'light' | 'dark'}
+     * @default 'light'
      */
     style: {
-      type: String as PropType<'normal' | 'map'>,
-      default: 'normal'
+      type: String as PropType<'light' | 'dark'>,
+      default: 'light'
     }
   });
 
@@ -115,9 +115,19 @@
 </script>
 
 <style scoped>
+  .custom-icon-button {
+    transition: all var(--main-transition);
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    opacity: 1 !important;
+  }
+
   .custom-icon-button:hover {
     transition: all var(--main-transition);
-    color: var(--primary-color) !important;
+    color: var(--main-text-color) !important;
+    opacity: 1 !important;
 
     .custom-icon {
       filter: invert(42%) sepia(73%) saturate(323%) hue-rotate(171deg) brightness(113%)
@@ -125,23 +135,48 @@
     }
   }
 
-  .custom-icon-button.map {
-    background-color: var(--main-white-color);
-    width: 34px;
-    height: 34px;
-    border-radius: 4px;
-    border: 2px solid rgba(0, 0, 0, 0.3);
-    opacity: 1;
-    font-size: var(--font-size-sm);
+  .custom-icon-button.light {
+    background-color: var(--main-white-color) !important;
+    border: 2px solid var(--grayColor400) !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+  }
 
-    &:hover {
-      background-color: #f4f4f4;
-      color: #000000 !important;
-    }
+  .custom-icon-button.light:hover {
+    background-color: var(--hover-bg-color) !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+  }
+
+  .custom-icon-button.dark {
+    background-color: #eeede4 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+  }
+
+  /* Target Vuetify button element specifically */
+  .custom-icon-button.light.v-btn {
+    background-color: var(--main-white-color) !important;
+    border: 2px solid var(--grayColor400) !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+  }
+
+  .custom-icon-button.light.v-btn:hover {
+    background-color: var(--hover-bg-color) !important;
+    color: #212121 !important;
+    opacity: 1 !important;
+  }
+
+  .custom-icon-button.dark.v-btn {
+    background-color: #eeede4 !important;
+    color: #212121 !important;
+    opacity: 1 !important;
   }
 
   .custom-icon {
     transition: all var(--main-transition);
     object-fit: contain;
+    opacity: 1 !important;
   }
 </style>
