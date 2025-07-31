@@ -445,17 +445,16 @@
   }
 
   .leaflet-geosearch-bar form input {
-    padding-right: 30px !important;
     background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
-    background-position: right 5px center;
+    background-position: left 5px center;
     background-size: 20px;
     background-repeat: no-repeat;
-    font-size: var(--font-size-ml) !important;
+    font-size: var(--font-size-base) !important;
     font-weight: var(--font-weight-medium);
     font-family: var(--secondary-font);
-    padding-left: 10px !important;
-    text-indent: 0px;
+    padding-left: 25px !important;
     height: 22px !important;
+    padding-right: 25px;
   }
 
   .leaflet-geosearch-bar form.open {
@@ -467,7 +466,10 @@
   }
 
   .leaflet-geosearch-bar form button {
-    display: none;
+    margin-right: 10px;
+    margin-top: 6px;
+    font-size: 18px;
+    background-color: transparent !important;
   }
 
   .map-controls {
@@ -569,9 +571,15 @@
     }
 
     .leaflet-geosearch-bar form input {
-      background-position: right 5px center;
+      background-position: left 5px center;
       font-size: 14px !important;
       padding-left: 14px;
+    }
+
+    .leaflet-geosearch-bar form button {
+      margin-right: 10px;
+      margin-top: 4px;
+      font-size: 14px;
     }
   }
 </style>
