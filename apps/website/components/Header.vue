@@ -46,7 +46,6 @@
                 "
               >
                 {{ link.label }}
-                <span v-if="link.children" class="dropdown-arrow"></span>
               </a>
               <div class="dropdown-shadow">
                 <div
