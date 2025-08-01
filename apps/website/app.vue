@@ -4,9 +4,13 @@
       <NuxtLayout>
         <NuxtPage />
       </NuxtLayout>
+      <ClientOnly>
+        <UiGlobalToast />
+      </ClientOnly>
     </div>
   </Transition>
 </template>
+
 <script lang="ts" setup>
   import { getPlatform, isNativeApp } from '~/utils';
   import { useHead } from 'nuxt/app';

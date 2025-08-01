@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import LocationRepository from './location.repository';
+import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 
 @Injectable()
 export class LocationService {
@@ -15,7 +16,15 @@ export class LocationService {
   }
 
   async getLocationLastMeasures(id: number) {
-    return await this.locationRepository.retrieveLastMeasuresByLocationId(id);
+    const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
+    if (results.dataSource === 'AirGradient') {
+      results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
+    }
+    return results;
+  }
+
+  async getCigarettesSmoked(id: number) {
+    return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
   }
 
   async getLocationMeasuresHistory(
@@ -27,12 +36,21 @@ export class LocationService {
   ) {
     // Default set to pm25 if not provided
     let measureType = measure == null ? 'pm25' : measure;
-    return await this.locationRepository.retrieveLocationMeasuresHistory(
+    const results = await this.locationRepository.retrieveLocationMeasuresHistory(
       id,
       start,
       end,
       bucketSize,
       measureType,
     );
+
+    if (measureType === 'pm25') {
+      return results.map(row => ({
+        timebucket: row.timebucket,
+        value: row.dataSource === 'AirGradient' ? getEPACorrectedPM(row.pm25, row.rhum) : row.pm25,
+      }));
+    }
+
+    return results;
   }
 }

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-class Measurement {
+export class MeasurementEntity {
   @ApiProperty()
   locationId: number;
 
@@ -40,9 +40,10 @@ class Measurement {
   @ApiProperty()
   measuredAt: Date;
 
-  constructor(partial: Partial<Measurement>) {
+  @ApiProperty()
+  dataSource: string;
+
+  constructor(partial: Partial<MeasurementEntity>) {
     Object.assign(this, partial);
   }
 }
-
-export default Measurement;

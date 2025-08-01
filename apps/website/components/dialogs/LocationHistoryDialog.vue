@@ -1,4 +1,3 @@
-Location
 <template>
   <UiDialog
     :title="props.dialog?.data.location.locationName"
@@ -64,6 +63,11 @@ Location
       <ClientOnly>
         <div class="chart-container">
           <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
+          <div v-else-if="!loading && historyError" class="error-state">
+            <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
+            <p>Unable to load historical data</p>
+            <v-btn variant="outlined" color="primary" @click="retryFetchHistory"> Retry </v-btn>
+          </div>
         </div>
       </ClientOnly>
       <div class="mt-4">
@@ -150,6 +154,7 @@ Location
   import { useHistoricalDataTimezone } from '~/composables/shared/useHistoricalDataTimezone';
   import { AnnotationOptions } from 'chartjs-plugin-annotation';
   import { DateTime } from 'luxon';
+  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
 
   const props = defineProps<{
     dialog: DialogInstance<{ location: AGMapLocationData }>;
@@ -158,6 +163,8 @@ Location
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
   const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
+  const { handleApiError } = useApiErrorHandler();
+
   const mapLocationData: Ref<AGMapLocationData> = ref(null);
   const locationHistoryData: Ref<LocationHistoryData> = ref(null);
   const locationDetails: Ref<LocationDetails> = ref(null);
@@ -165,12 +172,15 @@ Location
   const chartOptions: Ref<ChartOptions<'bar'>> = ref(null);
   const historyLoading: Ref<boolean> = ref(false);
   const detailsLoading: Ref<boolean> = ref(false);
+  const historyError: Ref<boolean> = ref(false);
   const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
+
   const timezoneSelectShown: Ref<boolean> = computed(() => {
     const userOffset = DateTime.now().toFormat('ZZ');
     const locationOffset = DateTime.now().setZone(locationDetails?.value?.timezone).toFormat('ZZ');
     return userOffset !== locationOffset;
   });
+
   const historicalDataTimeZoneOptions: Ref<HistoricalDataTimeZoneConfig[]> = computed(() => {
     return HISTORICAL_DATA_TIMEZONE_OPTIONS.map(option => {
       let label = option.label;
@@ -210,7 +220,7 @@ Location
     {
       skipFirstRefresh: true,
       onError: error => {
-        console.error('Failed to refresh historical data:', error);
+        handleApiError(error, 'Failed to refresh chart data');
       },
       skipOnVisibilityHidden: true
     }
@@ -264,7 +274,7 @@ Location
       });
       locationDetails.value = response;
     } catch (error) {
-      console.error('Failed to fetch location details:', error);
+      handleApiError(error, 'Failed to load location details');
     } finally {
       detailsLoading.value = false;
     }
@@ -272,6 +282,8 @@ Location
 
   async function fetchLocationHistory(locationId: number): Promise<LocationHistoryData> {
     historyLoading.value = true;
+    historyError.value = false;
+
     const { start, end } = getDateRangeFromToday(
       generalConfigStore.selectedHistoryPeriod.unit,
       generalConfigStore.selectedHistoryPeriod.count
@@ -295,13 +307,19 @@ Location
         }
       );
       locationHistoryData.value = response;
-
       return response;
     } catch (error) {
-      console.error('Failed to fetch location history:', error);
+      historyError.value = true;
+      handleApiError(error, 'Failed to load historical data');
       return null;
     } finally {
       historyLoading.value = false;
+    }
+  }
+
+  function retryFetchHistory() {
+    if (mapLocationData.value?.locationId) {
+      fetchLocationHistory(mapLocationData.value.locationId);
     }
   }
 
@@ -427,5 +445,16 @@ Location
   .current-label {
     font-size: var(--font-size-xs);
     font-weight: var(--font-weight-medium);
+  }
+
+  .error-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+    text-align: center;
+    color: #666;
   }
 </style>

@@ -1,44 +1,50 @@
 <template>
-  <div class="map-info-btn-box">
-    <UiIconButton
-      :ripple="false"
-      :size="ButtonSize.NORMAL"
-      icon="mdi-information-outline"
-      :style="'map'"
-      @click="isLegendShown = !isLegendShown"
-    >
-    </UiIconButton>
-  </div>
-
-  <UiProgressBar :show="loading"></UiProgressBar>
-  <div id="map">
-    <div class="map-controls">
-      <UiDropdownControl
-        :selected-value="generalConfigStore.selectedMeasure"
-        :options="measureSelectOptions"
-        :disabled="loading"
-        @change="handleMeasureChange"
+  <div class="map-wrapper">
+    <div class="map-info-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-information-outline"
+        :style="'map'"
+        @click="isLegendShown = !isLegendShown"
       >
-      </UiDropdownControl>
+      </UiIconButton>
     </div>
-    <LMap
-      ref="map"
-      class="map"
-      :maxBoundsViscosity="DEFAULT_MAP_VIEW_CONFIG.maxBoundsViscosity"
-      :maxBounds="DEFAULT_MAP_VIEW_CONFIG.maxBounds"
-      :zoom="Number(urlState.zoom)"
-      :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
-      :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
-      :center="[Number(urlState.lat), Number(urlState.long)]"
-      @ready="onMapReady"
-    >
-    </LMap>
-    <div v-if="isLegendShown" class="legend-box">
-      <UiMapMarkersLegend />
-      <UiColorsLegend />
+
+    <div class="map-geolocation-btn-box">
+      <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
+
+    <UiProgressBar :show="loading"></UiProgressBar>
+    <div id="map">
+      <div class="map-controls">
+        <UiDropdownControl
+          :selected-value="generalConfigStore.selectedMeasure"
+          :options="measureSelectOptions"
+          :disabled="loading"
+          @change="handleMeasureChange"
+        >
+        </UiDropdownControl>
+      </div>
+      <LMap
+        ref="map"
+        class="map"
+        :maxBoundsViscosity="DEFAULT_MAP_VIEW_CONFIG.maxBoundsViscosity"
+        :maxBounds="DEFAULT_MAP_VIEW_CONFIG.maxBounds"
+        :zoom="Number(urlState.zoom)"
+        :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
+        :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
+        :center="[Number(urlState.lat), Number(urlState.long)]"
+        @ready="onMapReady"
+      >
+      </LMap>
+      <div v-if="isLegendShown" class="legend-box">
+        <UiMapMarkersLegend />
+        <UiColorsLegend />
+      </div>
+    </div>
+    <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
   </div>
-  <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
 </template>
 
 <script lang="ts" setup>
@@ -71,12 +77,16 @@
   import { useIntervalRefresh } from '~/composables/shared/useIntervalRefresh';
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
+  import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import { useStorage } from '@vueuse/core';
+  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
+  import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
+  const { handleApiError } = useApiErrorHandler();
   const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
@@ -107,6 +117,8 @@
       value: MeasureNames.CO2
     }
   ];
+
+  const updateMapDebounced = createVueDebounce(updateMap, 300);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -230,6 +242,9 @@
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
+
+      // Show user-friendly error message
+      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -262,8 +277,28 @@
       markers.clearLayers();
       markers.addData(geoJsonMapData);
     } else {
-      updateMap();
+      updateMapDebounced();
     }
+  }
+
+  /**
+   * Handle successful geolocation
+   */
+  function handleLocationFound(lat: number, lng: number): void {
+    if (mapInstance) {
+      mapInstance.flyTo([lat, lng], 12, {
+        animate: true,
+        duration: 1.2
+      });
+    }
+  }
+
+  /**
+   * Handle geolocation error
+   */
+  function handleGeolocationError(message: string): void {
+    console.error('Geolocation error:', message);
+    // Could show a toast notification here if available
   }
 
   onMounted(() => {
@@ -281,8 +316,24 @@
 </script>
 
 <style lang="scss">
+  .map-wrapper {
+    position: relative;
+  }
+
   #map {
-    height: calc(100vh - 5px);
+    height: calc(100vh - 130px);
+  }
+
+  @include desktop {
+    #map {
+      height: calc(100vh - 117px);
+    }
+  }
+
+  .headless {
+    #map {
+      height: calc(100vh - 5px);
+    }
   }
 
   .marker-box {
@@ -399,36 +450,21 @@
     width: 300px !important;
     max-width: 300px !important;
     margin: 10px 10px 0 auto !important;
-
-    form {
-      padding-left: 30px;
-      background-image: url('/assets/images/icons/search.svg');
-      background-position: 5px center;
-      background-size: 20px;
-
-      input {
-        height: 36px !important;
-        font-size: 16px !important;
-      }
-    }
-
-    .reset {
-      color: var(--grayColor700) !important;
-      line-height: 36px !important;
-      font-size: 16px !important;
-    }
   }
 
-  .leaflet-control-geosearch .results.active {
-    width: calc(100% + 25px);
-    margin-left: -25px;
+  .leaflet-geosearch-bar form {
+    padding-left: 0;
+    background-image: none;
   }
 
-  .results > .active,
-  .leaflet-control-geosearch .results > :hover {
-    color: var(--primary-color);
-    border-radius: 4px;
-    border-color: transparent;
+  .leaflet-geosearch-bar form input {
+    padding-left: 30px !important;
+    background-image: url('/assets/images/icons/search.svg');
+    background-position: 5px center;
+    background-size: 20px;
+    background-repeat: no-repeat;
+    height: 36px !important;
+    font-size: 16px !important;
   }
 
   .map-controls {
@@ -502,6 +538,13 @@
   .map-info-btn-box {
     position: absolute;
     top: 90px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .map-geolocation-btn-box {
+    position: absolute;
+    top: 134px;
     left: 10px;
     z-index: 999;
   }
