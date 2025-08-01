@@ -1,6 +1,5 @@
 <template>
   <div class="ag-dropdown-wrapper" @click="toggleMenu">
-    <!-- YOUR EXACT ORIGINAL BUTTON -->
     <div
       class="ag-dropdown-control__trigger"
       :class="{
@@ -105,7 +104,7 @@
     border-radius: 100px;
     cursor: pointer;
     transition: var(--main-transition);
-    min-height: 39px;
+    min-height: 59px;
 
     &:hover:not(&--disabled) {
       background-color: var(--primary-color);
@@ -147,19 +146,6 @@
     }
   }
 
-  /* Hide Vuetify completely */
-  .ag-dropdown-hidden {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    z-index: -1 !important;
-  }
-
-  /* Clean menu styling - only visual overrides */
   .ag-dropdown-menu {
     margin-top: 4px !important;
     background-color: var(--main-white-color) !important;
