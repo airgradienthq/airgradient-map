@@ -51,7 +51,7 @@
       @zoom="onMapMove"
     >
     </LMap>
-    
+
     <WindVisualization
       v-if="windLayerEnabled && mapBounds"
       :width="mapSize.width"
@@ -63,7 +63,7 @@
       :velocity-scale="windVelocityScale"
       class="wind-overlay"
     />
-    
+
     <div v-if="isLegendShown" class="legend-box">
       <UiMapMarkersLegend />
       <UiColorsLegend />
@@ -124,10 +124,10 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
-  
+
   const windLayerEnabled = useStorage('windLayerEnabled', false);
   const mapSize = ref({ width: 800, height: 600 });
-  const mapBounds = ref<{north: number, south: number, east: number, west: number} | null>(null);
+  const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
 
   const { urlState, setUrlState } = useUrlState();
 
@@ -140,7 +140,7 @@
   });
   const windVelocityScale = computed(() => {
     const zoom = mapInstance?.getZoom() || 1;
-    return 0.5 + (zoom / 10);
+    return 0.5 + zoom / 10;
   });
 
   const measureSelectOptions: DropdownOption[] = [
@@ -194,19 +194,19 @@
 
   function updateMapDimensions(): void {
     if (!mapInstance) return;
-    
+
     const container = mapInstance.getContainer();
     mapSize.value = {
       width: container.offsetWidth,
       height: container.offsetHeight
     };
-    
+
     updateMapBounds();
   }
 
   function updateMapBounds(): void {
     if (!mapInstance) return;
-    
+
     const bounds = mapInstance.getBounds();
     mapBounds.value = {
       north: bounds.getNorth(),
@@ -222,7 +222,7 @@
 
   function toggleWindLayer(): void {
     windLayerEnabled.value = !windLayerEnabled.value;
-    
+
     if (windLayerEnabled.value) {
       nextTick(() => {
         updateMapDimensions();
@@ -296,7 +296,7 @@
     }
 
     await updateMapData();
-    updateMapBounds(); 
+    updateMapBounds();
   }
 
   async function updateMapData(): Promise<void> {
@@ -388,236 +388,236 @@
 </script>
 
 <style lang="scss">
-#map {
-  height: calc(100vh - 5px);
-  position: relative;
-}
-
-.wind-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 200;
-}
-
-.marker-box {
-  background: none !important;
-  border: none !important;
-}
-
-.ag-marker {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  justify-content: center;
-  font-weight: 600;
-  border-radius: 4px;
-  color: var(--main-white-color);
-}
-
-.is-cluster {
-  border-radius: 50%;
-  font-size: 14px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  cursor: pointer;
-
-  &:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
-    transition: all 0.2s ease;
-  }
-}
-
-.is-reference {
-  border: 2px solid var(--main-white-color);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
-}
-
-.ag-marker-tooltip {
-  font-family: var(--secondary-font);
-  padding: 0;
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  background: var(--main-white-color);
-  backdrop-filter: blur(8px);
-  min-width: 180px;
-
-  &::before {
-    display: none;
+  #map {
+    height: calc(100vh - 5px);
+    position: relative;
   }
 
-  &::after {
-    content: '';
+  .wind-overlay {
     position: absolute;
-    bottom: -6px;
-    left: 50%;
-    transform: translateX(-50%) rotate(45deg);
-    width: 12px;
-    height: 12px;
-    background: var(--main-white-color);
-    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 200;
   }
 
-  .marker-tooltip {
-    .tooltip-header {
-      background: var(--primary-color);
-      color: var(--main-white-color);
-      padding: 8px 12px;
-      font-weight: 600;
-      font-size: 14px;
-      border-top-left-radius: 8px;
-      border-top-right-radius: 8px;
-      text-align: center;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 100%;
+  .marker-box {
+    background: none !important;
+    border: none !important;
+  }
+
+  .ag-marker {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    justify-content: center;
+    font-weight: 600;
+    border-radius: 4px;
+    color: var(--main-white-color);
+  }
+
+  .is-cluster {
+    border-radius: 50%;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 0.9;
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+  }
+
+  .is-reference {
+    border: 2px solid var(--main-white-color);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  }
+
+  .ag-marker-tooltip {
+    font-family: var(--secondary-font);
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    background: var(--main-white-color);
+    backdrop-filter: blur(8px);
+    min-width: 180px;
+
+    &::before {
+      display: none;
     }
 
-    .tooltip-content {
-      padding: 12px;
-      text-align: center;
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: var(--main-white-color);
+      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+    }
 
-      .measurement {
-        display: flex;
-        align-items: baseline;
-        justify-content: center;
-        gap: 8px;
+    .marker-tooltip {
+      .tooltip-header {
+        background: var(--primary-color);
+        color: var(--main-white-color);
+        padding: 8px 12px;
+        font-weight: 600;
+        font-size: 14px;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
 
-        .value {
-          font-size: 24px;
-          font-weight: 700;
-          color: var(--main-text-color);
-          line-height: 1;
-        }
+      .tooltip-content {
+        padding: 12px;
+        text-align: center;
 
-        .unit {
-          font-size: 12px;
-          color: var(--dark-grey);
-          font-weight: 500;
-          white-space: nowrap;
+        .measurement {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 8px;
+
+          .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--main-text-color);
+            line-height: 1;
+          }
+
+          .unit {
+            font-size: 12px;
+            color: var(--dark-grey);
+            font-weight: 500;
+            white-space: nowrap;
+          }
         }
       }
     }
   }
-}
 
-.leaflet-tooltip {
-  z-index: 1000 !important;
-}
-
-.leaflet-geosearch-bar {
-  width: 300px !important;
-  max-width: 300px !important;
-  margin: 10px 10px 0 auto !important;
-}
-
-.leaflet-geosearch-bar form {
-  padding-left: 0;
-  background-image: none;
-}
-
-.leaflet-geosearch-bar form input {
-  padding-left: 30px !important;
-  background-image: url('/assets/images/icons/search.svg');
-  background-position: 5px center;
-  background-size: 20px;
-  background-repeat: no-repeat;
-  height: 36px !important;
-  font-size: 16px !important;
-}
-
-.map-controls {
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  z-index: 999;
-  width: 300px;
-}
-
-.display-type-selector {
-  width: 100%;
-  height: 36px;
-  padding: 0 12px;
-  font-family: var(--secondary-font);
-  font-size: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  background: var(--main-white-color);
-  color: var(--main-text-color);
-  cursor: pointer;
-  outline: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 16px;
-  padding-right: 32px;
-
-  &:hover {
-    border-color: rgba(0, 0, 0, 0.3);
+  .leaflet-tooltip {
+    z-index: 1000 !important;
   }
 
-  &:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1);
+  .leaflet-geosearch-bar {
+    width: 300px !important;
+    max-width: 300px !important;
+    margin: 10px 10px 0 auto !important;
   }
-}
 
-.leaflet-geosearch-bar {
-  margin-bottom: 8px !important;
-}
+  .leaflet-geosearch-bar form {
+    padding-left: 0;
+    background-image: none;
+  }
 
-.display-type-selector:-moz-focusring {
-  color: transparent;
-  text-shadow: 0 0 0 #000;
-}
+  .leaflet-geosearch-bar form input {
+    padding-left: 30px !important;
+    background-image: url('/assets/images/icons/search.svg');
+    background-position: 5px center;
+    background-size: 20px;
+    background-repeat: no-repeat;
+    height: 36px !important;
+    font-size: 16px !important;
+  }
 
-.display-type-selector::-ms-expand {
-  display: none;
-}
+  .map-controls {
+    position: absolute;
+    top: 60px;
+    right: 10px;
+    z-index: 999;
+    width: 300px;
+  }
 
-.legend-box {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  z-index: 400;
-  width: 900px;
-  transform: translateX(-50%);
-  max-width: 90%;
-  display: flex;
-  gap: 20px;
-  flex-direction: column;
-  align-items: center;
-  text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
-}
+  .display-type-selector {
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    font-family: var(--secondary-font);
+    font-size: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    background: var(--main-white-color);
+    color: var(--main-text-color);
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
 
-.map-info-btn-box {
-  position: absolute;
-  top: 90px;
-  left: 10px;
-  z-index: 999;
-}
+    &:hover {
+      border-color: rgba(0, 0, 0, 0.3);
+    }
 
-.map-geolocation-btn-box {
-  position: absolute;
-  top: 134px;
-  left: 10px;
-  z-index: 999;
-}
+    &:focus {
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1);
+    }
+  }
 
-.wind-toggle-btn-box {
-  position: absolute;
-  top: 178px;
-  left: 10px;
-  z-index: 999;
-}
+  .leaflet-geosearch-bar {
+    margin-bottom: 8px !important;
+  }
+
+  .display-type-selector:-moz-focusring {
+    color: transparent;
+    text-shadow: 0 0 0 #000;
+  }
+
+  .display-type-selector::-ms-expand {
+    display: none;
+  }
+
+  .legend-box {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    z-index: 400;
+    width: 900px;
+    transform: translateX(-50%);
+    max-width: 90%;
+    display: flex;
+    gap: 20px;
+    flex-direction: column;
+    align-items: center;
+    text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
+  }
+
+  .map-info-btn-box {
+    position: absolute;
+    top: 90px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .map-geolocation-btn-box {
+    position: absolute;
+    top: 134px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .wind-toggle-btn-box {
+    position: absolute;
+    top: 178px;
+    left: 10px;
+    z-index: 999;
+  }
 </style>
