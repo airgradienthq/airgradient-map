@@ -39,7 +39,7 @@
     maxParticleAge: 100,
     frameRate: 40,
     velocityScale: 0.8,
-    windDataUrl: '/data/wind/current-wind-surface-level-gfs-1.0.json',
+    windDataUrl: `http://localhost:3001/wind-data/file?t=${Date.now()}`,
     showTooltip: true,
     isMoving: false
   });

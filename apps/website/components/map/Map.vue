@@ -133,7 +133,7 @@
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
-  const windDataUrl = computed(() => '/data/wind/current-wind-surface-level-gfs-1.0.json');
+  const windDataUrl = computed(() => 'http://localhost:3001/wind-data/file');
   const windParticleCount = computed(() => {
     const area = mapSize.value.width * mapSize.value.height;
     return Math.min(Math.max(Math.floor(area / 5000), 500), 3000);
