@@ -14,7 +14,6 @@
       </svg>
     </div>
 
-    <!-- HIDDEN VUETIFY FOR FUNCTIONALITY -->
     <v-select
       ref="selectRef"
       :model-value="selectedValue"
@@ -92,7 +91,6 @@
     width: 100%;
   }
 
-  /* Clean button styling - only visual overrides */
   .ag-dropdown-control__trigger {
     width: 100%;
     display: flex;
@@ -100,11 +98,11 @@
     justify-content: space-between;
     padding: 11px 20px;
     background-color: var(--main-white-color);
-    border: 2px solid var(--grayColor400);
+    border: 2px solid var(--airLightGray);
     border-radius: 100px;
     cursor: pointer;
     transition: var(--main-transition);
-    min-height: 59px;
+    min-height: 39px;
 
     &:hover:not(&--disabled) {
       background-color: var(--primary-color);
@@ -145,7 +143,16 @@
       transform: rotate(270deg);
     }
   }
-
+  .ag-dropdown-hidden {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
   .ag-dropdown-menu {
     margin-top: 4px !important;
     background-color: var(--main-white-color) !important;
@@ -195,3 +202,4 @@
     }
   }
 </style>
+
