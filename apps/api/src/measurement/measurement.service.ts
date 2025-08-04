@@ -1,20 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import MeasurementRepository from './measurement.repository';
-import Supercluster from 'supercluster';
-import MeasurementCluster from './measurementCluster.model';
 import { ConfigService } from '@nestjs/config';
+import Supercluster from 'supercluster';
+
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { MeasurementEntity } from './measurement.entity';
+import MeasurementRepository from './measurement.repository';
+import MeasurementCluster from './measurementCluster.model';
+import RedisCacheService from '../redis-cache/redis-cache.service';
 
 @Injectable()
 export class MeasurementService {
   // Default constant values
   private clusterRadius = 80;
   private clusterMaxZoom = 8;
+  private clusterTtlSecond = 900; // TTL = 15 min
 
   constructor(
     private readonly measurementRepository: MeasurementRepository,
     private readonly configService: ConfigService,
+    private readonly redis: RedisCacheService,
   ) {
     const clusterRadius = this.configService.get<number>('MAP_CLUSTER_RADIUS');
     if (clusterRadius) {
@@ -24,6 +28,11 @@ export class MeasurementService {
     const clusterMaxZoom = this.configService.get<number>('MAP_CLUSTER_MAX_ZOOM');
     if (clusterMaxZoom) {
       this.clusterMaxZoom = clusterMaxZoom;
+    }
+
+    const clusterTtlSecond = this.configService.get<number>('MAP_CLUSTER_TTL_SECONDS');
+    if (clusterTtlSecond) {
+      this.clusterTtlSecond = clusterTtlSecond;
     }
   }
 
@@ -63,6 +72,16 @@ export class MeasurementService {
     // Default set to pm25 if not provided
     measure = measure || 'pm25';
 
+    const cacheKey = `cluster:${xMin}:${yMin}:${xMax}:${yMax}:${zoom}:${measure}`;
+
+    // Try Redis cache
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      return parsed.map((item: any) => new MeasurementCluster(item));
+    }
+
+    // Fallback to DB query
     // Query locations by certain area with measurementType as the value
     const locations = await this.measurementRepository.retrieveLatestByArea(
       xMin,
@@ -72,11 +91,12 @@ export class MeasurementService {
       measure,
     );
     if (locations.length === 0) {
+      await this.redis.set(cacheKey, JSON.stringify([]), this.clusterTtlSecond);
       // Directly return if query result empty
       return new Array<MeasurementCluster>();
     }
 
-    // converting to .geojson features array
+    // Converting to .geojson features array
     let geojson = new Array<any>();
     locations.map(point => {
       const value =
@@ -121,6 +141,9 @@ export class MeasurementService {
     const clustersModel = clusters.map(
       (clusterResult: Partial<MeasurementCluster>) => new MeasurementCluster(clusterResult),
     );
+
+    // Cache it
+    await this.redis.set(cacheKey, JSON.stringify(clusters), this.clusterTtlSecond);
 
     return clustersModel;
   }
