@@ -17,6 +17,7 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+  import { useIntervalRefresh } from '~/composables/shared/useIntervalRefresh';
 
   interface Props {
     width?: number;
@@ -54,6 +55,11 @@
     top: `${tooltipPosition.value.y - 10}px`
   }));
 
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
+    loadWind,
+    6 * 60 * 60 * 1000
+  );
+
   watch([() => props.width, () => props.height, () => props.bounds], () => {
     canvasWidth.value = props.width;
     canvasHeight.value = props.height;
@@ -88,6 +94,7 @@
     if (!ctx) return;
 
     await loadWind();
+    startRefreshInterval();
     initParticles();
     initColors();
     if (!props.isMoving) animate();
@@ -95,6 +102,7 @@
 
   onUnmounted(() => {
     stopAnimation();
+    stopRefreshInterval();
   });
 
   function onMouseMove(e: MouseEvent) {
@@ -120,7 +128,8 @@
 
   async function loadWind() {
     try {
-      const res = await fetch(props.windDataUrl);
+      const url = `${props.windDataUrl.split('?')[0]}?t=${Date.now()}`;
+      const res = await fetch(url);
       const raw = await res.json();
       if (Array.isArray(raw) && raw[0]?.header && raw[1]?.data) {
         windData = { header: [raw[0].header], data: [raw[0].data, raw[1].data] };
