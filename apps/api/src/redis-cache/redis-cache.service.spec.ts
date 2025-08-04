@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import RedisCacheService from './redis-cache.service';
+import { RedisCacheService } from './redis-cache.service';
 
 describe('RedisCacheService', () => {
   let service: RedisCacheService;

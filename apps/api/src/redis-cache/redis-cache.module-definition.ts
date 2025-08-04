@@ -1,5 +1,5 @@
 import { ConfigurableModuleBuilder } from '@nestjs/common';
-import RedisCacheOptions from './redis-cache.options';
+import { RedisCacheOptions } from './redis-cache.options';
 
 export const CONNECTION_POOL = 'REDIS_CONNECTION';
 

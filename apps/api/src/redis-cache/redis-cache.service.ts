@@ -3,7 +3,7 @@ import Redis from 'ioredis';
 import { CONNECTION_POOL } from './redis-cache.module-definition';
 
 @Injectable()
-export default class RedisCacheService {
+export class RedisCacheService {
   private readonly logger = new Logger(RedisCacheService.name);
 
   constructor(@Inject(CONNECTION_POOL) private readonly client: Redis) {}

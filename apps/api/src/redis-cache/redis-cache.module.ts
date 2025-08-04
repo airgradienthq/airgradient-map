@@ -5,8 +5,8 @@ import {
   CONNECTION_POOL,
   REDIS_CACHE_OPTIONS,
 } from './redis-cache.module-definition';
-import RedisCacheService from './redis-cache.service';
-import RedisCacheOptions from './redis-cache.options';
+import { RedisCacheService } from './redis-cache.service';
+import { RedisCacheOptions } from './redis-cache.options';
 
 @Global()
 @Module({

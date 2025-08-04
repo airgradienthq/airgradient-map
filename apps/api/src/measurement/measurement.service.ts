@@ -6,7 +6,7 @@ import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { MeasurementEntity } from './measurement.entity';
 import MeasurementRepository from './measurement.repository';
 import MeasurementCluster from './measurementCluster.model';
-import RedisCacheService from '../redis-cache/redis-cache.service';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 @Injectable()
 export class MeasurementService {
@@ -18,7 +18,7 @@ export class MeasurementService {
   constructor(
     private readonly measurementRepository: MeasurementRepository,
     private readonly configService: ConfigService,
-    private readonly redis: RedisCacheService,
+    private readonly redisCacheService: RedisCacheService,
   ) {
     const clusterRadius = this.configService.get<number>('MAP_CLUSTER_RADIUS');
     if (clusterRadius) {
@@ -75,7 +75,7 @@ export class MeasurementService {
     const cacheKey = `cluster:${xMin}:${yMin}:${xMax}:${yMax}:${zoom}:${measure}`;
 
     // Try Redis cache
-    const cached = await this.redis.get(cacheKey);
+    const cached = await this.redisCacheService.get(cacheKey);
     if (cached) {
       const parsed = JSON.parse(cached);
       return parsed.map((item: any) => new MeasurementCluster(item));
@@ -91,7 +91,7 @@ export class MeasurementService {
       measure,
     );
     if (locations.length === 0) {
-      await this.redis.set(cacheKey, JSON.stringify([]), this.clusterTtlSecond);
+      await this.redisCacheService.set(cacheKey, JSON.stringify([]), this.clusterTtlSecond);
       // Directly return if query result empty
       return new Array<MeasurementCluster>();
     }
@@ -143,7 +143,7 @@ export class MeasurementService {
     );
 
     // Cache it
-    await this.redis.set(cacheKey, JSON.stringify(clusters), this.clusterTtlSecond);
+    await this.redisCacheService.set(cacheKey, JSON.stringify(clusters), this.clusterTtlSecond);
 
     return clustersModel;
   }
