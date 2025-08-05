@@ -29,3 +29,29 @@ export const CHART_COLORS_DARKENED_CSS_VARS: Record<ChartColorsType, string> = {
   [ChartColorsType.LIGHTGRAY]: '#989696',
   [ChartColorsType.DEFAULT]: '#989696'
 };
+
+export const CHART_COLORS_LIGHT_VAR: Record<ChartColorsType, string> = {
+  [ChartColorsType.GREEN]: '#d2f7d3',
+  [ChartColorsType.YELLOW]: '#fff7d4',
+  [ChartColorsType.ORANGE]: '#f9d1b7',
+  [ChartColorsType.RED]: '#ffd9e1',
+  [ChartColorsType.PURPLE]: '#f6d2ff',
+  [ChartColorsType.BROWN]: '#f4c3dc',
+  [ChartColorsType.BLUE]: '#1b75bc',
+  [ChartColorsType.GRAY]: '#778899',
+  [ChartColorsType.LIGHTGRAY]: '#d5d5d5',
+  [ChartColorsType.DEFAULT]: '#d5d5d5'
+};
+
+export const CHART_COLORS_DARK_VAR: Record<ChartColorsType, string> = {
+  [ChartColorsType.GREEN]: '#005121',
+  [ChartColorsType.YELLOW]: '#d19500',
+  [ChartColorsType.ORANGE]: '#b74a00',
+  [ChartColorsType.RED]: '#b2263a',
+  [ChartColorsType.PURPLE]: '#58006d',
+  [ChartColorsType.BROWN]: '#59122d',
+  [ChartColorsType.BLUE]: '#134f7e',
+  [ChartColorsType.GRAY]: '#4c5660',
+  [ChartColorsType.LIGHTGRAY]: '#989696',
+  [ChartColorsType.DEFAULT]: '#989696'
+};

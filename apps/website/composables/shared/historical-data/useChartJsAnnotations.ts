@@ -46,6 +46,7 @@ function getAveragesData(
 ): {
   avgValue: number;
   avgColor: string;
+  avgBgColor: string;
   avgPeriodLabel: string;
   avgLabel: string;
 } | null {
@@ -60,8 +61,11 @@ function getAveragesData(
 
   avgValue = Number(avgValue.toFixed(averageApproximation));
   const avgColor = isCO2
-    ? getCO2Color(avgValue, true)?.bgColor
-    : getPM25Color(avgValue, true)?.bgColor;
+    ? getCO2Color(avgValue, true, true)?.bgColor
+    : getPM25Color(avgValue, true, true)?.bgColor;
+  const avgBgColor = isCO2
+    ? getCO2Color(avgValue, false, true)?.bgColor
+    : getPM25Color(avgValue, false, true)?.bgColor;
 
   if (measure === MeasureNames.PM_AQI) {
     avgValue = pm25ToAQI(avgValue);
@@ -72,6 +76,7 @@ function getAveragesData(
   return {
     avgValue,
     avgColor,
+    avgBgColor,
     avgLabel,
     avgPeriodLabel
   };
@@ -108,13 +113,16 @@ function createWHOAnnotation(
     type: 'line',
     yMin: yValue,
     yMax: yValue,
-    borderColor: '#badbf5',
+    borderColor: '#005121',
     borderWidth: 2,
     label: {
       display: true,
-      backgroundColor: '#badbf5',
+      backgroundColor: '#D2F7D3',
       position: 'start',
-      padding: 4,
+      padding: 8,
+      borderColor: '#005121',
+      borderWidth: 2,
+      color: '#212121',
       font: { family: '"Cabin", sans-serif', size: fontSize },
       xAdjust,
       content: label
@@ -127,7 +135,7 @@ function createAverageAnnotation(
   fontSize: number,
   xAdjust: number
 ): AnnotationOptions {
-  const { avgValue, avgColor, avgLabel, avgPeriodLabel } = data;
+  const { avgValue, avgColor, avgBgColor, avgLabel, avgPeriodLabel } = data;
 
   return {
     display: true,
@@ -140,9 +148,12 @@ function createAverageAnnotation(
     borderDash: [2, 2],
     label: {
       display: true,
-      backgroundColor: avgColor,
+      backgroundColor: avgBgColor,
       position: 'start',
-      padding: 4,
+      padding: 8,
+      borderColor: avgColor,
+      borderWidth: 2,
+      color: avgColor,
       font: { family: '"Cabin", sans-serif', size: fontSize },
       xAdjust,
       content: `${avgPeriodLabel} Average: ${avgValue}${avgLabel}`

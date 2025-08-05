@@ -1,4 +1,9 @@
-import { CHART_COLORS_CSS_VARS, CHART_COLORS_DARKENED_CSS_VARS } from '~/constants/shared/colors';
+import {
+  CHART_COLORS_CSS_VARS,
+  CHART_COLORS_DARKENED_CSS_VARS,
+  CHART_COLORS_LIGHT_VAR,
+  CHART_COLORS_DARK_VAR
+} from '~/constants/shared/colors';
 import { ChartColorsType, MeasureNames } from '~/types';
 
 /**
@@ -12,7 +17,8 @@ import { ChartColorsType, MeasureNames } from '~/types';
  */
 export function getPM25Color(
   pmValue: number,
-  dark = false
+  dark = false,
+  newChartColors = false
 ): { bgColor: string; textColorClass: string } {
   let result = ChartColorsType.DEFAULT;
 
@@ -30,6 +36,12 @@ export function getPM25Color(
     result = ChartColorsType.BROWN;
   }
 
+  if (newChartColors) {
+    return {
+      bgColor: dark ? CHART_COLORS_DARK_VAR[result] : CHART_COLORS_LIGHT_VAR[result],
+      textColorClass: getTextColorClassForBG(result, dark)
+    };
+  }
   return {
     bgColor: dark ? CHART_COLORS_DARKENED_CSS_VARS[result] : CHART_COLORS_CSS_VARS[result],
     textColorClass: getTextColorClassForBG(result, dark)
@@ -61,7 +73,8 @@ function getTextColorClassForBG(bgColor: ChartColorsType, isBGDark: boolean = fa
  */
 export function getCO2Color(
   rco2Value: number,
-  dark = false
+  dark = false,
+  newChartColors = false
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
   const configuration = [
@@ -78,6 +91,12 @@ export function getCO2Color(
     }
   });
 
+  if (newChartColors) {
+    return {
+      bgColor: dark ? CHART_COLORS_DARK_VAR[color] : CHART_COLORS_LIGHT_VAR[color],
+      textColorClass: getTextColorClassForBG(color, dark)
+    };
+  }
   return {
     bgColor: dark ? CHART_COLORS_DARKENED_CSS_VARS[color] : CHART_COLORS_CSS_VARS[color],
     textColorClass: getTextColorClassForBG(color, dark)
