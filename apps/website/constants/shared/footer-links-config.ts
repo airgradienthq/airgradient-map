@@ -28,6 +28,11 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         label: 'Cigarettes Equivalent Calculator',
         path: 'https://www.airgradient.com/cigarettes-equivalent-calculator/',
         openBlank: true
+      },
+      {
+        label: 'AQ Terms & Conditions Quiz',
+        path: 'https://www.airgradient.com/aq-data-ownership-quiz/',
+        openBlank: true
       }
     ]
   },
