@@ -38,7 +38,7 @@
           </div>
         </div>
 
-        <div class="d-flex align-center justify-center gap-2">
+        <div class="d-flex align-center justify-center gap-2 hist-controls-container">
           <UiDropdownControl
             v-if="chartOptions && timezoneSelectShown"
             class="tz-control"
@@ -63,10 +63,10 @@
       <ClientOnly>
         <div class="chart-container">
           <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
-          <div v-else-if="!loading && historyError" class="error-state">
+          <div v-else-if="!loading && historyError" class="d-flex flex-column align-center justify-center gap-2">
             <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
             <p>Unable to load historical data</p>
-            <v-btn variant="outlined" color="primary" @click="retryFetchHistory"> Retry </v-btn>
+            <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory"> Retry </UiButton>
           </div>
         </div>
       </ClientOnly>
@@ -447,14 +447,15 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .error-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    gap: 16px;
-    text-align: center;
-    color: #666;
+  .hist-controls-container {
+    @include tablet {
+      flex-direction: column;
+    }
+  }
+
+</style>
+<style lang="scss">
+  .v-text-field .v-input__details {
+    display: none;
   }
 </style>
