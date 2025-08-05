@@ -459,14 +459,4 @@
     }
   }
 </style>
-<style lang="scss">
-  .v-text-field .v-input__details {
-    display: none;
-  }
 
-  .hist-controls-container {
-    @include tablet {
-      flex-direction: column;
-    }
-  }
-</style>
