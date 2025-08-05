@@ -93,6 +93,12 @@
   .ag-dropdown-wrapper {
     position: relative;
     width: 100%;
+
+    .v-field__input {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      min-height: 39px !important;
+    }
   }
 
   .ag-dropdown-control__trigger {
@@ -164,7 +170,6 @@
     z-index: -1 !important;
   }
   .ag-dropdown-menu {
-    margin-top: 4px !important;
     background-color: var(--main-white-color) !important;
     border: 2px solid var(--grayColor400) !important;
     border-radius: 20px !important;
