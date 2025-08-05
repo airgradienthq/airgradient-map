@@ -63,10 +63,15 @@
       <ClientOnly>
         <div class="chart-container">
           <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
-          <div v-else-if="!loading && historyError" class="d-flex flex-column align-center justify-center gap-2">
+          <div
+            v-else-if="!loading && historyError"
+            class="d-flex flex-column align-center justify-center gap-2"
+          >
             <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
             <p>Unable to load historical data</p>
-            <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory"> Retry </UiButton>
+            <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory">
+              Retry
+            </UiButton>
           </div>
         </div>
       </ClientOnly>
@@ -452,7 +457,6 @@
       flex-direction: column;
     }
   }
-
 </style>
 <style lang="scss">
   .v-text-field .v-input__details {
