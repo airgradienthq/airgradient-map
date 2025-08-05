@@ -460,6 +460,7 @@
     border: var(--shadow-primary);
     padding-top: 10px;
     padding-bottom: 10px;
+    height: 40px;
   }
 
   .leaflet-geosearch-bar form input {
@@ -471,12 +472,21 @@
     font-weight: var(--font-weight-medium);
     font-family: var(--secondary-font);
     padding-left: 25px !important;
-    height: 22px !important;
+    height: 19px !important;
     padding-right: 25px;
   }
 
   .leaflet-geosearch-bar form.open {
-    border-radius: 22px;
+    border-radius: 20px;
+    height: auto;
+    padding-bottom: 0px;
+  }
+
+  .leaflet-geosearch-bar form.open .results {
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    padding-top: 4px;
+    margin-top: 4px;
   }
 
   .leaflet-geosearch-bar form input::placeholder {
@@ -488,6 +498,11 @@
     margin-top: 6px;
     font-size: 18px;
     background-color: transparent !important;
+  }
+
+  .leaflet-geosearch-bar form input:placeholder-shown + button {
+    height: 40px !important;
+    display: none;
   }
 
   .map-controls {
@@ -573,21 +588,6 @@
   }
 
   @media (max-width: 779px) {
-    .leaflet-control-geosearch {
-      margin: 0 auto !important;
-      top: 35px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-    }
-
-    .leaflet-geosearch-bar form {
-      width: 323px !important;
-      padding-top: 8px;
-      padding-bottom: 8px;
-    }
-
     .leaflet-geosearch-bar form input {
       background-position: left 5px center;
       font-size: 14px !important;

@@ -93,6 +93,9 @@
   .ag-dropdown-wrapper {
     position: relative;
     width: 100%;
+    height: 40px;
+    font-family: var(--secondary-font);
+    font-weight: var(--font-weight-bold);
 
     .v-field__input {
       padding-top: 0 !important;
@@ -112,7 +115,7 @@
     border-radius: 100px;
     cursor: pointer;
     transition: var(--main-transition);
-    min-height: 39px;
+    min-height: 40px;
 
     &:hover:not(&--disabled) {
       background-color: var(--primary-color);
@@ -214,6 +217,11 @@
         color: var(--primary-color) !important;
         font-weight: var(--font-weight-bold) !important;
       }
+    }
+  }
+  @media (max-width: 779px) {
+    .ag-dropdown-wrapper {
+      font-size: 14px;
     }
   }
 </style>
