@@ -32,7 +32,7 @@ export function useChartJsAnnotations({
   if (showAverage) {
     const avgData = getAveragesData(data, measure, period);
     if (avgData) {
-      annotations.avgLine = createAverageAnnotation(avgData, fontSize, avgXAdjust);
+      annotations.avgLine = createAverageAnnotation(avgData, fontSize, avgXAdjust, width.value);
     }
   }
 
@@ -71,7 +71,10 @@ function getAveragesData(
     avgValue = pm25ToAQI(avgValue);
   }
 
-  const avgPeriodLabel = period.label.replace('Last', '').trim();
+  let avgPeriodLabel = '';
+  if (window.innerWidth > 450) {
+    avgPeriodLabel = period.label.replace('Last', '').trim();
+  }
 
   return {
     avgValue,
@@ -91,10 +94,10 @@ function getAnnotationLabelXAdjust(
 } {
   const isPM25 = measure === MeasureNames.PM25 || measure === MeasureNames.PM_AQI;
 
-  if (width < 450) return { avgXAdjust: isPM25 ? 140 : 3, WHOXAdjust: 3 };
+  if (width < 450) return { avgXAdjust: isPM25 ? 160 : 3, WHOXAdjust: 1 };
   if (width < 768) return { avgXAdjust: isPM25 ? 210 : 10, WHOXAdjust: 10 };
 
-  return { avgXAdjust: isPM25 ? 240 : 10, WHOXAdjust: 10 };
+  return { avgXAdjust: isPM25 ? 300 : 10, WHOXAdjust: 10 };
 }
 
 function createWHOAnnotation(
@@ -119,7 +122,7 @@ function createWHOAnnotation(
       display: true,
       backgroundColor: '#D2F7D3',
       position: 'start',
-      padding: 8,
+      padding: width < 450 ? { x: 5, y: 3 } : { x: 10, y: 8 },
       borderColor: '#005121',
       borderWidth: 2,
       color: '#212121',
@@ -133,7 +136,8 @@ function createWHOAnnotation(
 function createAverageAnnotation(
   data: ReturnType<typeof getAveragesData>,
   fontSize: number,
-  xAdjust: number
+  xAdjust: number,
+  width: number
 ): AnnotationOptions {
   const { avgValue, avgColor, avgBgColor, avgLabel, avgPeriodLabel } = data;
 
@@ -150,7 +154,7 @@ function createAverageAnnotation(
       display: true,
       backgroundColor: avgBgColor,
       position: 'start',
-      padding: 8,
+      padding: width < 450 ? { x: 5, y: 3 } : { x: 10, y: 8 },
       borderColor: avgColor,
       borderWidth: 2,
       color: avgColor,
