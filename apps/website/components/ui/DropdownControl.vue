@@ -8,7 +8,7 @@
         'ag-dropdown-control__trigger--small': size === 'small'
       }"
     >
-      <span>{{ displayValue || placeholder }}</span>
+      <span :style="{ maxWidth: width }">{{ displayValue || placeholder }}</span>
       <svg width="20" height="20" viewBox="0 0 24 24" :class="{ rotate: isMenuOpen }">
         <path d="M8 5V19L19 12L8 5Z" fill="currentColor" />
       </svg>
@@ -61,6 +61,10 @@
     placeholder: {
       type: String,
       default: 'Select an option...'
+    },
+    width: {
+      type: String,
+      default: '100%'
     }
   });
 
@@ -131,6 +135,12 @@
     &--small {
       padding: 8px 16px;
       min-height: 35px;
+    }
+
+    span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     svg {

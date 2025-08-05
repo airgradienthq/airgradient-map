@@ -38,10 +38,11 @@
           </div>
         </div>
 
-        <div class="d-flex align-center justify-center gap-2">
+        <div class="d-flex align-center justify-center gap-2 hist-controls-container">
           <UiDropdownControl
             v-if="chartOptions && timezoneSelectShown"
             class="tz-control"
+            width="200px"
             :selected-value="selectedHistoricalDataTimeZoneConfig.value"
             :options="historicalDataTimeZoneOptions"
             :disabled="loading"
@@ -456,5 +457,11 @@
     gap: 16px;
     text-align: center;
     color: #666;
+  }
+
+  .hist-controls-container {
+    @include tablet {
+      flex-direction: column;
+    }
   }
 </style>
