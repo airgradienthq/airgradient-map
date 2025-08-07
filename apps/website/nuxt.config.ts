@@ -36,15 +36,26 @@ export default defineNuxtConfig({
     }
   },
 
-  modules: [
-    [
-      '@pinia/nuxt',
-      {
-        autoImports: ['defineStore', ['defineStore', 'definePiniaStore']]
-      }
+  modules: [[
+    '@pinia/nuxt',
+    {
+      autoImports: ['defineStore', ['defineStore', 'definePiniaStore']]
+    }
+  ], '@nuxtjs/leaflet', '@nuxtjs/i18n'],
+  i18n: {
+      detectBrowserLanguage: {
+        useCookie: true,
+        alwaysRedirect: true
+      },
+    strategy: 'prefix_except_default',
+    defaultLocale: 'test',
+    locales: [
+      { code: 'en', name: 'English', file: 'en.json' },
+      { code: 'test', name: 'Test Language', file: 'test.json' },
     ],
-    '@nuxtjs/leaflet'
-  ],
+    lazy: true,
+    langDir: 'locales/'
+  },
   nitro: {
     output: {
       dir: process.env.NODE_ENV === 'development' ? '.output-dev' : '.output',

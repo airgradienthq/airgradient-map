@@ -7,24 +7,23 @@
         <div class="d-flex flex-column flex-lg-row justify-content-between">
           <div class="d-flex flex-column info-container">
             <div class="logo-container">
-              <a target="_blank" href="https://www.airgradient.com/">
+              <a href="https://www.airgradient.com/">
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
-            <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
+            <h2 class="text-white">{{ $t('open-data') }} <br />{{ $t('real-impact') }} <br />{{ $t('no-secrets') }}</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
-                target="_blank"
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
-                Get Started with AirGradient
+                {{ $t('get-started') }}
               </a>
             </span>
           </div>
           <div class="footer-links-container">
             <div class="footer-links-inner d-flex flex-column flex-md-row justify-content-between">
-              <template v-for="(item, index) in FOOTER_LINKS_CONFIG" :key="index">
+              <template v-for="(item, index) in links_group" :key="index">
                 <ul class="footer-links">
                   <li v-for="(link, index) in item.links" :key="index">
                     <a :target="link.openBlank ? '_blank' : ''" :href="link.path">
@@ -32,12 +31,12 @@
                     </a>
                   </li>
                 </ul>
-                <hr v-if="index !== FOOTER_LINKS_CONFIG.length - 1" class="d-block d-md-none" />
+                <hr v-if="index !== links_group.length - 1" class="d-block d-md-none" />
               </template>
             </div>
             <hr class="footer-divider d-none d-lg-block" />
             <div class="social-links">
-              <h5 class="text-white">Connect with us</h5>
+              <h5 class="text-white">{{ $t('connect') }}</h5>
               <span class="d-flex flex-row social-links-inner">
                 <a
                   href="https://www.linkedin.com/company/airgradient/"
@@ -57,7 +56,7 @@
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
                   class="btn-small button-white"
-                  >Join Newsletter</a
+                  >{{ $t('join-newsletter') }}</a
                 >
                 <a
                   target="_blank"
@@ -90,7 +89,7 @@
           />
         </a>
         <p class="text-white m-0">
-          We’ve pledged 1% of sales to the preservation and restoration of the natural environment.
+          {{ $t('pledge') }}
         </p>
       </div>
     </div>
@@ -98,6 +97,16 @@
 </template>
 <script setup lang="ts">
   import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
+  import { useI18n } from '#imports';
+  
+  const i18n = useI18n();
+  const links_group = FOOTER_LINKS_CONFIG.map(group => ({
+    ...group,
+    links: group.links.map(link => ({
+      ...link,
+      label: i18n.t(link.label)
+    }))
+  }));
 </script>
 <style lang="scss" scoped>
   footer {

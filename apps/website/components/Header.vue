@@ -4,7 +4,7 @@
   <header id="main-header" class="bg-white">
     <div class="container header-container">
       <nav class="navbar navbar-expand-lg navbar-light">
-        <a target="_blank" class="navbar-brand" href="https://www.airgradient.com">
+        <a class="navbar-brand" href="https://www.airgradient.com">
           <img class="logo-image" alt="AirGradient Logo" src="assets/images/logos/logo_blue.svg" />
         </a>
         <button
@@ -35,7 +35,8 @@
                 class="nav-link"
                 :class="{
                   'dropdown-toggle': link.children,
-                  'active-dropdown': activeDropdown === index
+                  'active-dropdown': activeDropdown === index,
+                  'has-children': link.children
                 }"
                 :href="link.children ? '#' : link.path"
                 :target="link.openBlank ? '_blank' : ''"
@@ -45,7 +46,7 @@
                   }
                 "
               >
-                {{ link.label }}
+                {{ $t(link.label) }}
               </a>
               <div class="dropdown-shadow">
                 <div
@@ -60,13 +61,26 @@
                     :href="child.path"
                     :target="child.openBlank ? '_blank' : ''"
                   >
-                    {{ child.label }}
+                    {{ $t(child.label) }}
                   </a>
                 </div>
               </div>
             </li>
           </ul>
         </div>
+        <!-- <div
+          v-for="locale in locales"
+          class="btn-large button-blue"
+          @click="setLocale(locale.code)">
+            {{ locale.name }}
+        </div> -->
+        <NuxtLink
+          v-for="locale in locales"
+          :key="locale.code"
+          :to="switchLocalePath(locale.code)"
+          class="btn-large button-blue">
+          {{  locale.name }}
+        </NuxtLink>
       </nav>
     </div>
   </header>
@@ -74,9 +88,43 @@
 <script setup lang="ts">
   import { HEADER_LINKS_CONFIG } from '~/constants/shared/header-links-config';
   import { ref, onMounted, onBeforeUnmount } from 'vue';
+  import { useI18n, useNuxtApp, useSwitchLocalePath } from '#imports';
+  import { loadAndSetLocale } from '@nuxtjs/i18n/dist/runtime/utils';
+  // import { switchLocalePath } from '@nuxtjs/i18n/dist/runtime/routing/routing';
 
   const isNavbarVisible = ref(false);
   const activeDropdown = ref<number | null>(null);
+  // const i18n = useI18n({ useScope: 'global' });
+  // const nuxtApp = useNuxtApp();
+  const { $i18n } = useNuxtApp();
+  const switchLocalePath = useSwitchLocalePath();
+  const locales = $i18n.locales;
+  // var links_group = HEADER_LINKS_CONFIG.map(item => ({
+  //   ...item,
+  //   label: $i18n.t(item.label),
+  //   ...(item.children && {
+  //     children: item.children.map(child => ({
+  //       ...child,
+  //       label: $i18n.t(child.label)
+  //     }))
+  //   })
+  // }));
+
+  // const switchLocalePath = (locale: string) => {
+    // links_group = HEADER_LINKS_CONFIG.map(item => ({
+    //   ...item,
+    //   label: $i18n.t(item.label, locale),
+    //   ...(item.children && {
+    //     children: item.children.map(child => ({
+    //       ...child,
+    //       label: $i18n.t(child.label, locale)
+    //     }))
+    //   })
+    // }));
+
+  //   return useSwitchLocalePath(locale);
+  // }
+
 
   const toggleNavbar = () => {
     isNavbarVisible.value = !isNavbarVisible.value;
@@ -99,6 +147,12 @@
   onBeforeUnmount(() => {
     document.removeEventListener('click', closeDropdown);
   });
+
+  const setLocale = (locale: string) => {
+    // loadAndSetLocale(nuxtApp, locale);
+    // i18n.locale.value = locale;
+    $i18n.setLocale(locale);
+  }
 </script>
 <style>
   .main-content {
@@ -212,7 +266,7 @@
     background-color: #f8f9fa;
   }
 
-  .nav-link:hover {
+  .has-children:hover {
     background-color: rgba(28, 117, 188, 0.1);
     color: var(--primary-color) !important;
   }

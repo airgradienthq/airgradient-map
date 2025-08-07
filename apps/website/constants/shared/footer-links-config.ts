@@ -5,28 +5,33 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
     group: 1,
     links: [
       {
-        label: 'Manifesto',
+        label: 'manifesto',
         path: 'https://www.airgradient.com/manifesto/',
         openBlank: true
       },
       {
-        label: 'Building Consultants',
+        label: 'building-consultants',
         path: 'https://www.airgradient.com/building-consultants/',
         openBlank: true
       },
       {
-        label: 'Educators',
+        label: 'educators',
         path: 'https://www.airgradient.com/air-pollution-educators/',
         openBlank: true
       },
       {
-        label: 'Wildfire AQ',
+        label: 'wildfire-aq',
         path: 'https://www.airgradient.com/wildfire/',
         openBlank: true
       },
       {
-        label: 'Cigarettes Equivalent Calculator',
+        label: 'cigarettes-calculator',
         path: 'https://www.airgradient.com/cigarettes-equivalent-calculator/',
+        openBlank: true
+      },
+      {
+        label: 'AQ Terms & Conditions Quiz',
+        path: 'https://www.airgradient.com/aq-data-ownership-quiz/',
         openBlank: true
       }
     ]
@@ -35,27 +40,27 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
     group: 2,
     links: [
       {
-        label: 'Dashboard',
+        label: 'dashboard',
         path: 'https://app.airgradient.com/dashboard',
         openBlank: true
       },
       {
-        label: 'Integrations',
+        label: 'integrations',
         path: 'https://www.airgradient.com/integrations/',
         openBlank: true
       },
       {
-        label: 'API',
+        label: 'api',
         path: 'https://api.airgradient.com/public/docs/api/v1/',
         openBlank: true
       },
       {
-        label: 'Corporate Social Responsibility',
+        label: 'corporate-social',
         path: 'https://www.airgradient.com/scr-initiatives/',
         openBlank: true
       },
       {
-        label: 'Server Status',
+        label: 'server-status',
         path: 'https://uptime.airgradient.net/status/servers',
         openBlank: true
       }
@@ -65,22 +70,22 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
     group: 3,
     links: [
       {
-        label: 'Privacy Policy',
+        label: 'privacy-policy',
         path: 'https://www.airgradient.com/privacy-policy/',
         openBlank: true
       },
       {
-        label: 'Terms and Conditions',
+        label: 'terms-conditions',
         path: 'https://www.airgradient.com/terms-conditions/',
         openBlank: true
       },
       {
-        label: 'Partner Program',
+        label: 'partner-program',
         path: 'https://www.airgradient.com/partner-program/',
         openBlank: true
       },
       {
-        label: 'Press / Influencers',
+        label: 'press-influencers',
         path: 'https://www.airgradient.com/press/',
         openBlank: true
       }
