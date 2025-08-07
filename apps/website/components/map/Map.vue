@@ -15,6 +15,18 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
+    <div class="wind-toggle-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-weather-windy"
+        :style="'map'"
+        @click="toggleWindLayer"
+        title="Toggle Wind Layer"
+      >
+      </UiIconButton>
+    </div>
+
     <UiProgressBar :show="loading"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
@@ -36,8 +48,23 @@
         :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
         :center="[Number(urlState.lat), Number(urlState.long)]"
         @ready="onMapReady"
+        @move="onMapMove"
+        @zoom="onMapMove"
       >
       </LMap>
+
+      <WindVisualization
+        v-if="windLayerEnabled && mapBounds"
+        :width="mapSize.width"
+        :height="mapSize.height"
+        :bounds="mapBounds"
+        :zoom="mapInstance?.getZoom() || 3"
+        :wind-data-url="windDataUrl"
+        :particle-count="windParticleCount"
+        :velocity-scale="windVelocityScale"
+        class="wind-overlay"
+      />
+
       <div v-if="isLegendShown" class="legend-box">
         <UiMapMarkersLegend />
         <UiColorsLegend />
@@ -48,7 +75,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, ref, nextTick } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -78,6 +105,7 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
+  import WindVisualization from '~/components/map/WindVisualization.vue';
   import { useStorage } from '@vueuse/core';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
@@ -99,9 +127,23 @@
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
 
+  const windLayerEnabled = useStorage('windLayerEnabled', false);
+  const mapSize = ref({ width: 800, height: 600 });
+  const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
+
   const { urlState, setUrlState } = useUrlState();
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
+
+  const windDataUrl = computed(() => 'http://localhost:3001/wind-data/file');
+  const windParticleCount = computed(() => {
+    const area = mapSize.value.width * mapSize.value.height;
+    return Math.min(Math.max(Math.floor(area / 5000), 500), 3000);
+  });
+  const windVelocityScale = computed(() => {
+    const zoom = mapInstance?.getZoom() || 1;
+    return 0.5 + zoom / 10;
+  });
 
   const measureSelectOptions: DropdownOption[] = [
     {
@@ -127,6 +169,7 @@
   const onMapReady = () => {
     setUpMapInstance();
     addGeocodeControl();
+    updateMapDimensions();
   };
 
   function setUpMapInstance(): void {
@@ -147,7 +190,46 @@
     }).addTo(mapInstance);
 
     mapInstance.on('moveend', updateMap);
+    mapInstance.on('resize', updateMapDimensions);
     mapInstance.whenReady(updateMap);
+  }
+
+  function updateMapDimensions(): void {
+    if (!mapInstance) return;
+
+    const container = mapInstance.getContainer();
+    mapSize.value = {
+      width: container.offsetWidth,
+      height: container.offsetHeight
+    };
+
+    updateMapBounds();
+  }
+
+  function updateMapBounds(): void {
+    if (!mapInstance) return;
+
+    const bounds = mapInstance.getBounds();
+    mapBounds.value = {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest()
+    };
+  }
+
+  function onMapMove(): void {
+    updateMapBounds();
+  }
+
+  function toggleWindLayer(): void {
+    windLayerEnabled.value = !windLayerEnabled.value;
+
+    if (windLayerEnabled.value) {
+      nextTick(() => {
+        updateMapDimensions();
+      });
+    }
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -216,6 +298,7 @@
     }
 
     await updateMapData();
+    updateMapBounds();
   }
 
   async function updateMapData(): Promise<void> {
@@ -242,8 +325,6 @@
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
-
-      // Show user-friendly error message
       handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
@@ -281,9 +362,6 @@
     }
   }
 
-  /**
-   * Handle successful geolocation
-   */
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, {
@@ -293,12 +371,8 @@
     }
   }
 
-  /**
-   * Handle geolocation error
-   */
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
-    // Could show a toast notification here if available
   }
 
   onMounted(() => {
@@ -321,7 +395,16 @@
   }
 
   #map {
-    height: calc(100vh - 130px);
+    height: calc(100vh - 5px);
+    position: relative;
+  }
+
+  .wind-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 200;
   }
 
   @include desktop {
@@ -545,6 +628,13 @@
   .map-geolocation-btn-box {
     position: absolute;
     top: 134px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .wind-toggle-btn-box {
+    position: absolute;
+    top: 178px;
     left: 10px;
     z-index: 999;
   }

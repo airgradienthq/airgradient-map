@@ -3,6 +3,8 @@ import { AppModule } from './app.module';
 import { LogLevel, Logger } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createSwaggerConfig } from './config/swagger.config';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
   // Setup logger
@@ -13,8 +15,15 @@ async function bootstrap() {
     : ['error', 'warn', 'log', 'debug', 'verbose'];
   logger.log(process.env.NODE_ENV);
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: logLevels,
+  });
+
+  app.useStaticAssets(join(__dirname, '..', 'public'), {
+    prefix: '/data/',
+    setHeaders: res => {
+      res.set('Cache-Control', 'no-cache');
+    },
   });
 
   // Define CORS
