@@ -97,7 +97,7 @@ Expected Result (updated count):
 
 > For developers who have previously worked with this project
 
-The database schema and dump have been updated to support contributor fixes from PR #196. You'll need to completely refresh your environment:
+The database schema and dump have been updated to support contributor fixes from PR [#196](https://github.com/airgradienthq/airgradient-map/pull/196). You'll need to completely refresh your environment:
 
 - **Remove all containers and images:**
 
