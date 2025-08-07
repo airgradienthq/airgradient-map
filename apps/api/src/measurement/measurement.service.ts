@@ -114,7 +114,7 @@ export class MeasurementService {
         },
       });
       clustersIndexes.load(geojson);
-      clusters = clustersIndexes.getClusters([yMin, xMin, yMax, xMax], zoom);
+      clusters = clustersIndexes.getClusters([xMin, yMin, xMax, yMax], zoom);
     }
 
     // Map to to array of MeasurementClusterModel
