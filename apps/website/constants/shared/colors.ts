@@ -2,7 +2,7 @@
  * @fileoverview Color constants that correspond to _variables.scss color definitions
  */
 
-import { ChartColorsType } from '~/types/shared/colors';
+import { ChartColorsType, MascotColorsType } from '~/types/shared/colors';
 
 export const CHART_COLORS_CSS_VARS: Record<ChartColorsType, string> = {
   [ChartColorsType.GREEN]: '#1DE206',
@@ -54,4 +54,14 @@ export const CHART_COLORS_DARK_VAR: Record<ChartColorsType, string> = {
   [ChartColorsType.GRAY]: '#4c5660',
   [ChartColorsType.LIGHTGRAY]: '#989696',
   [ChartColorsType.DEFAULT]: '#989696'
+};
+
+export const MASCOT_COLORS_CSS_VARS: Record<MascotColorsType, string> = {
+  [MascotColorsType.GREEN]: '#007a31',
+  [MascotColorsType.YELLOW]: '#ffd731',
+  [MascotColorsType.ORANGE]: '#ff6701',
+  [MascotColorsType.PINK]: '#f84b5f',
+  [MascotColorsType.VIOLET]: '#ae2ece',
+  [MascotColorsType.PURPLE]: '#7f1f44',
+  [MascotColorsType.DEFAULT]: '#989696'
 };

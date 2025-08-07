@@ -2,9 +2,10 @@ import {
   CHART_COLORS_CSS_VARS,
   CHART_COLORS_DARKENED_CSS_VARS,
   CHART_COLORS_LIGHT_VAR,
-  CHART_COLORS_DARK_VAR
+  CHART_COLORS_DARK_VAR,
+  MASCOT_COLORS_CSS_VARS
 } from '~/constants/shared/colors';
-import { ChartColorsType, MeasureNames } from '~/types';
+import { ChartColorsType, MeasureNames, MascotColorsType } from '~/types';
 
 /**
  * Gets the color representation for PM2.5 values.
@@ -63,6 +64,17 @@ function getTextColorClassForBG(bgColor: ChartColorsType, isBGDark: boolean = fa
 }
 
 /**
+ * Determines the appropriate text color for a given background color type.
+ *
+ * @param {MascotColorsType} bgColor - The background color type from MascotColorsType enum
+ * @returns {string} CSS class for text that ensures readable contrast
+ * @private
+ */
+function getTextColorClassForMascotBG(bgColor: MascotColorsType): string {
+  return [MascotColorsType.YELLOW].includes(bgColor) ? 'text-dark' : 'text-light';
+}
+
+/**
  * Gets the color representation for CO2 values.
  *
  * @param {number} rco2Value - The CO2 value in ppm (parts per million)
@@ -111,23 +123,39 @@ export function getCO2Color(
  *   - bgColor: CSS color value for the background
  *   - textColorClass: CSS color class for the text that ensures readability
  */
-export function getAQIColor(aqi: number): { bgColor: string; textColorClass: string } {
+export function getAQIColor(
+  aqi: number,
+  getMascotColor = false
+): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
+  let mascotColor = MascotColorsType.DEFAULT;
 
   if (aqi <= 50) {
     color = ChartColorsType.GREEN;
+    mascotColor = MascotColorsType.GREEN;
   } else if (aqi <= 100) {
     color = ChartColorsType.YELLOW;
+    mascotColor = MascotColorsType.YELLOW;
   } else if (aqi <= 150) {
     color = ChartColorsType.ORANGE;
+    mascotColor = MascotColorsType.ORANGE;
   } else if (aqi <= 200) {
     color = ChartColorsType.RED;
+    mascotColor = MascotColorsType.PINK;
   } else if (aqi <= 300) {
     color = ChartColorsType.PURPLE;
+    mascotColor = MascotColorsType.VIOLET;
   } else {
     color = ChartColorsType.BROWN;
+    mascotColor = MascotColorsType.PURPLE;
   }
 
+  if (getMascotColor) {
+    return {
+      bgColor: MASCOT_COLORS_CSS_VARS[mascotColor],
+      textColorClass: getTextColorClassForMascotBG(mascotColor)
+    };
+  }
   return {
     bgColor: CHART_COLORS_CSS_VARS[color],
     textColorClass: getTextColorClassForBG(color)
