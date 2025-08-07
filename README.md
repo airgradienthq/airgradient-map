@@ -61,7 +61,7 @@ docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml do
 
 4. **Seed Data to the Database**
 
-- Download database dump from [here](https://drive.google.com/drive/folders/1DU66VaaAoA4704MBNQtk9irZ0QVrO1kO?usp=sharing)
+- Download database dump from [here](https://drive.google.com/drive/folders/1kD3JVnjM3sxPX2iGOApaiImSoZPF5_7H?usp=sharing)
 - Copy db dump to the db container
 
 ```bash
@@ -83,9 +83,9 @@ docker exec -it postgrex-mono psql -U postgres -d agmap -c "select count(*) from
 Expected Result:
 
 ```bash
- count
+ count 
 -------
-  9215
+ 13501
 (1 row)
 ```
 
