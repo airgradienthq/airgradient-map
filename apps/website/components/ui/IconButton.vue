@@ -95,11 +95,10 @@
      * @type {'light' | 'dark'}
      * @default 'light'
      */
-  style: {
-      type: String as PropType<'light' | 'dark' | 'map'>,
+    style: {
+      type: String as PropType<'light' | 'dark'>,
       default: 'light'
     },
-
     /**
      * Whether to use legacy styling (original button appearance).
      * @type {boolean}
