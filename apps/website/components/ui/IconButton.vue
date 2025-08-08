@@ -5,7 +5,7 @@
     :disabled="disabled"
     :icon="icon"
     variant="plain"
-    :class="['custom-icon-button', style]"
+    :class="['custom-icon-button', !legacy ? style : '']"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
@@ -16,13 +16,13 @@
     :ripple="ripple"
     :disabled="disabled"
     variant="plain"
-    :class="['custom-icon-button', style]"
+    :class="['custom-icon-button', !legacy ? style : '']"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
     <img
-      width="24"
-      height="24"
+      width="16"
+      height="16"
       :src="`/images/icons/${customIcon}`"
       :alt="iconAlt"
       class="custom-icon"
@@ -98,6 +98,15 @@
     style: {
       type: String as PropType<'light' | 'dark'>,
       default: 'light'
+    },
+    /**
+     * Whether to use legacy styling (original button appearance).
+     * @type {boolean}
+     * @default false
+     */
+    legacy: {
+      type: Boolean,
+      default: false
     }
   });
 
@@ -121,13 +130,13 @@
     width: 34px;
     height: 34px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    opacity: 1 !important;
+    opacity: 1;
   }
 
   .custom-icon-button:hover {
     transition: all var(--main-transition);
-    color: var(--main-text-color) !important;
-    opacity: 1 !important;
+    color: var(--main-text-color);
+    opacity: 1;
 
     .custom-icon {
       filter: invert(42%) sepia(73%) saturate(323%) hue-rotate(171deg) brightness(113%)
@@ -135,48 +144,37 @@
     }
   }
 
-  .custom-icon-button.light {
-    background-color: var(--main-white-color) !important;
-    border: 2px solid var(--grayColor400) !important;
-    color: #212121 !important;
-    opacity: 1 !important;
-  }
-
-  .custom-icon-button.light:hover {
-    background-color: var(--hover-bg-color) !important;
-    color: #212121 !important;
-    opacity: 1 !important;
-  }
-
-  .custom-icon-button.dark {
-    background-color: #eeede4 !important;
-    color: #212121 !important;
-    opacity: 1 !important;
-  }
-
-  /* Target Vuetify button element specifically */
+  .custom-icon-button.light,
   .custom-icon-button.light.v-btn {
-    background-color: var(--main-white-color) !important;
-    border: 2px solid var(--grayColor400) !important;
-    color: #212121 !important;
-    opacity: 1 !important;
+    background-color: var(--main-white-color);
+    border: 2px solid var(--grayColor400);
+    color: var(--main-text-color);
+    opacity: 1;
   }
 
+  .custom-icon-button.light:hover,
   .custom-icon-button.light.v-btn:hover {
     background-color: var(--hover-bg-color) !important;
-    color: #212121 !important;
-    opacity: 1 !important;
+    color: var(--main-text-color) !important;
+    opacity: 1;
   }
 
+  .custom-icon-button.dark,
   .custom-icon-button.dark.v-btn {
     background-color: #eeede4 !important;
-    color: #212121 !important;
-    opacity: 1 !important;
+    color: var(--main-text-color) !important;
+    opacity: 1;
+  }
+
+  .custom-icon-button :deep(.v-icon) {
+    font-size: 16px !important;
   }
 
   .custom-icon {
+    width: 16px;
+    height: 16px;
     transition: all var(--main-transition);
     object-fit: contain;
-    opacity: 1 !important;
+    opacity: 1;
   }
 </style>
