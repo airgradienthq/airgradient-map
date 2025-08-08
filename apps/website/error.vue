@@ -21,8 +21,8 @@
         </div>
         <div class="col-md-6 align-self-center text-center text-md-start">
           <h1 class="mb-4">{{ $t('error-title') }}</h1>
-          <p class="mb-4">{{ $t('error-body')}}</p>
-          <NuxtLink to="/" class="btn-large button-blue">{{ $t('error-button')}}</NuxtLink>
+          <p class="mb-4">{{ $t('error-body') }}</p>
+          <NuxtLink to="/" class="btn-large button-blue">{{ $t('error-button') }}</NuxtLink>
         </div>
       </div>
     </div>

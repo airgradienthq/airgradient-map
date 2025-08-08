@@ -11,7 +11,9 @@
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
-            <h2 class="text-white">{{ $t('open-data') }} <br />{{ $t('real-impact') }} <br />{{ $t('no-secrets') }}</h2>
+            <h2 class="text-white">
+              {{ $t('open-data') }} <br />{{ $t('real-impact') }} <br />{{ $t('no-secrets') }}
+            </h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
                 href="https://www.airgradient.com/onboarding/welcome/"
@@ -24,10 +26,7 @@
                   class="dropdown-toggle btn-small button-white"
                   @click="toggleLanguageDropdown"
                 >
-                  <img
-                    :src="`images/icons/${locale}.svg`"
-                    class="flag-icon"
-                  >
+                  <img :src="`images/icons/${locale}.svg`" class="flag-icon" />
                   {{ locales.find(l => l.code === locale)?.name }}
                 </button>
                 <div
@@ -41,14 +40,14 @@
                     <NuxtLink
                       :key="locale.code"
                       :to="switchLocalePath(locale.code)"
-
-                      @click="() => {$i18n.setLocale(locale.code)}"
+                      @click="
+                        () => {
+                          $i18n.setLocale(locale.code);
+                        }
+                      "
                     >
-                      <img
-                        :src="`images/icons/${locale.code}.svg`"
-                        class="flag-icon"
-                      >
-                      {{  locale.name }}
+                      <img :src="`images/icons/${locale.code}.svg`" class="flag-icon" />
+                      {{ locale.name }}
                     </NuxtLink>
                   </button>
                 </div>
@@ -133,7 +132,7 @@
   import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
   import { useNuxtApp, useI18n, useSwitchLocalePath } from '#imports';
   import { ref } from 'vue';
-  
+
   const { $i18n } = useNuxtApp();
   const { locale } = useI18n();
   const switchLocalePath = useSwitchLocalePath();
@@ -142,7 +141,7 @@
 
   const toggleLanguageDropdown = () => {
     activeLanguageDropdown.value = !activeLanguageDropdown.value;
-  }
+  };
 </script>
 <style lang="scss" scoped>
   footer {

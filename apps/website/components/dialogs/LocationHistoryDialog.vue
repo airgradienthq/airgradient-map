@@ -32,7 +32,9 @@
                 <span class="unit-label">{{ currentValueData.unit }}</span>
               </h4>
               <p :class="currentValueData.textColor" class="mb-0 current-label">
-                <span> {{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" /> </span>
+                <span>
+                  {{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" />
+                </span>
               </p>
             </div>
           </div>
@@ -71,7 +73,7 @@
             <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
             <p>{{ $t('unable-load-historical') }}</p>
             <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory">
-              {{  $t('retry') }}
+              {{ $t('retry') }}
             </UiButton>
           </div>
         </div>
@@ -81,7 +83,7 @@
       </div>
       <p class="mb-0 mt-4">
         <small v-if="chartOptions && locationDetails?.ownerName">
-          {{  $t('aq-provided-by') }}
+          {{ $t('aq-provided-by') }}
           <span v-if="!locationDetails?.url">
             {{
               !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
