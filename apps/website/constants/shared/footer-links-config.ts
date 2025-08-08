@@ -30,7 +30,7 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'AQ Terms & Conditions Quiz',
+        label: 'terms-conditions-quiz',
         path: 'https://www.airgradient.com/aq-data-ownership-quiz/',
         openBlank: true
       }

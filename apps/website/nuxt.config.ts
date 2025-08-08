@@ -43,18 +43,19 @@ export default defineNuxtConfig({
     }
   ], '@nuxtjs/leaflet', '@nuxtjs/i18n'],
   i18n: {
-      detectBrowserLanguage: {
-        useCookie: true,
-        alwaysRedirect: true
-      },
+    detectBrowserLanguage: {
+      useCookie: true,
+      alwaysRedirect: true
+    },
     strategy: 'prefix_except_default',
-    defaultLocale: 'test',
+    defaultLocale: 'en',
     locales: [
       { code: 'en', name: 'English', file: 'en.json' },
-      { code: 'test', name: 'Test Language', file: 'test.json' },
+      { code: 'test', name: 'Test Language', file: 'test.json' }
     ],
     lazy: true,
-    langDir: 'locales/'
+    langDir: 'locales/',
+    fallbackLocale: 'en'
   },
   nitro: {
     output: {

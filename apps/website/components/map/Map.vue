@@ -48,7 +48,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { watch, computed, onMounted, ref } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -81,6 +81,7 @@
   import { useStorage } from '@vueuse/core';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
+  import { useNuxtApp } from '#imports';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
@@ -128,6 +129,8 @@
     setUpMapInstance();
     addGeocodeControl();
   };
+
+  const { $i18n } = useNuxtApp();
 
   function setUpMapInstance(): void {
     if (!map.value) {
@@ -250,14 +253,17 @@
     }
   }
 
+  var searchControl;
+
   function addGeocodeControl(): void {
     const provider = new OpenStreetMapProvider();
 
-    const searchControl = GeoSearchControl({
+    searchControl = GeoSearchControl({
       provider,
       style: 'bar',
       autoClose: true,
-      keepResult: true
+      keepResult: true,
+      searchLabel: $i18n.t("search-placeholder")
     });
 
     mapInstance.addControl(searchControl);
@@ -312,6 +318,11 @@
       });
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
+  });
+
+  watch($i18n.locale, () => {
+    mapInstance.removeControl(searchControl);
+    addGeocodeControl();
   });
 </script>
 

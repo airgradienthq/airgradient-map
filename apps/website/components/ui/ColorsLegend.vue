@@ -4,7 +4,7 @@
   >
     <div class="color-labels mobile-legend">
       <div v-for="(label, i) in labels" class="label-item top">
-        {{ i % 2 !== 0 ? label : '' }}
+        {{ i % 2 !== 0 ? $i18n.t(label) : '' }}
       </div>
     </div>
 
@@ -12,13 +12,13 @@
 
     <div class="color-labels mobile-legend">
       <div v-for="(label, i) in labels" class="label-item">
-        {{ i % 2 === 0 ? label : '' }}
+        {{ i % 2 === 0 ? $i18n.t(label) : '' }}
       </div>
     </div>
 
     <div class="color-labels desktop-legend">
       <div v-for="label in labels" class="label-item">
-        {{ label }}
+        {{ $t(label) }}
       </div>
     </div>
   </div>
@@ -29,6 +29,7 @@
 
   import { ColorsLegendSize } from '~/types';
   import { useLegendLabels } from '~/composables/shared/ui/useLegendLabels';
+  import { useNuxtApp } from '#imports';
 
   defineProps({
     /**
@@ -52,6 +53,7 @@
   });
 
   const { labels } = useLegendLabels();
+  const { $i18n } = useNuxtApp();
 </script>
 
 <style lang="scss" scoped>

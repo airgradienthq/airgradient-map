@@ -13,8 +13,6 @@
     "open-air-max": "TestOpen Air Max",
     "documentation": "TestDocumentation",
     "build-instructions": "TestBuild Instructions",
-    "homey": "TestHomey",
-    "home-assistant": "TestHome Assistant",
     "undp-toolkit": "TestUNDP AQ Monitoring Toolkit",
     "perspectives": "TestPerspectives",
     "blog": "TestBlog",
@@ -47,5 +45,29 @@
 
     "error-title": "TestYou ran out of air.",
     "error-body": "TestThe page you're looking for is beyond our reach...",
-    "error-button": "TestGo to Homepage"
+    "error-button": "TestGo to Homepage",
+
+    "search-placeholder": "TestEnter Address",
+    "current": "TestCurrent",
+    "unable-load-historical": "TestUnable to load historical data",
+    "retry": "TestRetry",
+    "aq-provided-by": "TestAir quality data for this location is provided by",
+    "anonymous-contributor": "Test an anonymous contributor ",
+    "and": "Testand",
+    "via": "Testvia",
+    "under": "Testunder",
+
+    "Cluster": "TestCluster",
+    "Reference": "TestReference",
+    "Small Sensor": "TestSmall Sensor",
+
+    "Good": "TestGood",
+    "Moderate": "TestModerate",
+    "Unhealthy Sensitive Groups": "TestUnhealthy Sensitive Groups",
+    "Unhealthy": "TestUnhealthy",
+    "Very Unhealthy": "TestVery Unhealthy",
+    "Hazardous": "TestHazardous",
+    "Excellent": "TestExcellent",
+    "Acceptable": "TestAcceptable",
+    "To be Avoided": "TestTo be Avoided"
 }

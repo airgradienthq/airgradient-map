@@ -19,19 +19,49 @@
               >
                 {{ $t('get-started') }}
               </a>
+              <div class="dropdown">
+                <button
+                  class="dropdown-toggle btn-small button-white"
+                  @click="toggleLanguageDropdown"
+                >
+                  {{ locales.find(l => l.code === locale)?.name }}
+                </button>
+                <div
+                  class="dropdown-menu"
+                  :class="{ show: activeLanguageDropdown }"
+                >
+                  <button
+                    v-for="locale in locales"
+                    class="dropdown-item btn-small button-white text-left"
+                  >
+                    <NuxtLink
+                      :key="locale.code"
+                      :to="switchLocalePath(locale.code)"
+
+                      @click="() => {$i18n.setLocale(locale.code)}"
+                    >
+                      <img
+                        :src="`images/icons/${locale.code}.svg`"
+                        class="flag-icon"
+                      >
+                      {{  locale.name }}
+                    </NuxtLink>
+                  </button>
+                </div>
+              </div>
             </span>
           </div>
           <div class="footer-links-container">
             <div class="footer-links-inner d-flex flex-column flex-md-row justify-content-between">
-              <template v-for="(item, index) in links_group" :key="index">
+              <template v-for="(item, index) in FOOTER_LINKS_CONFIG" :key="index">
                 <ul class="footer-links">
                   <li v-for="(link, index) in item.links" :key="index">
                     <a :target="link.openBlank ? '_blank' : ''" :href="link.path">
-                      {{ link.label }}
+                      {{ $t(link.label) }}
                     </a>
                   </li>
                 </ul>
-                <hr v-if="index !== links_group.length - 1" class="d-block d-md-none" />
+                <hr v-if="index !== FOOTER_LINKS_CONFIG.length - 1" class="d-block d-md-none" />
               </template>
             </div>
             <hr class="footer-divider d-none d-lg-block" />
@@ -97,16 +127,18 @@
 </template>
 <script setup lang="ts">
   import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
-  import { useI18n } from '#imports';
+  import { useNuxtApp, useI18n, useSwitchLocalePath } from '#imports';
+  import { ref } from 'vue';
   
-  const i18n = useI18n();
-  const links_group = FOOTER_LINKS_CONFIG.map(group => ({
-    ...group,
-    links: group.links.map(link => ({
-      ...link,
-      label: i18n.t(link.label)
-    }))
-  }));
+  const { $i18n } = useNuxtApp();
+  const { locale } = useI18n();
+  const switchLocalePath = useSwitchLocalePath();
+  const locales = $i18n.locales;
+  var activeLanguageDropdown = ref(false);
+
+  const toggleLanguageDropdown = () => {
+    activeLanguageDropdown.value = !activeLanguageDropdown.value;
+  }
 </script>
 <style lang="scss" scoped>
   footer {
@@ -160,6 +192,11 @@
         color: var(--main-white-color);
         font-size: 14px;
       }
+    }
+
+    .flag-icon {
+      height: 16px;
+      width: auto;
     }
 
     hr {

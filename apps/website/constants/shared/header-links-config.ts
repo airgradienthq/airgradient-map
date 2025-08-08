@@ -34,12 +34,12 @@ export const HEADER_LINKS_CONFIG: HeaderLink[] = [
         openBlank: false
       },
       {
-        label: 'homey',
+        label: 'Homey',
         path: 'https://www.airgradient.com/homey/',
         openBlank: false
       },
       {
-        label: 'home-assistant',
+        label: 'Home Assistant',
         path: 'https://www.airgradient.com/home-assistant/',
         openBlank: false
       },

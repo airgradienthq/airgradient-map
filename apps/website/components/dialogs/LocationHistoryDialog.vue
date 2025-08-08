@@ -32,7 +32,7 @@
                 <span class="unit-label">{{ currentValueData.unit }}</span>
               </h4>
               <p :class="currentValueData.textColor" class="mb-0 current-label">
-                <span> Current <UiHTMLSafelabel :label="currentValueData.labelHTML" /> </span>
+                <span> {{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" /> </span>
               </p>
             </div>
           </div>
@@ -69,9 +69,9 @@
             class="d-flex flex-column align-center justify-center gap-2"
           >
             <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
-            <p>Unable to load historical data</p>
+            <p>{{ $t('unable-load-historical') }}</p>
             <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory">
-              Retry
+              {{  $t('retry') }}
             </UiButton>
           </div>
         </div>
@@ -81,11 +81,11 @@
       </div>
       <p class="mb-0 mt-4">
         <small v-if="chartOptions && locationDetails?.ownerName">
-          Air quality data for this location is provided by
+          {{  $t('aq-provided-by') }}
           <span v-if="!locationDetails?.url">
             {{
               !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                ? ' an anonymous contributor '
+                ? $i18n.t('anonymous-contributor')
                 : locationDetails?.ownerName
             }}
           </span>
@@ -93,15 +93,15 @@
             <a :href="locationDetails?.url" target="_blank">
               {{
                 !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                  ? ' an anonymous contributor '
+                  ? $i18n.t('anonymous-contributor')
                   : locationDetails?.ownerName
               }}
               <v-icon size="16">mdi-open-in-new</v-icon>
             </a>
           </span>
-          via
+          {{ $t('via') }}
           <span v-if="locationDetails?.dataSource === 'OpenAQ'">
-            {{ locationDetails?.provider }} and
+            {{ locationDetails?.provider }} {{ $t('and') }}
             <a href="https://openaq.org/" target="_blank">
               OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a
             >
@@ -114,7 +114,7 @@
             </a>
           </span>
 
-          under
+          {{ $t('under') }}
           {{ locationDetails?.licenses[0] }}
         </small>
       </p>
@@ -161,6 +161,7 @@
   import { AnnotationOptions } from 'chartjs-plugin-annotation';
   import { DateTime } from 'luxon';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
+  import { useNuxtApp } from '#imports';
 
   const props = defineProps<{
     dialog: DialogInstance<{ location: AGMapLocationData }>;
@@ -180,6 +181,8 @@
   const detailsLoading: Ref<boolean> = ref(false);
   const historyError: Ref<boolean> = ref(false);
   const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
+
+  const { $i18n } = useNuxtApp();
 
   const timezoneSelectShown: Ref<boolean> = computed(() => {
     const userOffset = DateTime.now().toFormat('ZZ');

@@ -68,19 +68,6 @@
             </li>
           </ul>
         </div>
-        <!-- <div
-          v-for="locale in locales"
-          class="btn-large button-blue"
-          @click="setLocale(locale.code)">
-            {{ locale.name }}
-        </div> -->
-        <NuxtLink
-          v-for="locale in locales"
-          :key="locale.code"
-          :to="switchLocalePath(locale.code)"
-          class="btn-large button-blue">
-          {{  locale.name }}
-        </NuxtLink>
       </nav>
     </div>
   </header>
@@ -88,43 +75,9 @@
 <script setup lang="ts">
   import { HEADER_LINKS_CONFIG } from '~/constants/shared/header-links-config';
   import { ref, onMounted, onBeforeUnmount } from 'vue';
-  import { useI18n, useNuxtApp, useSwitchLocalePath } from '#imports';
-  import { loadAndSetLocale } from '@nuxtjs/i18n/dist/runtime/utils';
-  // import { switchLocalePath } from '@nuxtjs/i18n/dist/runtime/routing/routing';
 
   const isNavbarVisible = ref(false);
   const activeDropdown = ref<number | null>(null);
-  // const i18n = useI18n({ useScope: 'global' });
-  // const nuxtApp = useNuxtApp();
-  const { $i18n } = useNuxtApp();
-  const switchLocalePath = useSwitchLocalePath();
-  const locales = $i18n.locales;
-  // var links_group = HEADER_LINKS_CONFIG.map(item => ({
-  //   ...item,
-  //   label: $i18n.t(item.label),
-  //   ...(item.children && {
-  //     children: item.children.map(child => ({
-  //       ...child,
-  //       label: $i18n.t(child.label)
-  //     }))
-  //   })
-  // }));
-
-  // const switchLocalePath = (locale: string) => {
-    // links_group = HEADER_LINKS_CONFIG.map(item => ({
-    //   ...item,
-    //   label: $i18n.t(item.label, locale),
-    //   ...(item.children && {
-    //     children: item.children.map(child => ({
-    //       ...child,
-    //       label: $i18n.t(child.label, locale)
-    //     }))
-    //   })
-    // }));
-
-  //   return useSwitchLocalePath(locale);
-  // }
-
 
   const toggleNavbar = () => {
     isNavbarVisible.value = !isNavbarVisible.value;
@@ -147,12 +100,6 @@
   onBeforeUnmount(() => {
     document.removeEventListener('click', closeDropdown);
   });
-
-  const setLocale = (locale: string) => {
-    // loadAndSetLocale(nuxtApp, locale);
-    // i18n.locale.value = locale;
-    $i18n.setLocale(locale);
-  }
 </script>
 <style>
   .main-content {
