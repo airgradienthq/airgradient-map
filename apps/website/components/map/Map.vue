@@ -257,7 +257,8 @@
       provider,
       style: 'bar',
       autoClose: true,
-      keepResult: true
+      keepResult: true,
+      searchLabel: 'Search'
     });
 
     mapInstance.addControl(searchControl);
@@ -453,18 +454,55 @@
   }
 
   .leaflet-geosearch-bar form {
-    padding-left: 0;
+    padding-left: 8px;
     background-image: none;
+    border-radius: 100px;
+    border: var(--shadow-primary);
+    padding-top: 10px;
+    padding-bottom: 10px;
+    height: 40px;
   }
 
   .leaflet-geosearch-bar form input {
-    padding-left: 30px !important;
-    background-image: url('/assets/images/icons/search.svg');
-    background-position: 5px center;
+    background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
+    background-position: left 5px center;
     background-size: 20px;
     background-repeat: no-repeat;
-    height: 36px !important;
-    font-size: 16px !important;
+    font-size: var(--font-size-base) !important;
+    font-weight: var(--font-weight-medium);
+    font-family: var(--secondary-font);
+    padding-left: 25px !important;
+    height: 19px !important;
+    padding-right: 25px;
+  }
+
+  .leaflet-geosearch-bar form.open {
+    border-radius: 20px;
+    height: auto;
+    padding-bottom: 0px;
+  }
+
+  .leaflet-geosearch-bar form.open .results {
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    padding-top: 4px;
+    margin-top: 4px;
+  }
+
+  .leaflet-geosearch-bar form input::placeholder {
+    color: var(--grayColor400);
+  }
+
+  .leaflet-geosearch-bar form button {
+    margin-right: 10px;
+    margin-top: 6px;
+    font-size: 18px;
+    background-color: transparent !important;
+  }
+
+  .leaflet-geosearch-bar form input:placeholder-shown + button {
+    height: 40px !important;
+    display: none;
   }
 
   .map-controls {
@@ -547,5 +585,19 @@
     top: 134px;
     left: 10px;
     z-index: 999;
+  }
+
+  @media (max-width: 779px) {
+    .leaflet-geosearch-bar form input {
+      background-position: left 5px center;
+      font-size: 14px !important;
+      padding-left: 14px;
+    }
+
+    .leaflet-geosearch-bar form button {
+      margin-right: 10px;
+      margin-top: 4px;
+      font-size: 14px;
+    }
   }
 </style>
