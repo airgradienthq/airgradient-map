@@ -5,7 +5,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-information-outline"
-        :style="'map'"
+        :style="'light'"
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
@@ -79,14 +79,12 @@
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import { useStorage } from '@vueuse/core';
-  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
-  const { handleApiError } = useApiErrorHandler();
   const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
@@ -242,9 +240,6 @@
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
-
-      // Show user-friendly error message
-      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -537,14 +532,14 @@
 
   .map-info-btn-box {
     position: absolute;
-    top: 90px;
+    top: 110px;
     left: 10px;
     z-index: 999;
   }
 
   .map-geolocation-btn-box {
     position: absolute;
-    top: 134px;
+    top: 154px;
     left: 10px;
     z-index: 999;
   }

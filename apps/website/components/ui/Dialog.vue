@@ -12,6 +12,7 @@
           :size="ButtonSize.NORMAL"
           icon="mdi-close"
           variant="plain"
+          :legacy="true"
           @click="close"
         >
         </UiIconButton>
