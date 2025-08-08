@@ -5,7 +5,7 @@
     :disabled="disabled"
     :icon="icon"
     variant="plain"
-    :class="['custom-icon-button', !legacy ? style : '']"
+    :class="[!legacy ? 'custom-icon-button' : '', !legacy ? style : '']"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
@@ -16,7 +16,7 @@
     :ripple="ripple"
     :disabled="disabled"
     variant="plain"
-    :class="['custom-icon-button', !legacy ? style : '']"
+    :class="[!legacy ? 'custom-icon-button' : '', !legacy ? style : '']"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
