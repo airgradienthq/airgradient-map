@@ -24,10 +24,14 @@
                   class="dropdown-toggle btn-small button-white"
                   @click="toggleLanguageDropdown"
                 >
+                  <img
+                    :src="`images/icons/${locale}.svg`"
+                    class="flag-icon"
+                  >
                   {{ locales.find(l => l.code === locale)?.name }}
                 </button>
                 <div
-                  class="dropdown-menu"
+                  class="dropdown-menu lang-dropdown-menu"
                   :class="{ show: activeLanguageDropdown }"
                 >
                   <button
@@ -197,6 +201,11 @@
     .flag-icon {
       height: 16px;
       width: auto;
+    }
+
+    .lang-dropdown-menu {
+      max-height: 175px;
+      overflow-y: auto;
     }
 
     hr {
