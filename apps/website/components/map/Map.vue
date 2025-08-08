@@ -5,11 +5,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-information-outline"
-<<<<<<< HEAD
         :style="'light'"
-=======
-        :style="'map'"
->>>>>>> development
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
