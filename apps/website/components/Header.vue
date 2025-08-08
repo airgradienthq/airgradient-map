@@ -46,7 +46,7 @@
                   }
                 "
               >
-                {{ link.label }}
+                {{ $t(link.label) }}
               </a>
               <div class="dropdown-shadow">
                 <div
@@ -61,7 +61,7 @@
                     :href="child.path"
                     :target="child.openBlank ? '_blank' : ''"
                   >
-                    {{ child.label }}
+                    {{ $t(child.label) }}
                   </a>
                 </div>
               </div>

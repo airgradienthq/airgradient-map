@@ -11,14 +11,47 @@
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
-            <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
+            <h2 class="text-white">
+              {{ $t('open-data') }} <br />{{ $t('real-impact') }} <br />{{ $t('no-secrets') }}
+            </h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
-                Get Started with AirGradient
+                {{ $t('get-started') }}
               </a>
+              <div class="dropdown">
+                <button
+                  class="dropdown-toggle btn-small button-white"
+                  @click="toggleLanguageDropdown"
+                >
+                  <img :src="`images/icons/${locale}.svg`" class="flag-icon" />
+                  {{ locales.find(l => l.code === locale)?.name }}
+                </button>
+                <div
+                  class="dropdown-menu lang-dropdown-menu"
+                  :class="{ show: activeLanguageDropdown }"
+                >
+                  <button
+                    v-for="locale in locales"
+                    class="dropdown-item btn-small button-white text-left"
+                  >
+                    <NuxtLink
+                      :key="locale.code"
+                      :to="switchLocalePath(locale.code)"
+                      @click="
+                        () => {
+                          $i18n.setLocale(locale.code);
+                        }
+                      "
+                    >
+                      <img :src="`images/icons/${locale.code}.svg`" class="flag-icon" />
+                      {{ locale.name }}
+                    </NuxtLink>
+                  </button>
+                </div>
+              </div>
             </span>
           </div>
           <div class="footer-links-container">
@@ -27,7 +60,7 @@
                 <ul class="footer-links">
                   <li v-for="(link, index) in item.links" :key="index">
                     <a :target="link.openBlank ? '_blank' : ''" :href="link.path">
-                      {{ link.label }}
+                      {{ $t(link.label) }}
                     </a>
                   </li>
                 </ul>
@@ -36,7 +69,7 @@
             </div>
             <hr class="footer-divider d-none d-lg-block" />
             <div class="social-links">
-              <h5 class="text-white">Connect with us</h5>
+              <h5 class="text-white">{{ $t('connect') }}</h5>
               <span class="d-flex flex-row social-links-inner">
                 <a
                   href="https://www.linkedin.com/company/airgradient/"
@@ -56,7 +89,7 @@
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
                   class="btn-small button-white"
-                  >Join Newsletter</a
+                  >{{ $t('join-newsletter') }}</a
                 >
                 <a
                   target="_blank"
@@ -89,7 +122,7 @@
           />
         </a>
         <p class="text-white m-0">
-          We’ve pledged 1% of sales to the preservation and restoration of the natural environment.
+          {{ $t('pledge') }}
         </p>
       </div>
     </div>
@@ -97,6 +130,18 @@
 </template>
 <script setup lang="ts">
   import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
+  import { useNuxtApp, useI18n, useSwitchLocalePath } from '#imports';
+  import { ref } from 'vue';
+
+  const { $i18n } = useNuxtApp();
+  const { locale } = useI18n();
+  const switchLocalePath = useSwitchLocalePath();
+  const locales = $i18n.locales;
+  var activeLanguageDropdown = ref(false);
+
+  const toggleLanguageDropdown = () => {
+    activeLanguageDropdown.value = !activeLanguageDropdown.value;
+  };
 </script>
 <style lang="scss" scoped>
   footer {
@@ -150,6 +195,16 @@
         color: var(--main-white-color);
         font-size: 14px;
       }
+    }
+
+    .flag-icon {
+      height: 16px;
+      width: auto;
+    }
+
+    .lang-dropdown-menu {
+      max-height: 175px;
+      overflow-y: auto;
     }
 
     hr {

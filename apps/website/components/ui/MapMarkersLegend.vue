@@ -7,7 +7,7 @@
         :class="['marker-item', marker.class + '-item']"
       >
         <div :class="['marker-preview', marker.class]">9</div>
-        <span class="marker-label">{{ marker.label }}</span>
+        <span class="marker-label">{{ $t(marker.label) }}</span>
       </div>
     </div>
   </div>
