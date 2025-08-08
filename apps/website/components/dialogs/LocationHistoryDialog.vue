@@ -454,7 +454,7 @@
   }
 
   .current-label {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
   }
 
