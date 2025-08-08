@@ -95,10 +95,11 @@
      * @type {'light' | 'dark'}
      * @default 'light'
      */
-    style: {
-      type: String as PropType<'light' | 'dark'>,
+  style: {
+      type: String as PropType<'light' | 'dark' | 'map'>,
       default: 'light'
     },
+
     /**
      * Whether to use legacy styling (original button appearance).
      * @type {boolean}
@@ -135,7 +136,7 @@
 
   .custom-icon-button:hover {
     transition: all var(--main-transition);
-    color: var(--main-text-color);
+    color: var(--main-text-color) !important;
     opacity: 1;
 
     .custom-icon {
@@ -146,9 +147,9 @@
 
   .custom-icon-button.light,
   .custom-icon-button.light.v-btn {
-    background-color: var(--main-white-color);
-    border: 2px solid var(--grayColor400);
-    color: var(--main-text-color);
+    background-color: var(--main-white-color) !important;
+    border: 2px solid var(--grayColor400) !important;
+    color: var(--main-text-color) !important;
     opacity: 1;
   }
 
