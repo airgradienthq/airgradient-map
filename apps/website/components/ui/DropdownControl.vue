@@ -1,125 +1,218 @@
 <template>
-  <v-select
-    :items="options"
-    :item-title="'label'"
-    :item-value="'value'"
-    :model-value="selectedValue"
-    :disabled="disabled"
-    class="ag-dropdown-control"
-    variant="outlined"
-    :density="props.size === DropdownSize.NORMAL ? 'comfortable' : 'compact'"
-    @update:modelValue="handleChange"
-  />
+  <div class="ag-dropdown-wrapper" @click="toggleMenu">
+    <div
+      class="ag-dropdown-control__trigger"
+      :class="{
+        'ag-dropdown-control__trigger--disabled': disabled,
+        'ag-dropdown-control__trigger--open': isMenuOpen,
+        'ag-dropdown-control__trigger--small': size === 'small'
+      }"
+    >
+      <span :style="{ maxWidth: width }">{{ displayValue || placeholder }}</span>
+      <svg width="20" height="20" viewBox="0 0 24 24" :class="{ rotate: isMenuOpen }">
+        <path d="M8 5V19L19 12L8 5Z" fill="currentColor" />
+      </svg>
+    </div>
+
+    <v-select
+      ref="selectRef"
+      :model-value="selectedValue"
+      :items="options"
+      :placeholder="placeholder"
+      :disabled="disabled"
+      class="ag-dropdown-hidden"
+      item-title="label"
+      item-value="value"
+      variant="outlined"
+      hide-details
+      :menu-props="{
+        contentClass: 'ag-dropdown-menu',
+        location: 'bottom',
+        origin: 'top',
+        offset: 4
+      }"
+      @update:model-value="handleChange"
+      @update:menu="isMenuOpen = $event"
+    />
+  </div>
 </template>
 
 <script setup lang="ts">
-  import { PropType, ref, watch } from 'vue';
+  import { PropType, ref, computed } from 'vue';
   import { DropdownOption, DropdownSize } from '~/types';
 
   const props = defineProps({
-    /**
-     * Array of options for the dropdown.
-     * Each option should be of type DropdownOption.
-     */
     options: {
       type: Array as PropType<Array<DropdownOption>>,
       required: true
     },
-    /**
-     * The selected value.
-     */
     selectedValue: {
       type: [String, Number],
       default: ''
     },
-    /**
-     * Size of the dropdown.
-     * @type DropdownSize
-     * @default DropdownSize.NORMAL
-     */
     size: {
       type: String as PropType<DropdownSize>,
       default: DropdownSize.SMALL
     },
-    /**
-     * Whether the dropdown is disabled.
-     * @type {boolean}
-     * @default false
-     */
     disabled: {
       type: Boolean,
       default: false
+    },
+    placeholder: {
+      type: String,
+      default: 'Select an option...'
+    },
+    width: {
+      type: String,
+      default: '100%'
     }
   });
 
   const emit = defineEmits(['update:modelValue', 'change']);
+  const selectRef = ref();
+  const isMenuOpen = ref(false);
 
-  const currentValue = ref(props.selectedValue);
+  const displayValue = computed(() => {
+    const selected = props.options.find(option => option.value === props.selectedValue);
+    return selected?.label || null;
+  });
 
-  watch(
-    () => props.selectedValue,
-    newVal => {
-      currentValue.value = newVal;
-    }
-  );
-
-  /**
-   * Handles the change event for the dropdown.
-   * Emits the new value.
-   * @param {Event} event - The change event.
-   */
   const handleChange = (value: string | number) => {
     emit('update:modelValue', value);
     emit('change', value);
   };
+
+  const toggleMenu = () => {
+    if (!props.disabled && selectRef.value) {
+      selectRef.value.menu = !selectRef.value.menu;
+    }
+  };
 </script>
 
 <style lang="scss">
-  .ag-dropdown-control {
+  .ag-dropdown-wrapper {
+    position: relative;
+    width: 100%;
+
+    .v-field__input {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      min-height: 39px !important;
+    }
+  }
+
+  .ag-dropdown-control__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 20px;
+    background-color: var(--main-white-color);
+    border: 2px solid var(--airLightGray);
+    border-radius: 100px;
+    cursor: pointer;
     transition: var(--main-transition);
-    color: var(--primary-color);
-    font-family: var(--secondary-font);
-    font-weight: 700;
+    min-height: 39px;
 
-    .v-field {
-      transition: var(--main-transition);
-      background-color: var(--main-white-color) !important;
-    }
-
-    .v-field__outline__end {
-      border: solid 2px var(--primary-color);
-      border-left: none;
-      opacity: 1;
-    }
-
-    .v-field__outline__start {
-      border: solid 2px var(--primary-color);
-      border-right: none;
-      opacity: 1;
-    }
-
-    .v-icon {
-      opacity: 1;
-    }
-
-    &:hover {
+    &:hover:not(&--disabled) {
+      background-color: var(--primary-color);
       color: var(--main-white-color);
+      border-color: var(--primary-color);
+    }
 
-      .v-field {
-        background-color: var(--primary-color) !important;
+    &--open {
+      background-color: var(--primary-color);
+      color: var(--main-white-color);
+      border-color: var(--primary-color);
+    }
+
+    &--disabled {
+      cursor: not-allowed;
+      color: var(--main-disabled-color);
+      border-color: var(--main-disabled-color);
+
+      &:hover {
+        background-color: var(--main-white-color);
+        color: var(--main-disabled-color);
+        border-color: var(--main-disabled-color);
       }
     }
 
-    .v-field--disabled {
-      opacity: 1;
-      color: var(--main-disabled-color);
+    &--small {
+      padding: 8px 16px;
+      min-height: 35px;
+    }
 
-      .v-field__outline__end {
-        border-color: var(--main-disabled-color);
+    span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    svg {
+      transform: rotate(90deg);
+      transition: var(--main-transition);
+      flex-shrink: 0;
+    }
+
+    .rotate {
+      transform: rotate(270deg);
+    }
+  }
+  .ag-dropdown-hidden {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
+  .ag-dropdown-menu {
+    background-color: var(--main-white-color) !important;
+    border: 2px solid var(--grayColor400) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--shadow-primary) !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 0 !important;
+
+    .v-list-item {
+      padding: 12px 20px !important;
+      cursor: pointer !important;
+      transition: var(--main-transition) !important;
+      border-bottom: 1px solid var(--grayColor200) !important;
+      border-radius: 0 !important;
+      min-height: auto !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+
+      &:first-child {
+        border-radius: 18px 18px 0 0 !important;
       }
 
-      .v-field__outline__start {
-        border-color: var(--main-disabled-color);
+      &:last-child {
+        border-bottom: none !important;
+        border-radius: 0 0 18px 18px !important;
+      }
+
+      &:only-child {
+        border-radius: 18px !important;
+        border-bottom: none !important;
+      }
+
+      &:hover {
+        background-color: var(--primary-color) !important;
+        color: var(--main-white-color) !important;
+      }
+
+      &.v-list-item--active {
+        background-color: var(--light-primary-color) !important;
+        color: var(--primary-color) !important;
+        font-weight: var(--font-weight-bold) !important;
       }
     }
   }

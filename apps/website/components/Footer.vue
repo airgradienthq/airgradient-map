@@ -7,14 +7,13 @@
         <div class="d-flex flex-column flex-lg-row justify-content-between">
           <div class="d-flex flex-column info-container">
             <div class="logo-container">
-              <a target="_blank" href="https://www.airgradient.com/">
+              <a href="https://www.airgradient.com/">
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
-            <h2 class="text-white">Be a Change Maker and Advocate for Clean Air!</h2>
+            <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
-                target="_blank"
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
@@ -35,7 +34,7 @@
                 <hr v-if="index !== FOOTER_LINKS_CONFIG.length - 1" class="d-block d-md-none" />
               </template>
             </div>
-            <hr class="d-none d-lg-block" />
+            <hr class="footer-divider d-none d-lg-block" />
             <div class="social-links">
               <h5 class="text-white">Connect with us</h5>
               <span class="d-flex flex-row social-links-inner">
@@ -57,8 +56,16 @@
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
                   class="btn-small button-white"
-                  >Join our Newsletter</a
+                  >Join Newsletter</a
                 >
+                <a
+                  target="_blank"
+                  href="https://www.airgradient.com/blog/living-and-working-in-ukraine-during-war/"
+                  class="mt-1 ml-4"
+                >
+                  <div class="ukraine-blue"></div>
+                  <div class="ukraine-yellow"></div>
+                </a>
               </span>
             </div>
           </div>
@@ -69,15 +76,6 @@
             >181 M.10 Baan Nam Long Soi 2 Chiang Mai 50180, Thailand</span
           >
         </div>
-      </div>
-      <div class="container d-flex flag-ua justify-content-center align-items-center">
-        <a
-          target="_blank"
-          href="https://www.airgradient.com/blog/living-and-working-in-ukraine-during-war/"
-        >
-          <div style="height: 15px; width: 50px; background-color: #0057b7"></div>
-          <div style="height: 15px; width: 50px; background-color: #ffdd00"></div>
-        </a>
       </div>
     </div>
     <div class="bg-darkblue">
@@ -114,7 +112,7 @@
     }
 
     .footer-inner {
-      padding: 103px 0 30px !important;
+      padding: 103px 0 20px !important;
     }
 
     .flag-ua {
@@ -128,7 +126,7 @@
     }
 
     .footer-buttons {
-      gap: 30px;
+      gap: 20px;
       margin-bottom: 60px;
 
       a {
@@ -149,7 +147,7 @@
 
     .copyright {
       p {
-        color: white;
+        color: var(--main-white-color);
         font-size: 14px;
       }
     }
@@ -160,8 +158,15 @@
       margin: 39px 0;
     }
 
+    hr.footer-divider {
+      border-top: 1px solid var(--primaryColor100) !important;
+      opacity: 1;
+      width: 100%;
+      margin: 39px 0;
+    }
+
     h2 {
-      margin-bottom: 20px;
+      margin-bottom: 50px;
     }
 
     .social-links {
@@ -196,6 +201,18 @@
           }
         }
       }
+
+      .ukraine-blue {
+        height: 15px;
+        width: 50px;
+        background-color: #0057b7;
+      }
+
+      .ukraine-yellow {
+        height: 15px;
+        width: 50px;
+        background-color: #ffdd00;
+      }
     }
 
     .footer-links-container {
@@ -219,7 +236,7 @@
         a {
           line-height: 27px;
           text-decoration: none;
-          color: white;
+          color: var(--main-white-color);
 
           &:hover,
           &:focus {
@@ -232,7 +249,7 @@
 
   @include desktop-lg {
     .footer-content {
-      margin: 0 60px !important;
+      margin: 0 30px !important;
     }
   }
 
@@ -245,10 +262,6 @@
       & .info-container {
         margin-right: 0;
         width: 100%;
-
-        h2 {
-          margin-bottom: 30px;
-        }
       }
 
       .footer-links-container {
@@ -261,7 +274,7 @@
 
       .footer-buttons {
         margin-bottom: 0;
-        row-gap: 20px !important;
+        gap: 20px !important;
       }
 
       .social-links {
