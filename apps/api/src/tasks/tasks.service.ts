@@ -11,6 +11,7 @@ import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input'
 import { SensorType } from 'src/types/shared/sensor-type';
 import { AG_DEFAULT_LICENSE } from 'src/constants/ag-default-license';
 import { OLD_AG_BASE_API_URL } from 'src/constants/old-ag-base-api-url';
+import { RedisCacheService } from '../redis-cache/redis-cache.service';
 
 @Injectable()
 export class TasksService {
@@ -21,6 +22,7 @@ export class TasksService {
     private readonly tasksRepository: TasksRepository,
     private readonly http: TasksHttp,
     private readonly configService: ConfigService,
+    private readonly redisCacheService: RedisCacheService,
   ) {
     const apiKey = this.configService.get<string>('API_KEY_OPENAQ');
     if (apiKey) {
@@ -66,6 +68,9 @@ export class TasksService {
 
     // NOTE: do optimization needed to insert in chunks?
     await this.tasksRepository.insertNewAirgradientLatest(data);
+
+    // Flush all redis-cache data to guarantee cache consistency after database updates.
+    await this.redisCacheService.flushdb();
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
