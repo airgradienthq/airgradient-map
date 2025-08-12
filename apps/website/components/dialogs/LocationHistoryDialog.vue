@@ -42,6 +42,7 @@
           <UiDropdownControl
             v-if="chartOptions && timezoneSelectShown"
             class="tz-control"
+            width="200px"
             :selected-value="selectedHistoricalDataTimeZoneConfig.value"
             :options="historicalDataTimeZoneOptions"
             :disabled="loading"
@@ -448,7 +449,7 @@
   }
 
   .current-label {
-    font-size: var(--font-size-xs);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
   }
 
@@ -456,10 +457,5 @@
     @include tablet {
       flex-direction: column;
     }
-  }
-</style>
-<style lang="scss">
-  .v-text-field .v-input__details {
-    display: none;
   }
 </style>
