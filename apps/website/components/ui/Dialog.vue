@@ -7,13 +7,7 @@
   >
     <v-card>
       <div v-if="showCloseIconButton" class="close-icon-button-box">
-        <v-btn
-          :ripple="false"
-          :disabled="false"
-          :icon="'mdi-close'"
-          variant="plain"
-          @click="close"
-        >
+        <v-btn :ripple="false" :disabled="false" :icon="'mdi-close'" variant="plain" @click="close">
         </v-btn>
       </div>
       <div v-if="$slots.header">

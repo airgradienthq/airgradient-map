@@ -592,7 +592,7 @@
   .leaflet-control-zoom a {
     background-color: transparent !important;
     border: none !important;
-    width:  100% !important;
+    width: 100% !important;
   }
 
   .leaflet-control-zoom a.leaflet-disabled {
@@ -612,7 +612,7 @@
     left: 0 !important;
     right: 0 !important;
     bottom: -5px !important;
-    background-color:var(--grayColor200) !important;
+    background-color: var(--grayColor200) !important;
     border-radius: 100px 100px 0 0 !important;
     z-index: -1 !important;
   }
