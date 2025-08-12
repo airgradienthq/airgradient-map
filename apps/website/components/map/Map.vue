@@ -5,7 +5,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-information-outline"
-        :style="'map'"
+        :style="'light'"
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
@@ -79,14 +79,12 @@
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import { useStorage } from '@vueuse/core';
-  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
-  const { handleApiError } = useApiErrorHandler();
   const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
@@ -242,9 +240,6 @@
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
-
-      // Show user-friendly error message
-      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -551,14 +546,14 @@
 
   .map-info-btn-box {
     position: absolute;
-    top: 90px;
+    top: 110px;
     left: 10px;
     z-index: 999;
   }
 
   .map-geolocation-btn-box {
     position: absolute;
-    top: 134px;
+    top: 154px;
     left: 10px;
     z-index: 999;
   }
@@ -577,5 +572,77 @@
       font-size: 14px !important;
       padding-left: 14px;
     }
+  }
+
+  /* Minimal Leaflet zoom control overrides */
+  .leaflet-control-zoom {
+    border: 2px solid var(--grayColor400) !important;
+    border-radius: 100px !important;
+    background-color: var(--main-white-color) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 0 !important;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--main-text-color) !important;
+    gap: 10px;
+  }
+
+  .leaflet-control-zoom a {
+    background-color: transparent !important;
+    border: none !important;
+    width: 100% !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-disabled {
+    color: var(--grayColor500) !important;
+  }
+
+  /* Hover effects for zoom controls */
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -8px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -5px !important;
+    background-color: var(--grayColor200) !important;
+    border-radius: 100px 100px 0 0 !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -5px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -8px !important;
+    background-color: var(--grayColor200) !important;
+    border-radius: 0 0 100px 100px !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 1px;
+    background-color: var(--grayColor400);
+    z-index: 1;
   }
 </style>
