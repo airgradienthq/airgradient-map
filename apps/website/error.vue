@@ -14,8 +14,8 @@
 
 <template>
   <NuxtLayout>
-    <div class="container">
-      <div class="row justify-center">
+    <div class="error-wrapper container-fluid bg-white">
+      <div class="row justify-center py-5">
         <div v-if="error?.statusCode === 404" class="col-md-6 text-center mb-5 mb-md-0">
           <img src="./assets/images/404.jpg" class="img-fluid" alt="404 Error" />
         </div>

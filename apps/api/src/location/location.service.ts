@@ -17,7 +17,9 @@ export class LocationService {
 
   async getLocationLastMeasures(id: number) {
     const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
-    results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
+    if (results.dataSource === 'AirGradient') {
+      results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
+    }
     return results;
   }
 
@@ -45,7 +47,7 @@ export class LocationService {
     if (measureType === 'pm25') {
       return results.map(row => ({
         timebucket: row.timebucket,
-        value: getEPACorrectedPM(row.pm25, row.rhum),
+        value: row.dataSource === 'AirGradient' ? getEPACorrectedPM(row.pm25, row.rhum) : row.pm25,
       }));
     }
 

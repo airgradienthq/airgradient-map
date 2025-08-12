@@ -40,7 +40,7 @@ class MeasurementRepository {
 
       if (measure === 'pm25') {
         query.selectQuery = `m.pm25, m.rhum`;
-        query.whereQuery = `WHERE m.pm25 IS NOT NULL AND m.rhum IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `WHERE m.pm25 IS NOT NULL ${validationQuery}`;
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `WHERE m.${measure} IS NOT NULL ${validationQuery}`;
@@ -157,7 +157,8 @@ class MeasurementRepository {
                 ST_Y(l.coordinate) AS latitude,
                 l.sensor_type AS "sensorType",
                 ${selectQuery},
-                lm.last_measured_at AS "measuredAt"
+                lm.last_measured_at AS "measuredAt",
+                l.data_source AS "dataSource"
             FROM 
                 latest_measurements lm
             JOIN 

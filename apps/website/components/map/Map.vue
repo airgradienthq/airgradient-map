@@ -1,48 +1,50 @@
 <template>
-  <div class="map-info-btn-box">
-    <UiIconButton
-      :ripple="false"
-      :size="ButtonSize.NORMAL"
-      icon="mdi-information-outline"
-      :style="'map'"
-      @click="isLegendShown = !isLegendShown"
-    >
-    </UiIconButton>
-  </div>
-
-  <div class="map-geolocation-btn-box">
-    <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
-  </div>
-
-  <UiProgressBar :show="loading"></UiProgressBar>
-  <div id="map">
-    <div class="map-controls">
-      <UiDropdownControl
-        :selected-value="generalConfigStore.selectedMeasure"
-        :options="measureSelectOptions"
-        :disabled="loading"
-        @change="handleMeasureChange"
+  <div class="map-wrapper">
+    <div class="map-info-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-information-outline"
+        :style="'map'"
+        @click="isLegendShown = !isLegendShown"
       >
-      </UiDropdownControl>
+      </UiIconButton>
     </div>
-    <LMap
-      ref="map"
-      class="map"
-      :maxBoundsViscosity="DEFAULT_MAP_VIEW_CONFIG.maxBoundsViscosity"
-      :maxBounds="DEFAULT_MAP_VIEW_CONFIG.maxBounds"
-      :zoom="Number(urlState.zoom)"
-      :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
-      :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
-      :center="[Number(urlState.lat), Number(urlState.long)]"
-      @ready="onMapReady"
-    >
-    </LMap>
-    <div v-if="isLegendShown" class="legend-box">
-      <UiMapMarkersLegend />
-      <UiColorsLegend />
+
+    <div class="map-geolocation-btn-box">
+      <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
+
+    <UiProgressBar :show="loading"></UiProgressBar>
+    <div id="map">
+      <div class="map-controls">
+        <UiDropdownControl
+          :selected-value="generalConfigStore.selectedMeasure"
+          :options="measureSelectOptions"
+          :disabled="loading"
+          @change="handleMeasureChange"
+        >
+        </UiDropdownControl>
+      </div>
+      <LMap
+        ref="map"
+        class="map"
+        :maxBoundsViscosity="DEFAULT_MAP_VIEW_CONFIG.maxBoundsViscosity"
+        :maxBounds="DEFAULT_MAP_VIEW_CONFIG.maxBounds"
+        :zoom="Number(urlState.zoom)"
+        :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
+        :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
+        :center="[Number(urlState.lat), Number(urlState.long)]"
+        @ready="onMapReady"
+      >
+      </LMap>
+      <div v-if="isLegendShown" class="legend-box">
+        <UiMapMarkersLegend />
+        <UiColorsLegend />
+      </div>
+    </div>
+    <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
   </div>
-  <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
 </template>
 
 <script lang="ts" setup>
@@ -315,8 +317,24 @@
 </script>
 
 <style lang="scss">
+  .map-wrapper {
+    position: relative;
+  }
+
   #map {
-    height: calc(100vh - 5px);
+    height: calc(100vh - 130px);
+  }
+
+  @include desktop {
+    #map {
+      height: calc(100vh - 117px);
+    }
+  }
+
+  .headless {
+    #map {
+      height: calc(100vh - 5px);
+    }
   }
 
   .marker-box {
@@ -436,40 +454,71 @@
   }
 
   .leaflet-geosearch-bar form {
-    padding-left: 8px;
     background-image: none;
     border-radius: 100px;
     border: var(--shadow-primary);
-    padding-top: 10px;
-    padding-bottom: 10px;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
   }
 
   .leaflet-geosearch-bar form input {
     background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
-    background-position: left 5px center;
-    background-size: 20px;
+    background-position: left 5px top 1px;
+    background-size: 16px;
     background-repeat: no-repeat;
     font-size: var(--font-size-base) !important;
     font-weight: var(--font-weight-medium);
-    font-family: var(--secondary-font);
+    font-family: var(--primary-font);
     padding-left: 25px !important;
     height: 22px !important;
+    height: 19px !important;
     padding-right: 25px;
+    margin: 8px 8px 10px 8px;
   }
 
   .leaflet-geosearch-bar form.open {
-    border-radius: 22px;
+    border-radius: 20px;
+    height: auto;
+    padding-bottom: 0px;
+  }
+
+  .leaflet-geosearch-bar form.open .results {
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    padding: 0;
+   
+    overflow: hidden;
+
+    div {
+      font-family: var(--primary-font);
+      border: none;
+      padding: 5px 8px;
+    }
+
+    div:hover {
+      background-color: var(--primaryColor500);
+      color: var(--main-white-color);
+    
+    }
   }
 
   .leaflet-geosearch-bar form input::placeholder {
     color: var(--grayColor400);
+    font-family: var(--primary-font);
   }
 
-  .leaflet-geosearch-bar form button {
+  .leaflet-geosearch-bar .reset {
     margin-right: 10px;
-    margin-top: 6px;
+    margin-top: 2px;
     font-size: 18px;
     background-color: transparent !important;
+
+  }
+
+  .leaflet-geosearch-bar form input:placeholder-shown + button {
+    height: 40px !important;
+    display: none;
   }
 
   .map-controls {
@@ -480,50 +529,10 @@
     width: 300px;
   }
 
-  .display-type-selector {
-    width: 100%;
-    height: 36px;
-    padding: 0 12px;
-    font-family: var(--secondary-font);
-    font-size: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    background: var(--main-white-color);
-    color: var(--main-text-color);
-    cursor: pointer;
-    outline: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 16px;
-    padding-right: 32px;
-
-    &:hover {
-      border-color: rgba(0, 0, 0, 0.3);
-    }
-
-    &:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1);
-    }
-  }
-
   .leaflet-geosearch-bar {
     margin-bottom: 8px !important;
   }
 
-  .display-type-selector:-moz-focusring {
-    color: transparent;
-    text-shadow: 0 0 0 #000;
-  }
-
-  .display-type-selector::-ms-expand {
-    display: none;
-  }
 
   .legend-box {
     position: absolute;
@@ -555,6 +564,7 @@
   }
 
   @media (max-width: 779px) {
+
     .leaflet-control-geosearch {
       margin: 0 auto !important;
       top: 35px;

@@ -25,6 +25,9 @@ class MeasurementCluster {
   })
   sensorType?: string;
 
+  @ApiPropertyOptional({ description: 'Field available if type is sensor' })
+  dataSource?: string;
+
   @ApiProperty({
     description:
       'Measurement value based on measure query provided; if type is cluster, value is averaged',
@@ -41,6 +44,7 @@ class MeasurementCluster {
       this.locationId = clusters.properties.locationId;
       this.locationName = clusters.properties.locationName;
       this.sensorType = clusters.properties.sensorType;
+      this.dataSource = clusters.properties.dataSource;
       this.value = Math.round(clusters.properties.value);
     }
 

@@ -49,7 +49,9 @@ export function useChartjsData({ data, measure }: UseChartjsDataParams) {
           data: chartValues,
           backgroundColor: barColors,
           borderWidth: 0,
-          barPercentage: 1.0,
+          barPercentage: 0.7,
+          borderRadius: 3,
+          borderSkipped: 'start' as const,
           categoryPercentage: 1.0,
           fill: false,
           minBarLength: 0

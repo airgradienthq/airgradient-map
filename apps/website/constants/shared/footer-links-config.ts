@@ -5,6 +5,11 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
     group: 1,
     links: [
       {
+        label: 'Manifesto',
+        path: 'https://www.airgradient.com/manifesto/',
+        openBlank: true
+      },
+      {
         label: 'Building Consultants',
         path: 'https://www.airgradient.com/building-consultants/',
         openBlank: true
@@ -20,13 +25,13 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'Partner Program',
-        path: 'https://www.airgradient.com/partner-program/',
+        label: 'Cigarettes Equivalent Calculator',
+        path: 'https://www.airgradient.com/cigarettes-equivalent-calculator/',
         openBlank: true
       },
       {
-        label: 'Press / Influencers',
-        path: 'https://www.airgradient.com/press/',
+        label: 'AQ Terms & Conditions Quiz',
+        path: 'https://www.airgradient.com/aq-data-ownership-quiz/',
         openBlank: true
       }
     ]
@@ -35,13 +40,8 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
     group: 2,
     links: [
       {
-        label: 'Homey',
-        path: 'https://www.airgradient.com/homey/',
-        openBlank: true
-      },
-      {
-        label: 'Home Assistant',
-        path: 'https://www.airgradient.com/home-assistant/',
+        label: 'Dashboard',
+        path: 'https://app.airgradient.com/dashboard',
         openBlank: true
       },
       {
@@ -55,13 +55,13 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'AQ Forum',
-        path: 'https://www.airgradient.com/forum/',
+        label: 'Corporate Social Responsibility',
+        path: 'https://www.airgradient.com/scr-initiatives/',
         openBlank: true
       },
       {
-        label: 'Discussion Forum',
-        path: 'https://forum.airgradient.com/',
+        label: 'Server Status',
+        path: 'https://uptime.airgradient.net/status/servers',
         openBlank: true
       }
     ]
@@ -69,11 +69,6 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
   {
     group: 3,
     links: [
-      {
-        label: 'Manifesto',
-        path: 'https://www.airgradient.com/manifesto/',
-        openBlank: true
-      },
       {
         label: 'Privacy Policy',
         path: 'https://www.airgradient.com/privacy-policy/',
@@ -85,13 +80,13 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'About Us',
-        path: 'https://www.airgradient.com/join-us/',
+        label: 'Partner Program',
+        path: 'https://www.airgradient.com/partner-program/',
         openBlank: true
       },
       {
-        label: 'Dashboard',
-        path: 'https://app.airgradient.com/dashboard',
+        label: 'Press / Influencers',
+        path: 'https://www.airgradient.com/press/',
         openBlank: true
       }
     ]
