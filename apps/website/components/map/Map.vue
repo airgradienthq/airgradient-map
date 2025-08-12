@@ -338,19 +338,7 @@
   }
 
   #map {
-    height: calc(100vh - 130px);
-  }
-
-  @include desktop {
-    #map {
-      height: calc(100vh - 117px);
-    }
-  }
-
-  .headless {
-    #map {
-      height: calc(100vh - 5px);
-    }
+    height: calc(100vh - 5px);
   }
 
   .marker-box {
