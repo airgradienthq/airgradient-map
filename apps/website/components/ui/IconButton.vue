@@ -5,7 +5,7 @@
     :disabled="disabled"
     :icon="icon"
     variant="plain"
-    :class="[!legacy ? 'custom-icon-button' : '', !legacy ? style : '']"
+    :class="['custom-icon-button', style]"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
@@ -16,7 +16,7 @@
     :ripple="ripple"
     :disabled="disabled"
     variant="plain"
-    :class="[!legacy ? 'custom-icon-button' : '', !legacy ? style : '']"
+    :class="['custom-icon-button', style]"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
@@ -98,15 +98,6 @@
     style: {
       type: String as PropType<'light' | 'dark'>,
       default: 'light'
-    },
-    /**
-     * Whether to use legacy styling (original button appearance).
-     * @type {boolean}
-     * @default false
-     */
-    legacy: {
-      type: Boolean,
-      default: false
     }
   });
 
@@ -130,12 +121,13 @@
     width: 40px;
     height: 40px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    opacity: 1;
+    opacity: 1 !important;
   }
 
   .custom-icon-button:hover {
     transition: all var(--main-transition);
     color: var(--main-text-color);
+    opacity: 1 !important;
   }
 
   .custom-icon-button.light {
@@ -145,11 +137,11 @@
   }
 
   .custom-icon-button.light:hover {
-    background-color: var(--hover-bg-color);
+    background-color: var(--grayColor200);
   }
 
   .custom-icon-button.dark {
-    background-color: #eeede4;
+    background-color: var(--grayColor200);
   }
 
   .custom-icon-button :deep(.v-icon) {

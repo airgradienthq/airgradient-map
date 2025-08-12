@@ -612,7 +612,7 @@
     left: 0 !important;
     right: 0 !important;
     bottom: -5px !important;
-    background-color:var(--hover-bg-color) !important;
+    background-color:var(--grayColor200) !important;
     border-radius: 100px 100px 0 0 !important;
     z-index: -1 !important;
   }
@@ -629,7 +629,7 @@
     left: 0 !important;
     right: 0 !important;
     bottom: -8px !important;
-    background-color: var(--hover-bg-color) !important;
+    background-color: var(--grayColor200) !important;
     border-radius: 0 0 100px 100px !important;
     z-index: -1 !important;
   }
