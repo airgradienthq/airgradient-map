@@ -35,6 +35,7 @@
         :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
         :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
         :center="[Number(urlState.lat), Number(urlState.long)]"
+        :attributionControl="true"
         @ready="onMapReady"
       >
       </LMap>
@@ -133,6 +134,26 @@
     }
 
     mapInstance = map.value.leafletObject;
+
+    try {
+      const attributionContent = `
+      <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
+      <a target="_blank" href="https://leafletjs.com/">Leaflet</a> |
+            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> | 
+             © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
+             `;
+
+      if (mapInstance.attributionControl) {
+        mapInstance.attributionControl.setPrefix(attributionContent);
+      } else {
+        const attributionControl = L.control.attribution({
+          prefix: attributionContent
+        });
+        attributionControl.addTo(mapInstance);
+      }
+    } catch (error) {
+      console.warn('Failed to set custom attribution:', error);
+    }
 
     L.maplibreGL({
       style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -531,7 +552,7 @@
 
   .legend-box {
     position: absolute;
-    bottom: 30px;
+    bottom: 35px;
     left: 50%;
     z-index: 400;
     width: 900px;
@@ -572,9 +593,12 @@
       font-size: 14px !important;
       padding-left: 14px;
     }
+
+    .legend-box {
+      bottom: 45px;
+    }
   }
 
-  /* Minimal Leaflet zoom control overrides */
   .leaflet-control-zoom {
     border: 2px solid var(--grayColor400) !important;
     border-radius: 100px !important;
@@ -599,7 +623,6 @@
     color: var(--grayColor500) !important;
   }
 
-  /* Hover effects for zoom controls */
   .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled) {
     color: var(--main-text-color) !important;
     position: relative !important;
@@ -644,5 +667,13 @@
     height: 1px;
     background-color: var(--grayColor400);
     z-index: 1;
+  }
+
+  .leaflet-control-attribution {
+    background-color: var(--main-white-color);
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    text-align: center;
+    word-wrap: break-word !important;
   }
 </style>
