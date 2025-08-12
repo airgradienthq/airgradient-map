@@ -477,6 +477,7 @@
     text-overflow: ellipsis;
     margin: 9px 8px 10px 8px;
     min-width: auto;
+    width: calc(100% - 16px);
   }
 
   .leaflet-geosearch-bar form.open {
