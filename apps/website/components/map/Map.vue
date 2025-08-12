@@ -456,7 +456,7 @@
   .leaflet-geosearch-bar form {
     background-image: none;
     border-radius: 100px;
-    border: var(--shadow-primary);
+    border: 2px solid var(--grayColor400) !important;
     height: 40px;
     padding: 0;
     overflow: hidden;
@@ -473,8 +473,10 @@
     padding-left: 25px !important;
     height: 22px !important;
     height: 19px !important;
-    padding-right: 25px;
-    margin: 8px 8px 10px 8px;
+    padding-right: 50px;
+    text-overflow: ellipsis;
+    margin: 9px 8px 10px 8px;
+    min-width: auto;
   }
 
   .leaflet-geosearch-bar form.open {
@@ -487,19 +489,18 @@
     border-bottom-left-radius: 18px;
     border-bottom-right-radius: 18px;
     padding: 0;
-   
     overflow: hidden;
 
     div {
       font-family: var(--primary-font);
       border: none;
-      padding: 5px 8px;
+      padding: 5px 12px;
+      text-align: left;
     }
 
     div:hover {
       background-color: var(--primaryColor500);
       color: var(--main-white-color);
-    
     }
   }
 
@@ -513,10 +514,9 @@
     margin-top: 2px;
     font-size: 18px;
     background-color: transparent !important;
-
   }
 
-  .leaflet-geosearch-bar form input:placeholder-shown + button {
+  .leaflet-geosearch-bar form input:placeholder-shown + .reset {
     height: 40px !important;
     display: none;
   }
@@ -532,7 +532,6 @@
   .leaflet-geosearch-bar {
     margin-bottom: 8px !important;
   }
-
 
   .legend-box {
     position: absolute;
@@ -564,32 +563,18 @@
   }
 
   @media (max-width: 779px) {
-
     .leaflet-control-geosearch {
-      margin: 0 auto !important;
-      top: 35px;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
     }
 
     .leaflet-geosearch-bar form {
       width: 323px !important;
-      padding-top: 8px;
-      padding-bottom: 8px;
     }
 
     .leaflet-geosearch-bar form input {
       background-position: left 5px center;
       font-size: 14px !important;
       padding-left: 14px;
-    }
-
-    .leaflet-geosearch-bar form button {
-      margin-right: 10px;
-      margin-top: 4px;
-      font-size: 14px;
     }
   }
 </style>

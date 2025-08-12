@@ -95,7 +95,7 @@
     width: 100%;
     height: 40px;
     font-family: var(--secondary-font);
-    font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-medium);
 
     .v-field__input {
       padding-top: 0 !important;
@@ -111,7 +111,7 @@
     justify-content: space-between;
     padding: 11px 20px;
     background-color: var(--main-white-color);
-    border: 2px solid var(--airLightGray);
+    border: 2px solid var(--grayColor400);
     border-radius: 100px;
     cursor: pointer;
     transition: var(--main-transition);
@@ -172,6 +172,7 @@
     pointer-events: none !important;
     z-index: -1 !important;
   }
+
   .ag-dropdown-menu {
     background-color: var(--main-white-color) !important;
     border: 2px solid var(--grayColor400) !important;
@@ -182,8 +183,13 @@
     overflow-x: hidden !important;
     padding: 0 !important;
 
+    .v-list {
+      padding: 0 !important;
+      border-radius: unset !important;
+    }
+
     .v-list-item {
-      padding: 12px 20px !important;
+      padding: 8px 20px !important;
       cursor: pointer !important;
       transition: var(--main-transition) !important;
       border-bottom: 1px solid var(--grayColor200) !important;
@@ -210,12 +216,14 @@
       &:hover {
         background-color: var(--primary-color) !important;
         color: var(--main-white-color) !important;
+        border-color: transparent !important;
       }
 
       &.v-list-item--active {
         background-color: var(--light-primary-color) !important;
         color: var(--primary-color) !important;
         font-weight: var(--font-weight-bold) !important;
+        border-color: transparent !important;
       }
     }
   }
