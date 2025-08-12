@@ -573,4 +573,76 @@
       padding-left: 14px;
     }
   }
+
+  /* Minimal Leaflet zoom control overrides */
+  .leaflet-control-zoom {
+    border: 2px solid var(--grayColor400) !important;
+    border-radius: 100px !important;
+    background-color: var(--main-white-color) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 0 !important;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--main-text-color) !important;
+    gap: 10px;
+  }
+
+  .leaflet-control-zoom a {
+    background-color: transparent !important;
+    border: none !important;
+    width:  100% !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-disabled {
+    color: var(--grayColor500) !important;
+  }
+
+  /* Hover effects for zoom controls */
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -8px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -5px !important;
+    background-color:var(--hover-bg-color) !important;
+    border-radius: 100px 100px 0 0 !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -5px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -8px !important;
+    background-color: var(--hover-bg-color) !important;
+    border-radius: 0 0 100px 100px !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 1px;
+    background-color: var(--grayColor400);
+    z-index: 1;
+  }
 </style>
