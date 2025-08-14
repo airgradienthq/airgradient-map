@@ -33,9 +33,14 @@ async function bootstrap() {
   // Setup Swagger
   const swaggerConfig = createSwaggerConfig();
   const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('map/api/v1/docs', app, documentFactory);
 
-  await app.listen(process.env.PORT ?? 3000);
+  SwaggerModule.setup('map/api/v1/docs', app, documentFactory, {
+    swaggerOptions: {
+      displayRequestDuration: true,
+    },
+  });
+
+  await app.listen(process.env.PORT ?? 3001);
   logger.log('Application Started');
 }
 bootstrap();
