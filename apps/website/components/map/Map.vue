@@ -242,10 +242,10 @@
       const bounds: LatLngBounds = mapInstance.getBounds();
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getSouth(),
-          ymin: bounds.getWest(),
-          xmax: bounds.getNorth(),
-          ymax: bounds.getEast(),
+          xmin: bounds.getWest(),
+          ymin: bounds.getSouth(),
+          xmax: bounds.getEast(),
+          ymax: bounds.getNorth(),
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
