@@ -79,8 +79,8 @@
       <div class="mt-4">
         <UiColorsLegend :size="ColorsLegendSize.SMALL" />
       </div>
-      <p class="mb-0 mt-4">
-        <small v-if="chartOptions && locationDetails?.ownerName">
+      <p style="min-height: 20px" class="mb-0 mt-4">
+        <small v-if="chartOptions">
           Air quality data for this location is provided by
           <span v-if="!locationDetails?.url">
             {{
@@ -456,6 +456,17 @@
   .hist-controls-container {
     @include tablet {
       flex-direction: column;
+    }
+  }
+
+  .headless {
+    .chart-container {
+      height: 270px;
+    }
+
+    .chart-controls {
+      margin-bottom: 25px !important;
+      margin-top: -20px !important;
     }
   }
 </style>

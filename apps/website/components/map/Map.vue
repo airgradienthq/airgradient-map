@@ -135,6 +135,8 @@
 
     mapInstance = map.value.leafletObject;
 
+    disableScrollWheelZoomForHeadless();
+
     try {
       const attributionContent = `
       <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
@@ -298,6 +300,12 @@
     }
   }
 
+  function disableScrollWheelZoomForHeadless(): void {
+    if (generalConfigStore.headless) {
+      mapInstance.scrollWheelZoom.disable();
+    }
+  }
+
   /**
    * Handle successful geolocation
    */
@@ -319,6 +327,7 @@
   }
 
   onMounted(() => {
+    generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
       setUrlState({
         meas: MeasureNames.PM25
@@ -338,19 +347,7 @@
   }
 
   #map {
-    height: calc(100vh - 130px);
-  }
-
-  @include desktop {
-    #map {
-      height: calc(100vh - 117px);
-    }
-  }
-
-  .headless {
-    #map {
-      height: calc(100vh - 5px);
-    }
+    height: calc(100vh - 5px);
   }
 
   .marker-box {

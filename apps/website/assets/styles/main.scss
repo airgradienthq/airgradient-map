@@ -11,6 +11,10 @@ body {
   margin: 0;
 }
 
+html.headless {
+  overflow: hidden;
+}
+
 .bg-blue {
   background-color: var(--primary-color) !important;
   color: white;
