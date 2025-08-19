@@ -458,4 +458,15 @@
       flex-direction: column;
     }
   }
+
+  .headless {
+    .chart-container {
+      height: 270px;
+    }
+
+    .chart-controls {
+      margin-bottom: 25px !important;
+      margin-top: -20px !important;
+    }
+  }
 </style>
