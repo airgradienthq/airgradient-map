@@ -4,7 +4,7 @@ import { useWindowSize } from '@vueuse/core';
 import { MEASURE_UNITS } from '~/constants/shared/measure-units';
 import { useGeneralConfigStore } from '~/store/general-config-store';
 import { HistoryPeriodConfig, MeasureNames } from '~/types';
-import { getChartFontSize, getCO2Color, getPM25Color } from '~/utils';
+import { getChartFontSize, getColorForMeasure } from '~/utils';
 import { pm25ToAQI } from '~/utils/aqi';
 
 export function useChartJsAnnotations({
@@ -41,7 +41,7 @@ export function useChartJsAnnotations({
 
 function getAveragesData(
   data: number[],
-  measure: string,
+  measure: MeasureNames,
   period: HistoryPeriodConfig
 ): {
   avgValue: number;
@@ -60,16 +60,13 @@ function getAveragesData(
   let avgValue = total / data.length;
 
   avgValue = Number(avgValue.toFixed(averageApproximation));
-  const avgColor = isCO2
-    ? getCO2Color(avgValue, true, true)?.bgColor
-    : getPM25Color(avgValue, true, true)?.bgColor;
-  const avgBgColor = isCO2
-    ? getCO2Color(avgValue, false, true)?.bgColor
-    : getPM25Color(avgValue, false, true)?.bgColor;
 
   if (measure === MeasureNames.PM_AQI) {
     avgValue = pm25ToAQI(avgValue);
   }
+  
+  const avgColor = getColorForMeasure(measure, avgValue, 700).bgColor;
+  const avgBgColor = getColorForMeasure(measure, avgValue, 100).bgColor;
 
   let avgPeriodLabel = '';
   if (window.innerWidth > 450) {

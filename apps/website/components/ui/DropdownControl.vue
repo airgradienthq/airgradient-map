@@ -108,7 +108,7 @@
     justify-content: space-between;
     padding: 11px 20px;
     background-color: var(--main-white-color);
-    border: 2px solid var(--airLightGray);
+    border: 2px solid var(--grayColor400);
     border-radius: 100px;
     cursor: pointer;
     transition: var(--main-transition);

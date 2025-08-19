@@ -4,19 +4,9 @@ export enum ChartColorsType {
   ORANGE = 'orange',
   RED = 'red',
   PURPLE = 'purple',
-  BROWN = 'brown',
+  VIOLET = 'violet',
   BLUE = 'blue',
   GRAY = 'gray',
   LIGHTGRAY = 'lightgray',
-  DEFAULT = 'default'
-}
-
-export enum MascotColorsType {
-  GREEN = 'green',
-  YELLOW = 'yellow',
-  ORANGE = 'orange',
-  PINK = 'pink',
-  VIOLET = 'violet',
-  PURPLE = 'purple',
   DEFAULT = 'default'
 }

@@ -1,11 +1,11 @@
 import {
   CHART_COLORS_CSS_VARS,
-  CHART_COLORS_DARKENED_CSS_VARS,
-  CHART_COLORS_LIGHT_VAR,
-  CHART_COLORS_DARK_VAR,
-  MASCOT_COLORS_CSS_VARS
+  CHART_COLORS_DARK_CSS_VARS,
+  CHART_COLORS_LIGHT_CSS_VARS,
+  CHART_COLORS_MEDIUM_CSS_VARS,
 } from '~/constants/shared/colors';
-import { ChartColorsType, MeasureNames, MascotColorsType } from '~/types';
+import { ChartColorsType, MeasureNames, MeasurementLevels } from '~/types';
+import { getMeasurementLevel } from './get-measure-level';
 
 /**
  * Gets the color representation for PM2.5 values.
@@ -18,35 +18,44 @@ import { ChartColorsType, MeasureNames, MascotColorsType } from '~/types';
  */
 export function getPM25Color(
   pmValue: number,
-  dark = false,
-  newChartColors = false
+  shade: 500 | 700 | 300 | 100 = 500
 ): { bgColor: string; textColorClass: string } {
   let result = ChartColorsType.DEFAULT;
 
-  if (pmValue <= 9) {
+  const level = getMeasurementLevel(MeasureNames.PM25, pmValue);
+
+  if (level === MeasurementLevels.GOOD) {
     result = ChartColorsType.GREEN;
-  } else if (pmValue <= 35.4) {
+  } else if (level === MeasurementLevels.MODERATE) {
     result = ChartColorsType.YELLOW;
-  } else if (pmValue <= 55.4) {
+  } else if (level === MeasurementLevels.UNHEALTHY_SENSITIVE_GROUPS) {
     result = ChartColorsType.ORANGE;
-  } else if (pmValue <= 125.4) {
+  } else if (level === MeasurementLevels.UNHEALTHY) {
     result = ChartColorsType.RED;
-  } else if (pmValue <= 225.4) {
+  } else if (level === MeasurementLevels.VERY_UNHEALTHY) {
+    result = ChartColorsType.VIOLET;
+  } else if (level === MeasurementLevels.HAZARDOUS) {
     result = ChartColorsType.PURPLE;
-  } else if (pmValue <= 10000) {
-    result = ChartColorsType.BROWN;
   }
 
-  if (newChartColors) {
-    return {
-      bgColor: dark ? CHART_COLORS_DARK_VAR[result] : CHART_COLORS_LIGHT_VAR[result],
-      textColorClass: getTextColorClassForBG(result, dark)
-    };
-  }
+
   return {
-    bgColor: dark ? CHART_COLORS_DARKENED_CSS_VARS[result] : CHART_COLORS_CSS_VARS[result],
-    textColorClass: getTextColorClassForBG(result, dark)
+    bgColor: getAQColorByShade(result, shade),
+    textColorClass: getTextColorClassForBG(result, shade === 700)
   };
+}
+
+function getAQColorByShade(color: ChartColorsType, shade: 500 | 700 | 300 | 100 = 500): string {
+  switch (shade) {
+    case 700:
+      return CHART_COLORS_DARK_CSS_VARS[color];
+    case 300:
+      return CHART_COLORS_MEDIUM_CSS_VARS[color];
+    case 100:
+      return CHART_COLORS_LIGHT_CSS_VARS[color];
+    default:
+      return CHART_COLORS_CSS_VARS[color];
+  }
 }
 
 /**
@@ -58,20 +67,9 @@ export function getPM25Color(
  * @private
  */
 function getTextColorClassForBG(bgColor: ChartColorsType, isBGDark: boolean = false): string {
-  return [ChartColorsType.GREEN, ChartColorsType.YELLOW].includes(bgColor) && !isBGDark
+  return [ ChartColorsType.YELLOW].includes(bgColor) && !isBGDark
     ? 'text-dark'
     : 'text-light';
-}
-
-/**
- * Determines the appropriate text color for a given background color type.
- *
- * @param {MascotColorsType} bgColor - The background color type from MascotColorsType enum
- * @returns {string} CSS class for text that ensures readable contrast
- * @private
- */
-function getTextColorClassForMascotBG(bgColor: MascotColorsType): string {
-  return [MascotColorsType.YELLOW].includes(bgColor) ? 'text-dark' : 'text-light';
 }
 
 /**
@@ -85,33 +83,25 @@ function getTextColorClassForMascotBG(bgColor: MascotColorsType): string {
  */
 export function getCO2Color(
   rco2Value: number,
-  dark = false,
-  newChartColors = false
+  shade: 500 | 700 | 300 | 100 = 500
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
-  const configuration = [
-    { index: 1, color: ChartColorsType.GREEN, max: 449, label: 'Excellent' },
-    { index: 2, color: ChartColorsType.YELLOW, max: 499, label: 'Good' },
-    { index: 3, color: ChartColorsType.ORANGE, max: 799, label: 'Moderate' },
-    { index: 4, color: ChartColorsType.GRAY, max: 10000, label: 'Incorrect' }
-  ];
 
-  configuration?.sort((a, b) => b.index - a.index);
-  configuration?.forEach(configItem => {
-    if (rco2Value <= configItem.max) {
-      color = configItem.color;
-    }
-  });
+  const level = getMeasurementLevel(MeasureNames.CO2, rco2Value);
 
-  if (newChartColors) {
-    return {
-      bgColor: dark ? CHART_COLORS_DARK_VAR[color] : CHART_COLORS_LIGHT_VAR[color],
-      textColorClass: getTextColorClassForBG(color, dark)
-    };
+  if (level === MeasurementLevels.GOOD) {
+    color = ChartColorsType.GREEN;
+  } else if (level === MeasurementLevels.MODERATE) {
+    color = ChartColorsType.YELLOW;
+  } else if (level === MeasurementLevels.UNHEALTHY_SENSITIVE_GROUPS) {  
+    color = ChartColorsType.ORANGE;
+  } else if (level === MeasurementLevels.INCORRECT) {
+    color = ChartColorsType.GRAY;
   }
+
   return {
-    bgColor: dark ? CHART_COLORS_DARKENED_CSS_VARS[color] : CHART_COLORS_CSS_VARS[color],
-    textColorClass: getTextColorClassForBG(color, dark)
+    bgColor: getAQColorByShade(color, shade),
+    textColorClass: getTextColorClassForBG(color, shade === 700)
   };
 }
 
@@ -125,40 +115,28 @@ export function getCO2Color(
  */
 export function getAQIColor(
   aqi: number,
-  getMascotColor = false
+  shade: 500 | 700 | 300 | 100 = 500
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
-  let mascotColor = MascotColorsType.DEFAULT;
+  const level = getMeasurementLevel(MeasureNames.PM_AQI, aqi);
 
-  if (aqi <= 50) {
+  if (level === MeasurementLevels.GOOD) {
     color = ChartColorsType.GREEN;
-    mascotColor = MascotColorsType.GREEN;
-  } else if (aqi <= 100) {
+  } else if (level === MeasurementLevels.MODERATE) {
     color = ChartColorsType.YELLOW;
-    mascotColor = MascotColorsType.YELLOW;
-  } else if (aqi <= 150) {
+  } else if (level === MeasurementLevels.UNHEALTHY_SENSITIVE_GROUPS) {
     color = ChartColorsType.ORANGE;
-    mascotColor = MascotColorsType.ORANGE;
-  } else if (aqi <= 200) {
+  } else if (level === MeasurementLevels.UNHEALTHY) {
     color = ChartColorsType.RED;
-    mascotColor = MascotColorsType.PINK;
-  } else if (aqi <= 300) {
-    color = ChartColorsType.PURPLE;
-    mascotColor = MascotColorsType.VIOLET;
+  } else if (level === MeasurementLevels.VERY_UNHEALTHY) {
+    color = ChartColorsType.VIOLET;
   } else {
-    color = ChartColorsType.BROWN;
-    mascotColor = MascotColorsType.PURPLE;
+    color = ChartColorsType.PURPLE;
   }
 
-  if (getMascotColor) {
-    return {
-      bgColor: MASCOT_COLORS_CSS_VARS[mascotColor],
-      textColorClass: getTextColorClassForMascotBG(mascotColor)
-    };
-  }
   return {
-    bgColor: CHART_COLORS_CSS_VARS[color],
-    textColorClass: getTextColorClassForBG(color)
+    bgColor: getAQColorByShade(color, shade),
+    textColorClass: getTextColorClassForBG(color, shade === 700)
   };
 }
 
@@ -175,16 +153,17 @@ export function getAQIColor(
 export function getColorForMeasure(
   measure: MeasureNames,
   value: number,
-  dark = false
+  shade: 500 | 700 | 300 | 100 = 500
 ): { bgColor: string; textColorClass: string } {
   switch (measure) {
     case MeasureNames.PM25:
-      return getPM25Color(value, dark);
+      return getPM25Color(value, shade);
     case MeasureNames.CO2:
-      return getCO2Color(value, dark);
+      return getCO2Color(value, shade);
     case MeasureNames.PM_AQI:
-      return getAQIColor(value);
+      return getAQIColor(value, shade);
     default:
       return { bgColor: '', textColorClass: '' };
   }
 }
+

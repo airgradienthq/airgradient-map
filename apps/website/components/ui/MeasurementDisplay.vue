@@ -1,5 +1,5 @@
 <template>
-  <div class="measurement-display-card" :class="aqiClass">
+  <div class="measurement-display-card">
     <div class="measurement-contributor">
       <p>Contributor:<br />{{ props.contributorName }}</p>
     </div>
@@ -8,83 +8,71 @@
       <img
         width="106"
         height="106"
-        :src="`/images/aq-icons/${icon}`"
-        :alt="iconAlt"
-        class="AQ-icon"
+        :src="`/images/aq-icons/${measurementDisplayConfig.iconPath}`"
+        :alt="textLabel"
+        :class="['AQ-icon', AQLevel === MeasurementLevels.INCORRECT ? 'image-gray' : '']"
       />
     </div>
 
     <div class="measurement-message">
       <h6>THE AIR QUALITY IS</h6>
-      <h3 :style="{ color: aqiColor.bgColor }">{{ aqiLabel }}</h3>
+      <h3 :style="{ color: colorConfig.bgColor }">{{ textLabel }}</h3>
     </div>
 
-    <div class="measurement-index-container" :style="{ backgroundColor: aqiColor.bgColor }">
-      <h3 :style="{ color: textColorClass }">
-        <span>{{ props.aqiMeasurement }}</span> U.S. AQI
+    <div class="measurement-index-container" :style="{ backgroundColor: colorConfig.bgColor }">
+      <h3 :class="colorConfig.textColorClass">
+        <span>{{ props.value }}</span>
+        {{ selectedMeasure !== MeasureNames.CO2 ? 'U.S. AQI' : 'ppm' }}
       </h3>
-      <h5 :style="{ color: textColorClass }">Air Quality Index</h5>
+      <h5 :class="colorConfig.textColorClass">
+        {{ selectedMeasure !== MeasureNames.CO2 ? 'Air Quality Index' : 'Carbon Dioxide' }}
+      </h5>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { computed } from 'vue';
+  import { computed, ComputedRef } from 'vue';
   import { useLegendLabels } from '~/composables/shared/ui/useLegendLabels';
-  import { getAQIColor } from '~/utils';
-  import { MASCOT_ICONS, MASCOT_ICONS_ALT_TEXT } from '~/constants/shared/mascot-icons';
+  import { getColorForMeasure, getMeasurementLevel } from '~/utils';
+
+  import { useGeneralConfigStore } from '~/store/general-config-store';
+  import { MeasurementLevels, MeasureNames } from '~/types';
+  import {
+    MEASUREMENT_DISPLAY_ICON_CONFIG_BY_LEVELS,
+    MeasurementDisplayIconConfig
+  } from '~/constants';
 
   const props = defineProps({
     contributorName: {
       type: String,
       default: 'Contributor Names Placeholder'
     },
-    aqiMeasurement: {
+    value: {
       type: Number,
-      default: 112
+      default: 0
     }
   });
 
-  const aqiColor = computed(() => getAQIColor(props.aqiMeasurement, true));
-  const textColorClass = computed(() => {
-    if (aqiColor.value.textColorClass === 'text-light') {
-      return '#ffffff';
-    }
-    return '#212121';
-  });
-
-  /**
-   * Determine the AQI label based on measurement.
-   */
+  const generalConfigStore = useGeneralConfigStore();
   const { labels } = useLegendLabels();
-  const aqiInfo = computed(() => {
-    const aqi = props.aqiMeasurement;
-    if (aqi <= 50) {
-      return { label: labels.value[0], className: 'aqi-good', index: 0 };
-    } else if (aqi <= 100) {
-      return { label: labels.value[1], className: 'aqi-moderate', index: 1 };
-    } else if (aqi <= 150) {
-      return { label: labels.value[2], className: 'aqi-sensitive', index: 2 };
-    } else if (aqi <= 200) {
-      return { label: labels.value[3], className: 'aqi-unhealthy', index: 3 };
-    } else if (aqi <= 300) {
-      return { label: labels.value[4], className: 'aqi-very-unhealthy', index: 4 };
-    } else {
-      return { label: labels.value[5], className: 'aqi-hazardous', index: 5 };
-    }
-  });
-  const aqiLabel = computed(() => aqiInfo.value.label);
-  const aqiClass = computed(() => aqiInfo.value.className);
+  const selectedMeasure = generalConfigStore.selectedMeasure;
 
-  /**
-   * Path to SVG icon. Icons in public/images/aq-icons/-
-   */
-  const iconInfo = computed(() => {
-    const iconIndex = aqiInfo.value.index;
-    return { icon: MASCOT_ICONS[iconIndex], iconAlt: MASCOT_ICONS_ALT_TEXT[iconIndex] };
+  const AQLevel: ComputedRef<MeasurementLevels> = computed(() => {
+    return getMeasurementLevel(selectedMeasure, props.value);
   });
-  const icon = computed(() => iconInfo.value.icon);
-  const iconAlt = computed(() => iconInfo.value.iconAlt);
+
+  const measurementDisplayConfig: ComputedRef<MeasurementDisplayIconConfig> = computed(() => {
+    return MEASUREMENT_DISPLAY_ICON_CONFIG_BY_LEVELS[AQLevel.value];
+  });
+
+  const textLabel: ComputedRef<string> = computed(() => {
+    return labels.value[measurementDisplayConfig.value.textLabelIndex];
+  });
+
+  const colorConfig: ComputedRef<{ bgColor: string; textColorClass: string }> = computed(() => {
+    return getColorForMeasure(selectedMeasure, props.value);
+  });
 </script>
 
 <style lang="scss" scoped>
@@ -158,6 +146,10 @@
     font-size: var(--font-size-lg);
     font-weight: var(--font-weight-bold);
     margin: 0;
+  }
+
+  .image-gray {
+    filter: grayscale(100%);
   }
 
   .measurement-index-container h5 {

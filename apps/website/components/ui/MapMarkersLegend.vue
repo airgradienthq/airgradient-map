@@ -6,8 +6,8 @@
         :key="marker.type"
         :class="['marker-item', marker.class + '-item']"
       >
-        <div :class="['marker-preview', marker.class]">9</div>
-        <span class="marker-label">{{ marker.label }}</span>
+        <div :class="['marker-preview', 'text-light', marker.class]">9</div>
+        <span class="marker-label ">{{ marker.label }}</span>
       </div>
     </div>
   </div>
@@ -57,7 +57,7 @@
     width: 20px;
     height: 20px;
     border-radius: 4px;
-    background-color: var(--airGreen);
+    background-color: var(--aq-green-500);
     display: flex;
     align-items: center;
     justify-content: center;
