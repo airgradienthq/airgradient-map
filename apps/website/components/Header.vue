@@ -73,11 +73,21 @@
   </header>
 </template>
 <script setup lang="ts">
-  import { HEADER_LINKS_CONFIG } from '~/constants/shared/header-links-config';
-  import { ref, onMounted, onBeforeUnmount } from 'vue';
+  import {
+    HEADER_LINKS_CONFIG_EN,
+    HEADER_LINKS_CONFIG_TH
+  } from '~/constants/shared/header-links-config';
+  import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+  import { useI18n } from '#imports';
+  import { HeaderLink } from '~/types';
 
+  const { locale } = useI18n();
   const isNavbarVisible = ref(false);
   const activeDropdown = ref<number | null>(null);
+
+  const HEADER_LINKS_CONFIG = computed<HeaderLink[]>(() => {
+    return locale.value === 'th' ? HEADER_LINKS_CONFIG_TH : HEADER_LINKS_CONFIG_EN;
+  });
 
   const toggleNavbar = () => {
     isNavbarVisible.value = !isNavbarVisible.value;

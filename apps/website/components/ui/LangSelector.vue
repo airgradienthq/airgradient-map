@@ -6,15 +6,7 @@
     </button>
     <div class="dropdown-menu lang-dropdown-menu" :class="{ show: activeLanguageDropdown }">
       <button v-for="locale in locales" class="dropdown-item btn-small button-white text-left">
-        <NuxtLink
-          :key="locale.code"
-          :to="switchLocalePath(locale.code)"
-          @click="
-            () => {
-              $i18n.setLocale(locale.code);
-            }
-          "
-        >
+        <NuxtLink :key="locale.code" @click="setLocale(locale.code)">
           <img :src="`images/icons/${locale.code}.svg`" class="flag-icon" />
           {{ locale.name }}
         </NuxtLink>
@@ -24,17 +16,25 @@
 </template>
 
 <script setup lang="ts">
-  import { useNuxtApp, useI18n, useSwitchLocalePath } from '#imports';
+  import { useNuxtApp, useI18n } from '#imports';
   import { ref } from 'vue';
 
   const { $i18n } = useNuxtApp();
   const { locale } = useI18n();
-  const switchLocalePath = useSwitchLocalePath();
   const locales = $i18n.locales;
   const activeLanguageDropdown = ref(false);
 
   const toggleLanguageDropdown = () => {
     activeLanguageDropdown.value = !activeLanguageDropdown.value;
+  };
+
+  const setLocale = (locale: string) => {
+    $i18n.setLocale(locale);
+    if (locale === 'th') {
+      document.body.classList.add('th-layout');
+    } else {
+      document.body.classList.remove('th-layout');
+    }
   };
 </script>
 
