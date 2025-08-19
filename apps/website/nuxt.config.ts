@@ -6,7 +6,7 @@ export default defineNuxtConfig({
       apiUrl:
         process.env.NODE_ENV === 'production'
           ? 'https://map-data-int.airgradient.com/map/api/v1'
-          : 'http://localhost:3001/map/api/v1'
+          : 'https://map-data-int.airgradient.com/map/api/v1'
     }
   },
   css: [
@@ -54,14 +54,8 @@ export default defineNuxtConfig({
     strategy: 'prefix_except_default',
     defaultLocale: 'en',
     locales: [
-      { code: 'es', name: 'Español', file: 'es.json' },
       { code: 'en', name: 'English', file: 'en.json' },
-      { code: 'fr', name: 'Français', file: 'fr.json' },
-      { code: 'lo', name: 'ລາວ', file: 'lo.json' },
-      { code: 'ro', name: 'Română', file: 'ro.json' },
       { code: 'th', name: 'ภาษาไทย', file: 'th.json' },
-      { code: 'vi', name: 'Tiếng Việt', file: 'vi.json' },
-      { code: 'zh', name: '中文', file: 'zh.json' }
     ],
     lazy: true,
     langDir: 'locales/',
