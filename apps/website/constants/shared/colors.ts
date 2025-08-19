@@ -55,6 +55,3 @@ export const CHART_COLORS_LIGHT_CSS_VARS: Record<ChartColorsType, string> = {
   [ChartColorsType.LIGHTGRAY]: '#F8F2EB',
   [ChartColorsType.DEFAULT]: '#F8F2EB'
 };
-
-
-

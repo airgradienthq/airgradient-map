@@ -2,7 +2,7 @@ import {
   CHART_COLORS_CSS_VARS,
   CHART_COLORS_DARK_CSS_VARS,
   CHART_COLORS_LIGHT_CSS_VARS,
-  CHART_COLORS_MEDIUM_CSS_VARS,
+  CHART_COLORS_MEDIUM_CSS_VARS
 } from '~/constants/shared/colors';
 import { ChartColorsType, MeasureNames, MeasurementLevels } from '~/types';
 import { getMeasurementLevel } from './get-measure-level';
@@ -38,7 +38,6 @@ export function getPM25Color(
     result = ChartColorsType.PURPLE;
   }
 
-
   return {
     bgColor: getAQColorByShade(result, shade),
     textColorClass: getTextColorClassForBG(result, shade === 700)
@@ -67,9 +66,7 @@ function getAQColorByShade(color: ChartColorsType, shade: 500 | 700 | 300 | 100 
  * @private
  */
 function getTextColorClassForBG(bgColor: ChartColorsType, isBGDark: boolean = false): string {
-  return [ ChartColorsType.YELLOW].includes(bgColor) && !isBGDark
-    ? 'text-dark'
-    : 'text-light';
+  return [ChartColorsType.YELLOW].includes(bgColor) && !isBGDark ? 'text-dark' : 'text-light';
 }
 
 /**
@@ -93,7 +90,7 @@ export function getCO2Color(
     color = ChartColorsType.GREEN;
   } else if (level === MeasurementLevels.MODERATE) {
     color = ChartColorsType.YELLOW;
-  } else if (level === MeasurementLevels.UNHEALTHY_SENSITIVE_GROUPS) {  
+  } else if (level === MeasurementLevels.UNHEALTHY_SENSITIVE_GROUPS) {
     color = ChartColorsType.ORANGE;
   } else if (level === MeasurementLevels.INCORRECT) {
     color = ChartColorsType.GRAY;
@@ -166,4 +163,3 @@ export function getColorForMeasure(
       return { bgColor: '', textColorClass: '' };
   }
 }
-
