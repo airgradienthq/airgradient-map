@@ -603,7 +603,6 @@
 
     .leaflet-geosearch-bar form input {
       background-position: left 5px center;
-      font-size: 14px !important;
       padding-left: 14px;
     }
 
