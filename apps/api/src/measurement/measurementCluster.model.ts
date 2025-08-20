@@ -48,8 +48,8 @@ class MeasurementCluster {
       this.value = Math.round(clusters.properties.value);
     }
 
-    this.latitude = clusters.geometry.coordinates[0];
-    this.longitude = clusters.geometry.coordinates[1];
+    this.latitude = clusters.geometry.coordinates[1];
+    this.longitude = clusters.geometry.coordinates[0];
   }
 }
 

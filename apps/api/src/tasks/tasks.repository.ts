@@ -58,7 +58,7 @@ export class TasksRepository {
             const validatedOwnerName =
               ownerName !== null ? escapeSingleQuote(ownerName) : 'unknown';
             // Build postgis point value then return formatted row
-            const geometry = `'POINT(${coordinateLatitude} ${coordinateLongitude})'`;
+            const geometry = `'POINT(${coordinateLongitude} ${coordinateLatitude})'`;
             // Build licenses data type
             const licensesFmt = formatLicenses(licenses);
 

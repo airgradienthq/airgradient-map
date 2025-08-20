@@ -25,7 +25,7 @@ export function convertToGeoJSON(
         },
         geometry: {
           type: 'Point',
-          coordinates: [item.latitude, item.longitude]
+          coordinates: [item.longitude, item.latitude]
         }
       };
     })
