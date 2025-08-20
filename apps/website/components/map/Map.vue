@@ -508,6 +508,7 @@
     min-width: auto;
     width: calc(100% - 16px);
   }
+  
 
   .leaflet-geosearch-bar form.open {
     border-radius: 20px;
@@ -603,7 +604,6 @@
 
     .leaflet-geosearch-bar form input {
       background-position: left 5px center;
-      font-size: 14px !important;
       padding-left: 14px;
     }
 
