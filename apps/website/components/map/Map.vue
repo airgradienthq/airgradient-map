@@ -347,22 +347,22 @@
   }
 
   #map {
-    height: calc(100vh - 130px);
+    height: calc(100svh - 130px);
   }
   @include desktop {
     #map {
-      height: calc(100vh - 117px);
+      height: calc(100svh - 117px);
     }
   }
   .headless {
     #map {
-      height: calc(100vh - 5px);
+      height: calc(100svh - 5px);
     }
   }
 
   .headless {
     #map {
-      height: calc(100vh - 5px) !important;
+      height: calc(100svh - 5px) !important;
     }
   }
 
