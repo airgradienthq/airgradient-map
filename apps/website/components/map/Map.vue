@@ -508,7 +508,6 @@
     min-width: auto;
     width: calc(100% - 16px);
   }
-  
 
   .leaflet-geosearch-bar form.open {
     border-radius: 20px;
