@@ -12,7 +12,9 @@
           <h5 class="m-0 location-name">{{ mapLocationData?.locationName }}</h5>
           <v-chip>
             {{
-              mapLocationData?.sensorType === SensorType.reference ? 'Reference' : 'Small Sensor'
+              mapLocationData?.sensorType === SensorType.reference
+                ? $t('Reference')
+                : $t('Small Sensor')
             }}</v-chip
           >
         </div>
@@ -57,6 +59,7 @@
             class="period-control"
             :selected-value="generalConfigStore.selectedHistoryPeriod.value"
             :options="HISTORY_PERIODS"
+            :translate="true"
             :disabled="loading"
             @change="handleChartPeriodChange"
           >
@@ -372,7 +375,8 @@
       chartData.value = data;
 
       const annotations = useChartJsAnnotations({
-        data: chartValues
+        data: chartValues,
+        translate: $i18n.t
       });
 
       chartOptions.value = useChartjsOptions({

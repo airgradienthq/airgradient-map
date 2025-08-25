@@ -14,6 +14,7 @@
             <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
+                v-if="!isThai"
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
@@ -57,7 +58,7 @@
                 <a
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
-                  class="btn-small button-white"
+                  class="btn-small button-white mr-1"
                   >{{ $t('join-newsletter') }}</a
                 >
                 <a
@@ -74,9 +75,7 @@
         </div>
         <div class="copyright d-flex flex-wrap justify-content-between" style="margin-top: 20px">
           <span class="copyright-text text-left mr-5">© AirGradient Co. Ltd.</span>
-          <span class="copyright-text text-left"
-            >181 M.10 Baan Nam Long Soi 2 Chiang Mai 50180, Thailand</span
-          >
+          <span class="copyright-text text-left">{{ $t('company-address') }}</span>
         </div>
       </div>
     </div>
@@ -90,7 +89,7 @@
             alt="1 Percent logo"
           />
         </a>
-        <p class="text-white m-0">
+        <p class="text-white m-0 one-percent-text">
           {{ $t('pledge') }}
         </p>
       </div>
@@ -99,6 +98,9 @@
 </template>
 <script setup lang="ts">
   import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
+  import { useI18n } from 'vue-i18n';
+
+  const isThai = useI18n().locale.value === 'th';
 </script>
 <style lang="scss" scoped>
   footer {
@@ -300,5 +302,9 @@
         }
       }
     }
+  }
+
+  .one-percent-text {
+    font-size: var(--font-size-ml);
   }
 </style>

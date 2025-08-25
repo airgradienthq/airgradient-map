@@ -42,6 +42,7 @@
   "terms-conditions": "Terms and Conditions",
   "partner-program": "Partner Program",
   "press-influencers": "Press / Influencers",
+  "company-address": "181 M.10 Baan Nam Long Soi 2 Chiang Mai 50180, Thailand",
 
   "error-title": "You ran out of air.",
   "error-body": "The page you're looking for is beyond our reach...",
@@ -69,5 +70,19 @@
   "Hazardous": "Hazardous",
   "Excellent": "Excellent",
   "Acceptable": "Acceptable",
-  "To be Avoided": "To be Avoided"
+  "To be Avoided": "To be Avoided",
+
+  "WHO_annual_aq_guideline": "WHO Annual Air Quality Guideline",
+  "WHO_annual_air_quality_guideline": "WHO Annual Air Quality Guideline",
+
+  "last_3_months": "Last 3 Months",
+  "last_month": "Last Month",
+  "last_week": "Last Week",
+  "last_24_hours": "Last 24 Hours",
+
+  "average": "Average",
+  "last_24_hours_average": "24 Hours Average",
+  "last_week_average": "Week Average",
+  "last_month_average": "Month Average",
+  "last_3_months_average": "3 Months Average"
 }
