@@ -20,9 +20,9 @@
           <img src="./assets/images/404.jpg" class="img-fluid" alt="404 Error" />
         </div>
         <div class="col-md-6 align-self-center text-center text-md-start">
-          <h1 class="mb-4">You ran out of air.</h1>
-          <p class="mb-4">The page you're looking for is beyond our reach…</p>
-          <NuxtLink to="/" class="btn-large button-blue"> Go to Homepage </NuxtLink>
+          <h1 class="mb-4">{{ $t('error_title') }}</h1>
+          <p class="mb-4">{{ $t('error_body') }}</p>
+          <NuxtLink to="/" class="btn-large button-blue">{{ $t('error_button') }}</NuxtLink>
         </div>
       </div>
     </div>
