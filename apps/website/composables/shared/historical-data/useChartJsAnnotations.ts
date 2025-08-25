@@ -7,7 +7,6 @@ import { HistoryPeriodConfig, MeasureNames } from '~/types';
 import { getChartFontSize, getCO2Color, getPM25Color } from '~/utils';
 import { pm25ToAQI } from '~/utils/aqi';
 
-
 export function useChartJsAnnotations({
   data,
   showWHO = true,
