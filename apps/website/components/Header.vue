@@ -86,7 +86,12 @@
   const activeDropdown = ref<number | null>(null);
 
   const HEADER_LINKS_CONFIG = computed<HeaderLink[]>(() => {
-    return locale.value === 'th' ? HEADER_LINKS_CONFIG_TH : HEADER_LINKS_CONFIG_EN;
+
+    if (locale.value === 'th') {
+      return HEADER_LINKS_CONFIG_TH;
+    } else {
+      return HEADER_LINKS_CONFIG_EN;
+    }
   });
 
   const toggleNavbar = () => {
