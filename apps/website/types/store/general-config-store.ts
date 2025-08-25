@@ -4,4 +4,5 @@ export type GeneralConfigStoreState = {
   selectedMeasure: MeasureNames;
   selectedHistoryPeriod: HistoryPeriodConfig;
   selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone;
+  headless: boolean;
 };

@@ -21,108 +21,110 @@
       </v-card-title>
     </template>
     <template #body>
-      <div style="height: 65px" class="chart-controls mb-5">
-        <div>
-          <div
-            v-if="currentValueData"
-            :style="{ backgroundColor: currentValueData.bgColor }"
-            class="current-values py-2 px-3"
-          >
-            <div :class="currentValueData.textColor" class="main-current-value">
-              <h4 :class="currentValueData.textColor" class="mb-2">
-                {{ currentValueData.value }}
-                <span class="unit-label">{{ currentValueData.unit }}</span>
-              </h4>
-              <p :class="currentValueData.textColor" class="mb-0 current-label">
-                <span>
-                  {{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" />
-                </span>
-              </p>
+      <div>
+        <div style="height: 65px" class="chart-controls mb-4 mb-md-5">
+          <div>
+            <div
+              v-if="currentValueData"
+              :style="{ backgroundColor: currentValueData.bgColor }"
+              class="current-values py-2 px-3"
+            >
+              <div :class="currentValueData.textColor" class="main-current-value">
+                <h4 :class="currentValueData.textColor" class="mb-2">
+                  {{ currentValueData.value }}
+                  <span class="unit-label">{{ currentValueData.unit }}</span>
+                </h4>
+                <p :class="currentValueData.textColor" class="mb-0 current-label">
+                  <span
+                    >{{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" />
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="d-flex align-center justify-center gap-2 hist-controls-container">
-          <UiDropdownControl
-            v-if="chartOptions && timezoneSelectShown"
-            class="tz-control"
-            width="200px"
-            :selected-value="selectedHistoricalDataTimeZoneConfig.value"
-            :options="historicalDataTimeZoneOptions"
-            :disabled="loading"
-            @change="handleHistoricalDataTimeZoneChange"
-          >
-          </UiDropdownControl>
+          <div class="d-flex align-center justify-center gap-1 gap-md-2 hist-controls-container">
+            <UiDropdownControl
+              v-if="chartOptions && timezoneSelectShown"
+              class="tz-control"
+              width="200px"
+              :selected-value="selectedHistoricalDataTimeZoneConfig.value"
+              :options="historicalDataTimeZoneOptions"
+              :disabled="loading"
+              @change="handleHistoricalDataTimeZoneChange"
+            >
+            </UiDropdownControl>
 
-          <UiDropdownControl
-            v-if="chartOptions"
-            class="period-control"
-            :selected-value="generalConfigStore.selectedHistoryPeriod.value"
-            :options="HISTORY_PERIODS"
-            :translate="true"
-            :disabled="loading"
-            @change="handleChartPeriodChange"
-          >
-          </UiDropdownControl>
-        </div>
-      </div>
-      <ClientOnly>
-        <div class="chart-container">
-          <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
-          <div
-            v-else-if="!loading && historyError"
-            class="d-flex flex-column align-center justify-center gap-2"
-          >
-            <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
-            <p>{{ $t('unable_load_historical') }}</p>
-            <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory">
-              {{ $t('retry') }}
-            </UiButton>
+            <UiDropdownControl
+              v-if="chartOptions"
+              class="period-control"
+              :selected-value="generalConfigStore.selectedHistoryPeriod.value"
+              :options="HISTORY_PERIODS"
+              :translate="true"
+              :disabled="loading"
+              @change="handleChartPeriodChange"
+            >
+            </UiDropdownControl>
           </div>
         </div>
-      </ClientOnly>
-      <div class="mt-4">
-        <UiColorsLegend :size="ColorsLegendSize.SMALL" />
-      </div>
-      <p class="mb-0 mt-4">
-        <small v-if="chartOptions && locationDetails?.ownerName">
-          {{ $t('aq_provided_by') }}
-          <span v-if="!locationDetails?.url">
-            {{
-              !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                ? $i18n.t('anonymous_contributor')
-                : locationDetails?.ownerName
-            }}
-          </span>
-          <span v-else>
-            <a :href="locationDetails?.url" target="_blank">
+        <ClientOnly>
+          <div class="chart-container">
+            <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
+            <div
+              v-else-if="!loading && historyError"
+              class="d-flex flex-column align-center justify-center gap-2"
+            >
+              <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
+              <p>Unable to load historical data</p>
+              <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory">
+                Retry
+              </UiButton>
+            </div>
+          </div>
+        </ClientOnly>
+        <div class="mt-2 mt-md-4">
+          <UiColorsLegend :size="ColorsLegendSize.SMALL" />
+        </div>
+        <p style="min-height: 20px" class="mb-0 mt-2 mt-md-4">
+          <small v-if="chartOptions">
+            {{ $t('air_quality_data_for_this_location_is_provided_by') }}
+            <span v-if="!locationDetails?.url">
               {{
                 !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
                   ? $i18n.t('anonymous_contributor')
                   : locationDetails?.ownerName
               }}
-              <v-icon size="16">mdi-open-in-new</v-icon>
-            </a>
-          </span>
-          {{ $t('via') }}
-          <span v-if="locationDetails?.dataSource === 'OpenAQ'">
-            {{ locationDetails?.provider }} {{ $t('and') }}
-            <a href="https://openaq.org/" target="_blank">
-              OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a
-            >
-          </span>
+            </span>
+            <span v-else>
+              <a :href="locationDetails?.url" target="_blank">
+                {{
+                  !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
+                    ? ' an anonymous contributor '
+                    : locationDetails?.ownerName
+                }}
+                <v-icon size="16">mdi-open-in-new</v-icon>
+              </a>
+            </span>
+            via
+            <span v-if="locationDetails?.dataSource === 'OpenAQ'">
+              {{ locationDetails?.provider }} and
+              <a href="https://openaq.org/" target="_blank">
+                OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a
+              >
+            </span>
 
-          <span v-if="locationDetails?.dataSource === 'AirGradient'">
-            <a href="https://www.airgradient.com/" target="_blank">
-              AirGradient
-              <v-icon size="16">mdi-open-in-new</v-icon>
-            </a>
-          </span>
+            <span v-if="locationDetails?.dataSource === 'AirGradient'">
+              <a href="https://www.airgradient.com/" target="_blank">
+                AirGradient
+                <v-icon size="16">mdi-open-in-new</v-icon>
+              </a>
+            </span>
 
-          {{ $t('under') }}
-          {{ locationDetails?.licenses[0] }}
-        </small>
-      </p>
+            {{ $t('under') }}
+            {{ locationDetails?.licenses[0] }}
+          </small>
+        </p>
+      </div>
     </template>
   </UiDialog>
 </template>
@@ -416,7 +418,7 @@
 
   @media (max-width: 768px) {
     .chart-container {
-      height: 270px;
+      height: 250px;
     }
   }
 
@@ -465,6 +467,22 @@
   .hist-controls-container {
     @include tablet {
       flex-direction: column;
+    }
+  }
+
+  .headless {
+    .chart-container {
+      height: 270px;
+    }
+
+    .chart-controls {
+      margin-bottom: 25px !important;
+      margin-top: -20px !important;
+
+      @include desktop {
+        margin-bottom: 25px !important;
+        margin-top: -5px !important;
+      }
     }
   }
 </style>

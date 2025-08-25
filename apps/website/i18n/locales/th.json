@@ -47,7 +47,7 @@
   "error_body": "หน้าที่คุณกำลังค้นหาอยู่นอกเหนือการเข้าถึงของเรา...",
   "error_button": "ไปยังหน้าหลัก",
 
-  "search_placeholder": "กรอกที่อยู่",
+  "search_placeholder": "ค้นหา",
   "current": "ปัจจุบัน",
   "unable_load_historical": "ไม่สามารถโหลดข้อมูลย้อนหลังได้",
   "retry": "ลองอีกครั้ง",

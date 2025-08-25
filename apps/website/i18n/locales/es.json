@@ -48,7 +48,7 @@
   "error_body": "La página que buscas está más allá de nuestro alcance...",
   "error_button": "Ir a la Página Principal",
 
-  "search_placeholder": "Ingresar dirección",
+  "search_placeholder": "Buscar",
   "current": "Actual",
   "unable_load_historical": "No se pueden cargar datos históricos",
   "retry": "Reintentar",

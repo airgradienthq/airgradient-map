@@ -14,7 +14,7 @@
             <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
-                v-if="!isThai"
+                v-if="isEnglish"
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
@@ -100,7 +100,7 @@
   import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
   import { useI18n } from 'vue-i18n';
 
-  const isThai = useI18n().locale.value === 'th';
+  const isEnglish = useI18n().locale.value === 'en';
 </script>
 <style lang="scss" scoped>
   footer {

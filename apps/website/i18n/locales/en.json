@@ -48,7 +48,7 @@
   "error_body": "The page you're looking for is beyond our reach...",
   "error_button": "Go to Homepage",
 
-  "search_placeholder": "Enter address",
+  "search_placeholder": "Search",
   "current": "Current",
   "unable_load_historical": "Unable to load historical data",
   "retry": "Retry",
