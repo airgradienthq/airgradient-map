@@ -86,7 +86,6 @@
   const activeDropdown = ref<number | null>(null);
 
   const HEADER_LINKS_CONFIG = computed<HeaderLink[]>(() => {
-
     if (locale.value === 'th') {
       return HEADER_LINKS_CONFIG_TH;
     } else {

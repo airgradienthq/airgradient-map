@@ -6,7 +6,7 @@ import { useGeneralConfigStore } from '~/store/general-config-store';
 import { HistoryPeriodConfig, MeasureNames } from '~/types';
 import { getChartFontSize, getCO2Color, getPM25Color } from '~/utils';
 import { pm25ToAQI } from '~/utils/aqi';
-import { useI18n } from 'vue-i18n';
+
 
 export function useChartJsAnnotations({
   data,
