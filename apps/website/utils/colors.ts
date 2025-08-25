@@ -78,10 +78,10 @@ export function getCO2Color(
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
   const configuration = [
-    { index: 1, color: ChartColorsType.GREEN, max: 449, label: 'Excellent' },
-    { index: 2, color: ChartColorsType.YELLOW, max: 499, label: 'Good' },
-    { index: 3, color: ChartColorsType.ORANGE, max: 799, label: 'Moderate' },
-    { index: 4, color: ChartColorsType.GRAY, max: 10000, label: 'Incorrect' }
+    { index: 1, color: ChartColorsType.GREEN, max: 449, label: 'excellent' },
+    { index: 2, color: ChartColorsType.YELLOW, max: 499, label: 'good' },
+    { index: 3, color: ChartColorsType.ORANGE, max: 799, label: 'moderate' },
+    { index: 4, color: ChartColorsType.GRAY, max: 10000, label: 'incorrect' }
   ];
 
   configuration?.sort((a, b) => b.index - a.index);

@@ -116,8 +116,8 @@ function createWHOAnnotation(
   const yValue = isAQI ? 21 : 5;
   const label =
     width < 450
-      ? translate('WHO_annual_aq_guideline')
-      : translate('WHO_annual_air_quality_guideline');
+      ? translate('who_annual_aq_guideline')
+      : translate('who_annual_air_quality_guideline');
 
   return {
     display: true,

@@ -18,7 +18,7 @@
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
-                {{ $t('get-started') }}
+                {{ $t('get_started') }}
               </a>
 
               <UiLangSelector />
@@ -59,7 +59,7 @@
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
                   class="btn-small button-white mr-1"
-                  >{{ $t('join-newsletter') }}</a
+                  >{{ $t('join_newsletter') }}</a
                 >
                 <a
                   target="_blank"
@@ -75,7 +75,7 @@
         </div>
         <div class="copyright d-flex flex-wrap justify-content-between" style="margin-top: 20px">
           <span class="copyright-text text-left mr-5">© AirGradient Co. Ltd.</span>
-          <span class="copyright-text text-left">{{ $t('company-address') }}</span>
+          <span class="copyright-text text-left">{{ $t('company_address') }}</span>
         </div>
       </div>
     </div>

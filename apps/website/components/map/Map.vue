@@ -263,7 +263,7 @@
       style: 'bar',
       autoClose: true,
       keepResult: true,
-      searchLabel: $i18n.t('search-placeholder')
+      searchLabel: $i18n.t('search_placeholder')
     });
 
     mapInstance.addControl(searchControl);

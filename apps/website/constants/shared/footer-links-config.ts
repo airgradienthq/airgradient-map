@@ -10,7 +10,7 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'building-consultants',
+        label: 'building_consultants',
         path: 'https://www.airgradient.com/building-consultants/',
         openBlank: true
       },
@@ -20,17 +20,17 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'wildfire-aq',
+        label: 'wildfire_aq',
         path: 'https://www.airgradient.com/wildfire/',
         openBlank: true
       },
       {
-        label: 'cigarettes-calculator',
+        label: 'cigarettes_calculator',
         path: 'https://www.airgradient.com/cigarettes-equivalent-calculator/',
         openBlank: true
       },
       {
-        label: 'terms-conditions-quiz',
+        label: 'terms_conditions_quiz',
         path: 'https://www.airgradient.com/aq-data-ownership-quiz/',
         openBlank: true
       }
@@ -55,12 +55,12 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: true
       },
       {
-        label: 'corporate-social',
+        label: 'corporate_social',
         path: 'https://www.airgradient.com/scr-initiatives/',
         openBlank: true
       },
       {
-        label: 'server-status',
+        label: 'server_status',
         path: 'https://uptime.airgradient.net/status/servers',
         openBlank: true
       }
@@ -70,22 +70,22 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
     group: 3,
     links: [
       {
-        label: 'privacy-policy',
+        label: 'privacy_policy',
         path: 'https://www.airgradient.com/privacy-policy/',
         openBlank: true
       },
       {
-        label: 'terms-conditions',
+        label: 'terms_conditions',
         path: 'https://www.airgradient.com/terms-conditions/',
         openBlank: true
       },
       {
-        label: 'partner-program',
+        label: 'partner_program',
         path: 'https://www.airgradient.com/partner-program/',
         openBlank: true
       },
       {
-        label: 'press-influencers',
+        label: 'press_influencers',
         path: 'https://www.airgradient.com/press/',
         openBlank: true
       }

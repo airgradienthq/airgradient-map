@@ -2,22 +2,22 @@ import type { HeaderLink } from '~/types';
 
 export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
   {
-    label: 'indoor-monitor',
+    label: 'indoor_monitor',
     path: 'https://www.airgradient.com/indoor/',
     openBlank: false
   },
   {
-    label: 'outdoor-monitor',
+    label: 'outdoor_monitor',
     path: '',
     openBlank: false,
     children: [
       {
-        label: 'open-air',
+        label: 'open_air',
         path: 'https://www.airgradient.com/outdoor/',
         openBlank: false
       },
       {
-        label: 'open-air-max',
+        label: 'open_air_max',
         path: 'https://www.airgradient.com/open-air-max/',
         openBlank: false
       }
@@ -29,7 +29,7 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
     openBlank: false,
     children: [
       {
-        label: 'build-instructions',
+        label: 'build_instructions',
         path: 'https://www.airgradient.com/documentation/',
         openBlank: false
       },
@@ -49,7 +49,7 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
         openBlank: false
       },
       {
-        label: 'undp-toolkit',
+        label: 'undp_toolkit',
         path: 'https://www.airgradient.com/undp-air-quality-monitoring-toolkit/',
         openBlank: false
       }
@@ -71,17 +71,17 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
         openBlank: false
       },
       {
-        label: 'aq-forum',
+        label: 'aq_forum',
         path: 'https://www.airgradient.com/forum/',
         openBlank: false
       },
       {
-        label: 'open-source-initiative',
+        label: 'open_source_initiative',
         path: 'https://www.airgradient.com/open-source-initiative/',
         openBlank: false
       },
       {
-        label: 'about-us',
+        label: 'about_us',
         path: 'https://www.airgradient.com/join-us/',
         openBlank: false
       }
@@ -93,17 +93,17 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
     openBlank: false,
     children: [
       {
-        label: 'support-forum',
+        label: 'support_forum',
         path: 'https://www.airgradient.com/support/',
         openBlank: false
       },
       {
-        label: 'community-ngo',
+        label: 'community_ngo',
         path: 'https://www.airgradient.com/community-ngo-program/',
         openBlank: false
       },
       {
-        label: 'discussion-forum',
+        label: 'discussion_forum',
         path: 'https://forum.airgradient.com/',
         openBlank: false
       }
@@ -123,22 +123,22 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
 
 export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
   {
-    label: 'indoor-monitor',
+    label: 'indoor_monitor',
     path: 'https://www.airgradient.com/indoor/',
     openBlank: false
   },
   {
-    label: 'outdoor-monitor',
+    label: 'outdoor_monitor',
     path: '',
     openBlank: false,
     children: [
       {
-        label: 'open-air',
+        label: 'open_air',
         path: 'https://www.airgradient.com/outdoor/',
         openBlank: false
       },
       {
-        label: 'open-air-max',
+        label: 'open_air_max',
         path: 'https://www.airgradient.com/open-air-max/',
         openBlank: false
       }
@@ -160,7 +160,7 @@ export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
         openBlank: false
       },
       {
-        label: 'about-us',
+        label: 'about_us',
         path: 'https://www.airgradient.com/join-us/',
         openBlank: false
       }

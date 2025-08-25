@@ -13,8 +13,8 @@
           <v-chip>
             {{
               mapLocationData?.sensorType === SensorType.reference
-                ? $t('Reference')
-                : $t('Small Sensor')
+                ? $t('reference')
+                : $t('small_sensor')
             }}</v-chip
           >
         </div>
@@ -74,7 +74,7 @@
             class="d-flex flex-column align-center justify-center gap-2"
           >
             <v-icon color="error" size="48">mdi-chart-line-variant</v-icon>
-            <p>{{ $t('unable-load-historical') }}</p>
+            <p>{{ $t('unable_load_historical') }}</p>
             <UiButton variant="outlined" size="small" color="primary" @click="retryFetchHistory">
               {{ $t('retry') }}
             </UiButton>
@@ -86,11 +86,11 @@
       </div>
       <p class="mb-0 mt-4">
         <small v-if="chartOptions && locationDetails?.ownerName">
-          {{ $t('aq-provided-by') }}
+          {{ $t('aq_provided_by') }}
           <span v-if="!locationDetails?.url">
             {{
               !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                ? $i18n.t('anonymous-contributor')
+                ? $i18n.t('anonymous_contributor')
                 : locationDetails?.ownerName
             }}
           </span>
@@ -98,7 +98,7 @@
             <a :href="locationDetails?.url" target="_blank">
               {{
                 !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                  ? $i18n.t('anonymous-contributor')
+                  ? $i18n.t('anonymous_contributor')
                   : locationDetails?.ownerName
               }}
               <v-icon size="16">mdi-open-in-new</v-icon>
