@@ -87,7 +87,7 @@ export class MeasurementService {
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [point.latitude, point.longitude],
+          coordinates: [point.longitude, point.latitude],
         },
         properties: {
           locationId: point.locationId,
@@ -114,7 +114,7 @@ export class MeasurementService {
         },
       });
       clustersIndexes.load(geojson);
-      clusters = clustersIndexes.getClusters([yMin, xMin, yMax, xMax], zoom);
+      clusters = clustersIndexes.getClusters([xMin, yMin, xMax, yMax], zoom);
     }
 
     // Map to to array of MeasurementClusterModel
