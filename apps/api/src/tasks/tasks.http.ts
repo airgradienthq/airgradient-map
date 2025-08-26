@@ -12,7 +12,7 @@ export class TasksHttp {
 
   private defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
-    Accept: 'application/json',
+    'Accept': 'application/json',
   };
 
   async fetch<T>(url: string, headers?: Record<string, string>): Promise<T> {
