@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { TasksRepository } from './tasks.repository';
 import { TasksHttp } from './tasks.http';
-import { AirgradientModel } from './tasks.model';
+import { AirgradientModel } from './model/airgradient.model';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
 import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
 import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
