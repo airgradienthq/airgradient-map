@@ -34,7 +34,9 @@ export class TasksService {
 
     // Fetch data from the airgradient external API
     const url = OLD_AG_BASE_API_URL;
-    const data = await this.http.fetch<AirgradientModel[]>(url);
+    const data = await this.http.fetch<AirgradientModel[]>(url, {
+      Origin: 'https://airgradient.com',
+    });
     this.logger.log(`Sync AirGradient locations with total public data: ${data.length}`);
 
     // map location data for upsert function
@@ -61,7 +63,9 @@ export class TasksService {
 
     // Fetch data from the airgradient external API
     const url = OLD_AG_BASE_API_URL;
-    const data = await this.http.fetch<AirgradientModel[]>(url);
+    const data = await this.http.fetch<AirgradientModel[]>(url, {
+      Origin: 'https://airgradient.com',
+    });
     this.logger.log(`Sync AirGradient latest measures total public data: ${data.length}`);
 
     // NOTE: do optimization needed to insert in chunks?
