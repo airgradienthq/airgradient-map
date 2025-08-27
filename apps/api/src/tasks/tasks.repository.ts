@@ -21,7 +21,12 @@ export class TasksRepository {
     locationOwnerInput: UpsertLocationOwnerInput[],
   ) {
     try {
-      // Build columnar arrays using a single pass with reduce
+      // Creating columnar arrays
+      // WHY: PostgreSQL's unnest() function works with arrays, not individual records
+      // Transform row-based input (array of objects) into column-based arrays for efficient batch processing
+      // Each column becomes a separate array: [name1, name2, ...], [lat1, lat2, ...], etc.
+      // This allows processing hundreds/thousands of records in a single SQL operation instead of individual INSERTs
+      // Also filters out invalid records (null coordinates/location names) and converts licenses to JSON strings
       const {
         ownerNames,
         ownerUrls,
@@ -75,6 +80,10 @@ export class TasksRepository {
         return;
       }
 
+      // Prepare values array for parameterized query
+      // WHY: Parameterized queries are more efficient than string concatenation
+      // Package all columnar arrays into a single array that matches the SQL parameter positions ($1, $2, etc.)
+      // Order must match the unnest() parameters in the query 
       const values = [
         ownerNames,
         ownerUrls,
@@ -89,6 +98,20 @@ export class TasksRepository {
         coordinates,
       ];
 
+      // WHY UNNEST: Converts columnar arrays back into rows that SQL can work with
+      // Example: unnest(['A','B'], [1,2]) creates rows: ('A',1), ('B',2)
+      // 
+      // 1. batch_data: Uses unnest() to reconstruct rows from our columnar arrays
+      // 2. insert_owner: Upserts owners first (locations need owner_id foreign key)
+      // 3. location_data: Joins location data with newly created owner IDs
+      //    - ST_GeomFromText(coordinate, 3857): Converts "POINT(lng lat)" string to PostGIS geometry
+      //    - SRID 3857 (Web Mercator): Standard projection for web mapping, matches coordinate system
+      //    - JSON licenses: Converts JSON strings back to PostgreSQL varchar[] arrays using jsonb functions
+      //      WHY JSON: unnest() can't handle JavaScript arrays like ["item1","item2"] directly
+      // 4. Final INSERT: Bulk insert locations with conflict resolution (ON CONFLICT DO UPDATE)
+      //
+      // Here basically ON CONFLICT UPDATE for both upsert owner and locations will always overwrite
+      //   even though there's no changes. The performance has no difference than adding another WHERE clause to check first
       const query = `
         WITH batch_data AS (
           SELECT *
@@ -160,8 +183,9 @@ export class TasksRepository {
         timezone = EXCLUDED.timezone,
         coordinate = EXCLUDED.coordinate,
         provider = EXCLUDED.provider;
-      `;
+                  `;
 
+      // Execute the batch operation in single operation
       await this.databaseService.runQuery(query, values);
     } catch (error) {
       this.logger.error('Failed to upsert locations and owners', {
