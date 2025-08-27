@@ -39,7 +39,9 @@ export class TasksService {
 
     // map location data for upsert function
     const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
+      ownerReferenceId: raw.placeId,
       ownerName: raw.publicContributorName,
+      ownerUrl: raw.publicPlaceUrl,
       locationReferenceId: raw.locationId,
       locationName: raw.publicLocationName,
       sensorType: SensorType.SMALL_SENSOR,
@@ -187,6 +189,7 @@ export class TasksService {
 
       // map location data for upsert function
       const locationOwnerInput: UpsertLocationOwnerInput[] = data.results.map(raw => ({
+        ownerReferenceId: raw.owner.id,
         ownerName: raw.owner.name,
         locationReferenceId: raw.id,
         locationName: raw.name,
