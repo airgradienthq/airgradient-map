@@ -65,7 +65,7 @@ docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml do
 
 #### Fresh Setup
 
-- Download database dump from [here](https://drive.google.com/drive/folders/1jhJfO-91_KPMlagYGqUI81kVB0Oxi8vk?usp=drive_link)
+- Download database dump from [here](https://drive.google.com/drive/folders/1ABAu1JSs4lJRyD22ssN9bLrJzMCUVI7x?usp=sharing)
 - Copy db dump to the db container
 
 ```bash
