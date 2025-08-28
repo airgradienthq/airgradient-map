@@ -171,7 +171,7 @@ class LocationRepository {
 
         let sum = 0;
         for (const row of rows) {
-          sum += parseFloat(row.value);
+          sum += parseFloat(row.pm25);
         }
         const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
         cigaretteData[timeframe.label] = cigaretteNumber;
