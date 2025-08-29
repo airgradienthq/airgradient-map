@@ -19,14 +19,6 @@ export class LocationEntity {
   @ApiProperty({ description: 'a simple string for comparison' })
   ownerName: string;
 
-  @ApiProperty({
-    description: 'a full owner name that have better presentation',
-  })
-  ownerNameDisplay: string;
-
-  @ApiProperty()
-  description: string;
-
   @ApiProperty()
   url: string;
 

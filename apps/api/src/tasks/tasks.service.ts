@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { TasksRepository } from './tasks.repository';
 import { TasksHttp } from './tasks.http';
-import { AirgradientModel } from './tasks.model';
+import { AirgradientModel } from './model/airgradient.model';
 import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
 import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
 import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
@@ -41,7 +41,9 @@ export class TasksService {
 
     // map location data for upsert function
     const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
+      ownerReferenceId: raw.placeId,
       ownerName: raw.publicContributorName,
+      ownerUrl: raw.publicPlaceUrl,
       locationReferenceId: raw.locationId,
       locationName: raw.publicLocationName,
       sensorType: SensorType.SMALL_SENSOR,
@@ -191,6 +193,7 @@ export class TasksService {
 
       // map location data for upsert function
       const locationOwnerInput: UpsertLocationOwnerInput[] = data.results.map(raw => ({
+        ownerReferenceId: raw.owner.id,
         ownerName: raw.owner.name,
         locationReferenceId: raw.id,
         locationName: raw.name,
