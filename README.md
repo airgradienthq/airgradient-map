@@ -89,7 +89,7 @@ Expected Result (updated count):
 ```bash
  count 
 -------
- 13610
+ 13981
 (1 row)
 ```
 
