@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import LocationRepository from './location.repository';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';
 
 @Injectable()
 export class LocationService {
@@ -36,10 +37,12 @@ export class LocationService {
   ) {
     // Default set to pm25 if not provided
     let measureType = measure == null ? 'pm25' : measure;
+    let startTime = roundToBucket(start, bucketSize as BucketSize)
+    let endTime = roundToBucket(end, bucketSize as BucketSize)
     const results = await this.locationRepository.retrieveLocationMeasuresHistory(
       id,
-      start,
-      end,
+      startTime.toISO({includeOffset: false}),
+      endTime.toISO({includeOffset: false}),
       bucketSize,
       measureType,
     );
