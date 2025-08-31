@@ -18,7 +18,7 @@ export function roundToBucket(isoString: string, bucketSize: BucketSize): DateTi
   }
 
   switch (bucketSize) {
-    case BucketSize.FifteenMinutes:
+    case BucketSize.FifteenMinutes: {
       const totalMinutesForFifteen = dt.hour * 60 + dt.minute;
       const roundedMinutesForFifteen = Math.floor(totalMinutesForFifteen / 15) * 15;
       return dt.set({
@@ -27,11 +27,12 @@ export function roundToBucket(isoString: string, bucketSize: BucketSize): DateTi
         second: 0,
         millisecond: 0,
       });
+    }
 
     case BucketSize.OneHour:
       return dt.startOf('hour');
 
-    case BucketSize.EightHours:
+    case BucketSize.EightHours: {
       const roundedHoursForEight = Math.floor(dt.hour / 8) * 8;
       return dt.set({
         hour: roundedHoursForEight,
@@ -39,6 +40,7 @@ export function roundToBucket(isoString: string, bucketSize: BucketSize): DateTi
         second: 0,
         millisecond: 0,
       });
+    }
 
     case BucketSize.OneDay:
       return dt.startOf('day');
