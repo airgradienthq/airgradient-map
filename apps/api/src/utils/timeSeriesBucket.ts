@@ -8,7 +8,7 @@ export enum BucketSize {
 }
 
 export function roundToBucket(isoString: string, bucketSize: BucketSize): DateTime {
-  // Step 1: Convert the ISO string into a Luxon DateTime object.
+  // Convert the ISO string into a Luxon DateTime object.
   // Use { setZone: true } to ensure the timezone from the string is respected.
   const dt = DateTime.fromISO(isoString, { setZone: true });
 
