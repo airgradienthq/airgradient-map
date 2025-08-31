@@ -88,17 +88,17 @@
     border-radius: 1px;
     background-image: linear-gradient(
       90deg,
-      var(--airGreen) 14%,
-      var(--airYellow) 17%,
-      var(--airYellow) 31%,
-      var(--airOrange) 34%,
-      var(--airOrange) 48%,
-      var(--airRed) 51%,
-      var(--airRed) 65%,
-      var(--airPurple) 68%,
-      var(--airPurple) 82%,
-      var(--airBrown) 85%,
-      var(--airBrown) 100%
+      var(--aq-green-500) 14%,
+      var(--aq-yellow-500) 17%,
+      var(--aq-yellow-500) 31%,
+      var(--aq-orange-500) 34%,
+      var(--aq-orange-500) 48%,
+      var(--aq-red-500) 51%,
+      var(--aq-red-500) 65%,
+      var(--aq-violet-500) 68%,
+      var(--aq-violet-500) 82%,
+      var(--aq-purple-500) 85%,
+      var(--aq-purple-500) 100%
     );
   }
 
