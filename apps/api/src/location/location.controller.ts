@@ -110,7 +110,7 @@ export class LocationController {
   @ApiPaginatedResponse(
     TimeseriesDto,
     'Historical data successfully retrieved',
-    'start and end query format is "yyyy-mm-dd hh:mm" or "yyyy-mm-dd"; bucketsize query follow ISO 8601 duration format',
+    '',
   )
   @ApiBadRequestResponse({ description: 'Invalid date format, bucket size, or date range' })
   @ApiNotFoundResponse({ description: 'Location not found' })

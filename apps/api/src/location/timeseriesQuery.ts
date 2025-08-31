@@ -1,29 +1,33 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsIn } from 'class-validator';
+import { BucketSize } from 'src/utils/timeSeriesBucket';
 
 class TimeseriesQuery {
-  // TODO format with timezone
   @ApiProperty({
-    default: '2025-02-01 00:00',
-    description: 'Start date in format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM"',
+    default: '2025-08-30T20:01:00.000Z',
+    description: 'End date in ISO 8601 format with timezone (eg. 2025-08-30T20:01:00-04:00)',
   })
   @IsString()
   start: string;
 
-  // TODO format with timezone and explain if timezone not included, might inconsistent
   @ApiProperty({
-    default: '2025-02-07 00:00',
-    description: 'End date in format "YYYY-MM-DD" or "YYYY-MM-DD HH:MM"',
+    default: '2025-08-30T20:01:00.000Z',
+    description: 'End date in ISO 8601 format with timezone (eg. 2025-08-30T20:01:00-04:00)',
   })
   @IsString()
   end: string;
 
-  // TODO: follow format of bucketSize enum and validate
-  @ApiProperty({
-    default: '1 D',
-    description: 'Bucket size in ISO 8601 duration format (e.g., "5 M", "1 H", "1 D")',
-  })
+  @ApiProperty({ enum: BucketSize, required: true })
   @IsString()
+  @IsIn(
+    [
+      BucketSize.FifteenMinutes,
+      BucketSize.OneHour,
+      BucketSize.EightHours,
+      BucketSize.OneDay,
+    ],
+    { message: 'Invalid measure parameter' },
+  )
   bucketSize: string;
 }
 export default TimeseriesQuery;
