@@ -115,7 +115,7 @@ export class LocationController {
   @ApiBadRequestResponse({ description: 'Invalid date format, bucket size, or date range' })
   @ApiNotFoundResponse({ description: 'Location not found' })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getmeasuresHistoryByLocationIdl(
+  async getmeasuresHistoryByLocationId(
     @Param() { id }: FindOneParams,
     @Query() { measure }: MeasureTypeQuery,
     @Query() timeseries: TimeseriesQuery,
