@@ -14,7 +14,7 @@ export function getDateRangeFromToday(
   const end = DateTime.now();
   const start = end.minus({ [unit]: agoCount });
   return {
-    start: start.toISO({ suppressMilliseconds: true, includeOffset: false }),
-    end: end.toISO({ suppressMilliseconds: true, includeOffset: false })
+    start: start.toISO({ suppressMilliseconds: true }),
+    end: end.toISO({ suppressMilliseconds: true })
   };
 }
