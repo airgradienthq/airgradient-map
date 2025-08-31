@@ -39,6 +39,8 @@ export class LocationService {
     let measureType = measure == null ? 'pm25' : measure;
     let startTime = roundToBucket(start, bucketSize as BucketSize)
     let endTime = roundToBucket(end, bucketSize as BucketSize)
+    startTime = startTime.toUTC()
+    endTime = endTime.toUTC()
     const results = await this.locationRepository.retrieveLocationMeasuresHistory(
       id,
       startTime.toISO({includeOffset: false}),
