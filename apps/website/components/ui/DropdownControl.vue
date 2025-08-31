@@ -17,7 +17,7 @@
     <v-select
       ref="selectRef"
       :model-value="selectedValue"
-      :items="options"
+      :items="displayedOptions"
       :placeholder="placeholder"
       :disabled="disabled"
       class="ag-dropdown-hidden"
@@ -38,8 +38,9 @@
 </template>
 
 <script setup lang="ts">
-  import { PropType, ref, computed } from 'vue';
+  import { PropType, ref, computed, onMounted } from 'vue';
   import { DropdownOption, DropdownSize } from '~/types';
+  import { useI18n } from 'vue-i18n';
 
   const props = defineProps({
     options: {
@@ -62,6 +63,10 @@
       type: String,
       default: 'Select an option...'
     },
+    translate: {
+      type: Boolean,
+      default: false
+    },
     width: {
       type: String,
       default: '100%'
@@ -71,9 +76,20 @@
   const emit = defineEmits(['update:modelValue', 'change']);
   const selectRef = ref();
   const isMenuOpen = ref(false);
+  const { t: translate } = useI18n();
+
+  const displayedOptions = computed(() => {
+    if (props.translate && props.options) {
+      return props.options.map(option => ({
+        ...option,
+        label: translate(option.label)
+      }));
+    }
+    return props.options;
+  });
 
   const displayValue = computed(() => {
-    const selected = props.options.find(option => option.value === props.selectedValue);
+    const selected = displayedOptions.value.find(option => option.value === props.selectedValue);
     return selected?.label || null;
   });
 

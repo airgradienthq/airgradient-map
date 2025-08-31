@@ -13,6 +13,12 @@
   display: inline-block;
 }
 
+
+.th-layout .btn-large {
+  font-family: var(--thai-font) !important;
+}
+
+
 .btn-small {
   text-decoration: none !important;
   border-radius: 4px !important;
@@ -23,6 +29,10 @@
   font-size: 14px !important;
   padding: 4px 15px;
   display: inline-block;
+}
+
+.th-layout .btn-small {
+  font-family: var(--thai-font) !important;
 }
 
 .button-blue {
@@ -113,6 +123,10 @@
   padding: 4px 15px;
   border-radius: 4px !important;
   transition: all 200ms ease-in-out;
+}
+
+.th-layout .custom-dropdown-btn .dropdown-toggle {
+  font-family: var(--thai-font) !important;
 }
 
 .custom-dropdown-btn .dropdown-toggle:hover {

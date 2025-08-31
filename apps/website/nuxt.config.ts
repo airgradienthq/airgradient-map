@@ -6,7 +6,7 @@ export default defineNuxtConfig({
       apiUrl:
         process.env.NODE_ENV === 'production'
           ? 'https://map-data-int.airgradient.com/map/api/v1'
-          : 'http://localhost:3001/map/api/v1'
+          : 'https://map-data-int.airgradient.com/map/api/v1'
     }
   },
   css: [
@@ -43,8 +43,25 @@ export default defineNuxtConfig({
         autoImports: ['defineStore', ['defineStore', 'definePiniaStore']]
       }
     ],
-    '@nuxtjs/leaflet'
+    '@nuxtjs/leaflet',
+    '@nuxtjs/i18n'
   ],
+  i18n: {
+    detectBrowserLanguage: {
+      useCookie: true,
+      alwaysRedirect: true
+    },
+    strategy: 'prefix_except_default',
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', name: 'English', file: 'en.json' },
+      { code: 'th', name: 'ไทย', file: 'th.json' },
+      { code: 'es', name: 'Español', file: 'es.json' }
+    ],
+    lazy: true,
+    langDir: 'locales/',
+    fallbackLocale: 'en'
+  },
   nitro: {
     output: {
       dir: process.env.NODE_ENV === 'development' ? '.output-dev' : '.output',

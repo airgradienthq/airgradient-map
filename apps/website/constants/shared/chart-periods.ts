@@ -4,7 +4,7 @@ export const HISTORY_PERIODS: HistoryPeriodConfig[] = [
   {
     unit: HistoryPeriodUnit.HOUR,
     count: 24,
-    label: 'Last 24 Hours',
+    label: 'last_24_hours',
     defaultBucketSize: HistoryBucket.MINUTES_15,
     value: HistoryPeriod.DAY,
     chartUnit: HistoryPeriodUnit.HOUR
@@ -12,7 +12,7 @@ export const HISTORY_PERIODS: HistoryPeriodConfig[] = [
   {
     unit: HistoryPeriodUnit.DAY,
     count: 7,
-    label: 'Last Week',
+    label: 'last_week',
     defaultBucketSize: HistoryBucket.HOUR,
     value: HistoryPeriod.WEEK,
     chartUnit: HistoryPeriodUnit.HOUR
@@ -20,7 +20,7 @@ export const HISTORY_PERIODS: HistoryPeriodConfig[] = [
   {
     unit: HistoryPeriodUnit.MONTH,
     count: 1,
-    label: 'Last Month',
+    label: 'last_month',
     defaultBucketSize: HistoryBucket.HOUR_8,
     value: HistoryPeriod.MONTH,
     chartUnit: HistoryPeriodUnit.DAY
@@ -28,7 +28,7 @@ export const HISTORY_PERIODS: HistoryPeriodConfig[] = [
   {
     unit: HistoryPeriodUnit.MONTH,
     count: 3,
-    label: 'Last 3 Months',
+    label: 'last_3_months',
     defaultBucketSize: HistoryBucket.DAY,
     value: HistoryPeriod.MONTHS_3,
     chartUnit: HistoryPeriodUnit.DAY

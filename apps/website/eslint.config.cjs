@@ -8,6 +8,7 @@ module.exports = [
     ignores: [
       '**/node_modules/**',
       '.output/**',
+      '.output-dev/**',
       'dist/**',
       '**/.nuxt/**',
       'nuxt.config.ts',
