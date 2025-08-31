@@ -107,11 +107,7 @@ export class LocationController {
     description: 'Location identifier',
     example: 12345,
   })
-  @ApiPaginatedResponse(
-    TimeseriesDto,
-    'Historical data successfully retrieved',
-    '',
-  )
+  @ApiPaginatedResponse(TimeseriesDto, 'Historical data successfully retrieved', '')
   @ApiBadRequestResponse({ description: 'Invalid date format, bucket size, or date range' })
   @ApiNotFoundResponse({ description: 'Location not found' })
   @UsePipes(new ValidationPipe({ transform: true }))

@@ -1,4 +1,4 @@
-import { Injectable, Logger, InternalServerErrorException} from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import LocationRepository from './location.repository';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';

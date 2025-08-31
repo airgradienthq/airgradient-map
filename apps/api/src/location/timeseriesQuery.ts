@@ -19,15 +19,9 @@ class TimeseriesQuery {
 
   @ApiProperty({ enum: BucketSize, required: true })
   @IsString()
-  @IsIn(
-    [
-      BucketSize.FifteenMinutes,
-      BucketSize.OneHour,
-      BucketSize.EightHours,
-      BucketSize.OneDay,
-    ],
-    { message: 'Invalid measure parameter' },
-  )
+  @IsIn([BucketSize.FifteenMinutes, BucketSize.OneHour, BucketSize.EightHours, BucketSize.OneDay], {
+    message: 'Invalid measure parameter',
+  })
   bucketSize: string;
 }
 export default TimeseriesQuery;
