@@ -32,7 +32,7 @@
   "dependencies": {
     "@capacitor/android": "^7.2.0",
     "@capacitor/core": "^7.2.0",
-    "@capacitor/ios": "^7.2.0",
+    "@capacitor/ios": "^7.4.3",
     "@maplibre/maplibre-gl-leaflet": "^0.1.0",
     "@mdi/font": "^7.4.47",
     "@pinia/nuxt": "^0.11.0",
