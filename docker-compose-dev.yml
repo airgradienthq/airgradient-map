@@ -39,7 +39,7 @@ services:
       context: apps/website
       target: build
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       - ./apps/website:/app
       - /app/node_modules
@@ -49,6 +49,10 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=development
+    networks:
+      - dev
+    depends_on:
+      - mapapi
 
 networks:
   dev:
@@ -56,4 +60,3 @@ networks:
 
 volumes:
   pgdata:
-

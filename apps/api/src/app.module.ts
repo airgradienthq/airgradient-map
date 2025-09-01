@@ -6,6 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
 import { AdminBoundariesModule } from './admin-boundaries/admin-boundaries.module';
+import { SiteMapModule } from './site-map/site-map.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AdminBoundariesModule } from './admin-boundaries/admin-boundaries.modul
     MeasurementModule,
     LocationModule,
     AdminBoundariesModule,
+    SiteMapModule,
   ],
   controllers: [],
   providers: [],
