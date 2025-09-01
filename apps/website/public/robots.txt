@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://map-data-int.airgradient.com/map/api/v1/sitemap.xml

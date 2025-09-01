@@ -2,6 +2,15 @@
 export default defineNuxtConfig({
   ssr: !process.env.NUXT_PUBLIC_MOBILE,
   runtimeConfig: {
+    // Private (server only)
+
+    private: {
+      apiUrl:
+        process.env.NODE_ENV === 'production'
+          ? 'https://map-data-int.airgradient.com/map/api/v1'
+          : 'http://mapapi:3001/map/api/v1'
+    },
+    // Public (exposed to client)
     public: {
       apiUrl:
         process.env.NODE_ENV === 'production'
