@@ -3,7 +3,9 @@
     <Map />
   </ClientOnly>
 
-  <div class="p-4">
+  <!-- Temporarily hidden -->
+
+  <!-- <div class="p-4">
     <h4>Browse Cities</h4>
     <ul class="list-unstyled d-flex gap-2">
       <li v-for="sub in boundary?.subLevels" :key="sub">
@@ -12,14 +14,14 @@
         </UiButton>
       </li>
     </ul>
-  </div>
+  </div> -->
 </template>
 
 <script setup lang="ts">
   import { useHead } from 'nuxt/app';
-  import { useFetch } from 'nuxt/app';
-  import { useApiUrl } from '~/composables/shared/useApiUrl';
-  import { ButtonColor } from '~/types';
+  // import { useFetch } from 'nuxt/app';
+  // import { useApiUrl } from '~/composables/shared/useApiUrl';
+  // import { ButtonColor } from '~/types';
 
   useHead({
     title: 'AirGradient Global Air Quality Map',
@@ -49,10 +51,12 @@
       }
     ]
   });
-  const { apiUrl } = useApiUrl();
 
-  const { data: boundary } = await useFetch<any>(`${apiUrl}/admin-boundaries/`, {
-    key: 'boundaries-index',
-    default: () => null
-  });
+  // Temporarily hidden
+  // const { apiUrl } = useApiUrl();
+
+  // const { data: boundary } = await useFetch<any>(`${apiUrl}/admin-boundaries/`, {
+  //   key: 'boundaries-index',
+  //   default: () => null
+  // });
 </script>
