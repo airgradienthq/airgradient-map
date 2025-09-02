@@ -65,7 +65,7 @@ docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml do
 
 #### Fresh Setup
 
-- Download database dump from here [(https://drive.google.com/drive/folders/1kD3JVnjM3sxPX2iGOApaiImSoZPF5_7H?usp=sharing)]
+- Download database dump from [here](https://drive.google.com/drive/folders/1ABAu1JSs4lJRyD22ssN9bLrJzMCUVI7x?usp=sharing)
 - Copy db dump to the db container
 
 ```bash
@@ -89,7 +89,7 @@ Expected Result (updated count):
 ```bash
  count 
 -------
- 13501
+ 13981
 (1 row)
 ```
 

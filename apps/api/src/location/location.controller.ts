@@ -107,15 +107,11 @@ export class LocationController {
     description: 'Location identifier',
     example: 12345,
   })
-  @ApiPaginatedResponse(
-    TimeseriesDto,
-    'Historical data successfully retrieved',
-    'start and end query format is "yyyy-mm-dd hh:mm" or "yyyy-mm-dd"; bucketsize query follow ISO 8601 duration format',
-  )
+  @ApiPaginatedResponse(TimeseriesDto, 'Historical data successfully retrieved', '')
   @ApiBadRequestResponse({ description: 'Invalid date format, bucket size, or date range' })
   @ApiNotFoundResponse({ description: 'Location not found' })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getmeasuresHistoryByLocationIdl(
+  async getmeasuresHistoryByLocationId(
     @Param() { id }: FindOneParams,
     @Query() { measure }: MeasureTypeQuery,
     @Query() timeseries: TimeseriesQuery,

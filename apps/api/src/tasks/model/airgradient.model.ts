@@ -1,6 +1,7 @@
 export class AirgradientModel {
   locationId: number;
   locationName: string;
+  placeId: number;
   publicLocationName: string;
   publicPlaceName: string;
   publicPlaceUrl: string;

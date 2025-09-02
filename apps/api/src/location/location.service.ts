@@ -1,10 +1,13 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import LocationRepository from './location.repository';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class LocationService {
   constructor(private readonly locationRepository: LocationRepository) {}
+  private readonly logger = new Logger(LocationService.name);
 
   async getLocations(page = 1, pagesize = 100) {
     const offset = pagesize * (page - 1); // Calculate the offset for query
@@ -36,10 +39,33 @@ export class LocationService {
   ) {
     // Default set to pm25 if not provided
     let measureType = measure == null ? 'pm25' : measure;
+
+    // Declare and set placeholder
+    let startTime: DateTime;
+    let endTime: DateTime;
+    try {
+      this.logger.debug(`Time range before processed: ${start} -- ${end}`);
+      startTime = roundToBucket(start, bucketSize as BucketSize);
+      endTime = roundToBucket(end, bucketSize as BucketSize);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: `LOC_007: Failed round range timestamp`,
+        operation: 'getLocationMeasuresHistory',
+        parameters: { id, start, end, bucketSize, measure },
+        error: error.message,
+        code: 'LOC_007',
+      });
+    }
+
+    // Need to make sure timestamp in UTC since DB not automatically shift it to UTC
+    startTime = startTime.toUTC();
+    endTime = endTime.toUTC();
+
     const results = await this.locationRepository.retrieveLocationMeasuresHistory(
       id,
-      start,
-      end,
+      startTime.toISO({ includeOffset: false }),
+      endTime.toISO({ includeOffset: false }),
       bucketSize,
       measureType,
     );
