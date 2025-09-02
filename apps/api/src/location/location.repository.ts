@@ -198,7 +198,7 @@ class LocationRepository {
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AS timebucket,
+                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
                 l.sensor_type AS sensorType,
                 l.data_source AS dataSource
@@ -218,7 +218,6 @@ class LocationRepository {
 
     try {
       const results = await this.databaseService.runQuery(query, params);
-
       return results.rows;
     } catch (error) {
       this.logger.error(error);
