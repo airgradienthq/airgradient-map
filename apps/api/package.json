@@ -40,7 +40,7 @@
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
+    "@nestjs/testing": "^11.1.6",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.2",
     "@types/node": "^20.3.1",
