@@ -41,8 +41,8 @@ export class LocationService {
     let measureType = measure == null ? 'pm25' : measure;
 
     // Declare and set placeholder
-    let startTime = DateTime.now();
-    let endTime = DateTime.now();
+    let startTime: DateTime;
+    let endTime: DateTime;
     try {
       this.logger.debug(`Time range before processed: ${start} -- ${end}`);
       startTime = roundToBucket(start, bucketSize as BucketSize);

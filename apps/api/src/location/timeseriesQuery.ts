@@ -5,7 +5,7 @@ import { BucketSize } from 'src/utils/timeSeriesBucket';
 class TimeseriesQuery {
   @ApiProperty({
     default: '2025-08-30T20:01:00.000Z',
-    description: 'End date in ISO 8601 format with timezone (eg. 2025-08-30T20:01:00-04:00)',
+    description: 'Start date in ISO 8601 format with timezone (eg. 2025-08-30T20:01:00-04:00)',
   })
   @IsString()
   start: string;
