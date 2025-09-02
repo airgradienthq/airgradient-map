@@ -48,7 +48,7 @@
     "leaflet-geosearch": "^4.2.0",
     "luxon": "^3.6.1",
     "maplibre-gl": "^4.7.1",
-    "nuxt": "3.16.1",
+    "nuxt": "4.0.3",
     "pinia": "^3.0.2",
     "vite-plugin-checker": "^0.9.3",
     "sass": "^1.89.0",
