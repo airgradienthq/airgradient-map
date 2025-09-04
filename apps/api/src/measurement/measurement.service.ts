@@ -110,7 +110,7 @@ export class MeasurementService {
     });
 
     // Cluster data points and return cluster calculation results only if zoom level below clusterMaxZoom
-    var clusters: any;
+    let clusters: any;
     if (zoom > this.clusterMaxZoom) {
       clusters = geojson;
     } else {

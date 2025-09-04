@@ -255,7 +255,7 @@ export class TasksRepository {
         })
         .join(',');
 
-      var query = `
+      const query = `
         INSERT INTO measurement (location_id, pm25, measured_at) 
             VALUES ${latestValues} 
         ON CONFLICT (location_id, measured_at)
