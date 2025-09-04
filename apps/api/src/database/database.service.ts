@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { Pool, PoolClient } from 'pg';
+import { Pool, PoolClient, QueryResult } from 'pg';
 import { CONNECTION_POOL } from './database.module-definition';
 
 @Injectable()
@@ -7,7 +7,7 @@ class DatabaseService {
   private readonly logger = new Logger('Database');
   constructor(@Inject(CONNECTION_POOL) private readonly pool: Pool) {}
 
-  async runQuery(query: string, params?: unknown[]) {
+  async runQuery(query: string, params?: unknown[]): Promise<QueryResult<any>> {
     return this.queryWithLogging(this.pool, query, params);
   }
 
@@ -18,7 +18,7 @@ class DatabaseService {
     return `Query: ${query} Params: ${JSON.stringify(params)}`;
   }
 
-  async queryWithLogging(source: Pool | PoolClient, query: string, params?: unknown[]) {
+  async queryWithLogging(source: Pool | PoolClient, query: string, params?: unknown[]): Promise<QueryResult<any>> {
     // message without unnecessary spaces and newlines
     const message = this.getLogMessage(query, params).replace(/\n|/g, '').replace(/  +/g, ' ');
 
@@ -32,7 +32,7 @@ class DatabaseService {
     }
   }
 
-  async getPoolClient() {
+  async getPoolClient(): Promise<PoolClient> {
     const poolClient = await this.pool.connect();
 
     return new Proxy(poolClient, {

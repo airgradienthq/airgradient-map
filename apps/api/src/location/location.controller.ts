@@ -86,10 +86,22 @@ export class LocationController {
 
   @Get(':id/cigarettes/smoked')
   @ApiOperation({
-    summary: 'Retrieve number of cigarettes smoked equivalent to amount of air pollution',
+    summary: 'Get cigarettes equivalent for air pollution exposure',
+    description:
+      'Calculates the equivalent number of cigarettes smoked based on PM2.5 exposure levels for different time periods. Uses the Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day.',
   })
-  @ApiOkResponse({ type: CigarettesSmokedDto })
-  @ApiNotFoundResponse()
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier',
+    example: 12345,
+    type: Number,
+  })
+  @ApiOkResponse({
+    type: CigarettesSmokedDto,
+    description: 'Cigarette equivalents for multiple time periods',
+  })
+  @ApiNotFoundResponse({ description: 'Location not found or no PM2.5 data available' })
+  @ApiBadRequestResponse({ description: 'Invalid location ID format' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getCigarettesSmoked(@Param() { id }: FindOneParams): Promise<CigarettesSmokedDto> {
     const result = await this.locationService.getCigarettesSmoked(id);
