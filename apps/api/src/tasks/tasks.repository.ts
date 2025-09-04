@@ -5,7 +5,6 @@ import DatabaseService from 'src/database/database.service';
 import { AirgradientModel } from './model/airgradient.model';
 import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
 import { OpenAQLatestData } from '../types/tasks/openaq.types';
-import { QueryResult } from '../types/shared/database.types';
 
 @Injectable()
 export class TasksRepository {

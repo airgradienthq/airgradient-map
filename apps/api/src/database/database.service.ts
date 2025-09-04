@@ -18,7 +18,11 @@ class DatabaseService {
     return `Query: ${query} Params: ${JSON.stringify(params)}`;
   }
 
-  async queryWithLogging(source: Pool | PoolClient, query: string, params?: unknown[]): Promise<QueryResult<any>> {
+  async queryWithLogging(
+    source: Pool | PoolClient,
+    query: string,
+    params?: unknown[],
+  ): Promise<QueryResult<any>> {
     // message without unnecessary spaces and newlines
     const message = this.getLogMessage(query, params).replace(/\n|/g, '').replace(/  +/g, ' ');
 

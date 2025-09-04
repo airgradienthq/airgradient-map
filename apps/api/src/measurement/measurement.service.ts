@@ -5,16 +5,12 @@ import MeasurementCluster from './measurementCluster.model';
 import { ConfigService } from '@nestjs/config';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { MeasurementEntity } from './measurement.entity';
-import { 
+import {
   MeasurementServiceResult,
   MeasurementsByAreaResult,
   MeasurementClusterResult,
-  MeasureType
 } from '../types/measurement/measurement.types';
-import { 
-  MeasurementGeoJSONFeature,
-  SuperclusterResult
-} from '../types/shared/geojson.types';
+import { MeasurementGeoJSONFeature } from '../types/shared/geojson.types';
 
 @Injectable()
 export class MeasurementService {
@@ -37,7 +33,11 @@ export class MeasurementService {
     }
   }
 
-  async getLastMeasurements(measure?: string, page = 1, pagesize = 100): Promise<MeasurementServiceResult> {
+  async getLastMeasurements(
+    measure?: string,
+    page = 1,
+    pagesize = 100,
+  ): Promise<MeasurementServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
     const measurements = await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
 

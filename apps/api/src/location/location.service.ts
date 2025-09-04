@@ -7,7 +7,7 @@ import {
   LocationServiceResult,
   LocationByIdResult,
   LocationMeasuresResult,
-  CigarettesSmokedResult
+  CigarettesSmokedResult,
 } from '../types/location/location.types';
 
 @Injectable()
