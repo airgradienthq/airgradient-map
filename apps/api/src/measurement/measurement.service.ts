@@ -5,6 +5,12 @@ import MeasurementCluster from './measurementCluster.model';
 import { ConfigService } from '@nestjs/config';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { MeasurementEntity } from './measurement.entity';
+import {
+  MeasurementServiceResult,
+  MeasurementsByAreaResult,
+  MeasurementClusterResult,
+} from '../types/measurement/measurement.types';
+import { MeasurementGeoJSONFeature } from '../types/shared/geojson.types';
 
 @Injectable()
 export class MeasurementService {
@@ -27,7 +33,11 @@ export class MeasurementService {
     }
   }
 
-  async getLastMeasurements(measure?: string, page = 1, pagesize = 100) {
+  async getLastMeasurements(
+    measure?: string,
+    page = 1,
+    pagesize = 100,
+  ): Promise<MeasurementServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
     const measurements = await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
 
@@ -40,7 +50,7 @@ export class MeasurementService {
     xMax: number,
     yMax: number,
     measure?: string,
-  ): Promise<MeasurementEntity[]> {
+  ): Promise<MeasurementsByAreaResult> {
     const measurements = await this.measurementRepository.retrieveLatestByArea(
       xMin,
       yMin,
@@ -59,7 +69,7 @@ export class MeasurementService {
     yMax: number,
     zoom: number,
     measure?: string,
-  ): Promise<MeasurementCluster[]> {
+  ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
     measure = measure || 'pm25';
 
@@ -77,7 +87,7 @@ export class MeasurementService {
     }
 
     // converting to .geojson features array
-    let geojson = new Array<any>();
+    let geojson = new Array<MeasurementGeoJSONFeature>();
     locations.map(point => {
       const value =
         measure === 'pm25' && point.dataSource === 'AirGradient'
@@ -100,7 +110,7 @@ export class MeasurementService {
     });
 
     // Cluster data points and return cluster calculation results only if zoom level below clusterMaxZoom
-    var clusters: any;
+    let clusters: any;
     if (zoom > this.clusterMaxZoom) {
       clusters = geojson;
     } else {

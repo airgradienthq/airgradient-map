@@ -3,22 +3,28 @@ import LocationRepository from './location.repository';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';
 import { DateTime } from 'luxon';
+import {
+  LocationServiceResult,
+  LocationByIdResult,
+  LocationMeasuresResult,
+  CigarettesSmokedResult,
+} from '../types/location/location.types';
 
 @Injectable()
 export class LocationService {
   constructor(private readonly locationRepository: LocationRepository) {}
   private readonly logger = new Logger(LocationService.name);
 
-  async getLocations(page = 1, pagesize = 100) {
+  async getLocations(page = 1, pagesize = 100): Promise<LocationServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
     return await this.locationRepository.retrieveLocations(offset, pagesize);
   }
 
-  async getLocationById(id: number) {
+  async getLocationById(id: number): Promise<LocationByIdResult> {
     return await this.locationRepository.retrieveLocationById(id);
   }
 
-  async getLocationLastMeasures(id: number) {
+  async getLocationLastMeasures(id: number): Promise<LocationMeasuresResult> {
     const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
     if (results.dataSource === 'AirGradient') {
       results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
@@ -26,7 +32,7 @@ export class LocationService {
     return results;
   }
 
-  async getCigarettesSmoked(id: number) {
+  async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
     return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
   }
 

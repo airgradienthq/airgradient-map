@@ -82,7 +82,7 @@ export class TasksService {
     const before = Date.now();
 
     // TODO: Improve this to run asynchronously for each providers, then wait after loop
-    for (var i = 0; i < providersId.length; i++) {
+    for (let i = 0; i < providersId.length; i++) {
       await this.performSyncOpenAQLocations(providersId[i]);
     }
 
@@ -104,9 +104,9 @@ export class TasksService {
     }
 
     const locationIdsLength = Object.keys(locationIds).length;
-    var maxPages = -1;
-    var pageCounter = 1;
-    var matchCounter = 0;
+    let maxPages = -1;
+    let pageCounter = 1;
+    let matchCounter = 0;
 
     this.logger.debug(
       `Start request to openaq parameters endpoint with interest total locationId ${locationIdsLength}`,
@@ -114,7 +114,7 @@ export class TasksService {
     while (matchCounter < locationIdsLength) {
       // Parameters '2' is pm2.5 parameter id
       const url = `https://api.openaq.org/v3/parameters/2/latest?limit=1000&page=${pageCounter}`;
-      var data: OpenAQApiParametersResponse | null;
+      let data: OpenAQApiParametersResponse | null;
       try {
         data = await this.http.fetch<OpenAQApiParametersResponse>(url, {
           'x-api-key': this.openAQApiKey,
@@ -130,11 +130,11 @@ export class TasksService {
       }
 
       // Check each parameters locationId if it match to one of the already saved openaq location
-      var batches = [];
-      for (var i = 0; i < data.results.length; i++) {
+      let batches = [];
+      for (let i = 0; i < data.results.length; i++) {
         if (Object.hasOwn(locationIds, data.results[i].locationsId)) {
           // LocationId is in intereset, push so later will be inserted
-          var batch = {};
+          let batch = {};
           // locationId here is the actual locationId from table, not from openaq
           batch['locationId'] = locationIds[data.results[i].locationsId.toString()];
           batch['pm25'] = data.results[i].value;
@@ -179,9 +179,9 @@ export class TasksService {
   }
 
   async performSyncOpenAQLocations(providerId: number) {
-    var finish = false;
-    var pageCounter = 1;
-    var total = 0;
+    let finish = false;
+    let pageCounter = 1;
+    let total = 0;
 
     while (finish === false) {
       // Retrieve every 1000 data maximum, so it will sync to database every 500 row

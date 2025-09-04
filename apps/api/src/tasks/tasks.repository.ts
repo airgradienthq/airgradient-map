@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { AirgradientModel } from './model/airgradient.model';
 import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
+import { OpenAQLatestData } from '../types/tasks/openaq.types';
 
 @Injectable()
 export class TasksRepository {
@@ -11,7 +12,7 @@ export class TasksRepository {
 
   private readonly logger = new Logger(TasksRepository.name);
 
-  async getAll() {
+  async getAll(): Promise<any[]> {
     const result = await this.databaseService.runQuery('SELECT * FROM measurement;');
     return result.rows;
   }
@@ -194,7 +195,7 @@ export class TasksRepository {
     }
   }
 
-  async insertNewAirgradientLatest(data: AirgradientModel[]) {
+  async insertNewAirgradientLatest(data: AirgradientModel[]): Promise<void> {
     try {
       const measurementValues = data
         .map(
@@ -245,7 +246,7 @@ export class TasksRepository {
     }
   }
 
-  async insertNewOpenAQLatest(latests: any[]) {
+  async insertNewOpenAQLatest(latests: OpenAQLatestData[]): Promise<void> {
     try {
       const latestValues = latests
         .flatMap(({ locationId, pm25, measuredAt }) => {
@@ -253,7 +254,7 @@ export class TasksRepository {
         })
         .join(',');
 
-      var query = `
+      const query = `
         INSERT INTO measurement (location_id, pm25, measured_at) 
             VALUES ${latestValues} 
         ON CONFLICT (location_id, measured_at)
