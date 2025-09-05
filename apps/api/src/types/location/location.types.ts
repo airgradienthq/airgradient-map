@@ -91,9 +91,9 @@ export const PM25PeriodConfig = {
 } as const;
 
 /**
- * Result type for PM2.5 averages
+ * Result type for measurement averages
  */
-export interface PM25AveragesResult {
+export interface MeasurementAveragesResult {
   locationId: number;
-  averages: Record<PM25Period, number | null>;
+  averages: Record<string, number | null>;
 }

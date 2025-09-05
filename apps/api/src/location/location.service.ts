@@ -8,7 +8,7 @@ import {
   LocationByIdResult,
   LocationMeasuresResult,
   CigarettesSmokedResult,
-  PM25AveragesResult,
+  MeasurementAveragesResult,
 } from '../types/location/location.types';
 import { MeasureType } from 'src/types';
 
@@ -88,7 +88,7 @@ export class LocationService {
     return results;
   }
 
-  async getLocationAverages(id: number, measure: MeasureType): Promise<PM25AveragesResult> {
-    return await this.locationRepository.retrieveAveragesByLocationId(id, measure);
+  async getLocationAverages(id: number, measure: MeasureType, periods?: string[]): Promise<MeasurementAveragesResult> {
+    return await this.locationRepository.retrieveAveragesByLocationId(id, measure, periods);
   }
 }

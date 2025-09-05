@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { LocationEntity } from './location.entity';
-import { MeasureType, PM25Period, PM25PeriodConfig, PM25AveragesResult } from 'src/types';
+import { MeasureType, PM25Period, PM25PeriodConfig, MeasurementAveragesResult } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
 @Injectable()
@@ -231,13 +231,68 @@ class LocationRepository {
     }
   }
 
-  private buildAveragesQuery(measure: MeasureType): string {
-    const periodCases = Object.values(PM25Period)
+  private convertPeriodToInterval(period: string): string {
+    const match = period.match(/^(\d+)([mhdw])$/);
+    if (!match) {
+      throw new Error(`Invalid period format: ${period}`);
+    }
+    
+    const [, number, unit] = match;
+    const unitMap = {
+      'm': 'minutes',
+      'h': 'hours', 
+      'd': 'days',
+      'w': 'weeks'
+    };
+    
+    return `${number} ${unitMap[unit as keyof typeof unitMap]}`;
+  }
+
+  private findLongestInterval(periods: string[]): string {
+    // Convert periods to minutes for comparison
+    const periodInMinutes = periods.map(period => {
+      const match = period.match(/^(\d+)([mhdw])$/);
+      if (!match) return 0;
+      
+      const [, number, unit] = match;
+      const num = parseInt(number);
+      
+      switch (unit) {
+        case 'm': return num;
+        case 'h': return num * 60;
+        case 'd': return num * 60 * 24;
+        case 'w': return num * 60 * 24 * 7;
+        default: return 0;
+      }
+    });
+
+    // Find the index of the longest period
+    const longestIndex = periodInMinutes.indexOf(Math.max(...periodInMinutes));
+    
+    // Return the PostgreSQL interval for the longest period
+    return this.convertPeriodToInterval(periods[longestIndex]);
+  }
+
+  private buildAveragesQuery(measure: MeasureType, periods?: string[]): string {
+    // Use default predefined periods if none specified
+    const defaultPeriods = Object.values(PM25Period);
+    const requestedPeriods = periods || defaultPeriods;
+    
+    const periodCases = requestedPeriods
       .map(period => {
-        const config = PM25PeriodConfig[period];
-        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${config.interval}' THEN ${measure} END) as "${period}"`;
+        const interval = periods ? this.convertPeriodToInterval(period) : PM25PeriodConfig[period as PM25Period].interval;
+        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measure} END) as "${period}"`;
       })
       .join(',\n      ');
+
+    // Find the longest interval to optimize the query
+    let longestInterval: string;
+    if (periods) {
+      // For custom periods, find the numerically longest interval
+      longestInterval = this.findLongestInterval(periods);
+    } else {
+      longestInterval = PM25PeriodConfig[PM25Period.DAYS_90].interval;
+    }
 
     return `
       SELECT 
@@ -247,7 +302,7 @@ class LocationRepository {
       WHERE location_id = $1
         AND ${measure} IS NOT NULL
         AND ${measure} BETWEEN 0 AND 500
-        AND measured_at >= NOW() - INTERVAL '${PM25PeriodConfig[PM25Period.DAYS_90].interval}'
+        AND measured_at >= NOW() - INTERVAL '${longestInterval}'
       GROUP BY location_id
     `;
   }
@@ -255,8 +310,13 @@ class LocationRepository {
   async retrieveAveragesByLocationId(
     id: number,
     measure: MeasureType,
-  ): Promise<PM25AveragesResult> {
-    const query = this.buildAveragesQuery(measure);
+    periods?: string[],
+  ): Promise<MeasurementAveragesResult> {
+    const query = this.buildAveragesQuery(measure, periods);
+    
+    // Debug logging
+    this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);
+    this.logger.debug(query);
 
     try {
       const result = await this.databaseService.runQuery(query, [id]);
@@ -271,15 +331,19 @@ class LocationRepository {
       }
 
       const row = result.rows[0];
-      const averages: Partial<Record<PM25Period, number | null>> = {};
+      const averages: Record<string, number | null> = {};
+      
+      // Use requested periods or default predefined periods if none specified
+      const defaultPeriods = Object.values(PM25Period);
+      const requestedPeriods = periods || defaultPeriods;
 
-      Object.values(PM25Period).forEach(period => {
+      requestedPeriods.forEach(period => {
         averages[period] = row[period] !== null ? Math.round(row[period] * 10) / 10 : null;
       });
 
       return {
         locationId: id,
-        averages: averages as Record<PM25Period, number | null>,
+        averages: averages,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {

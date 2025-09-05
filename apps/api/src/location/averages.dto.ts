@@ -1,44 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PM25Period } from 'src/types';
 
-class AveragesData {
-  @ApiProperty({
-    description: 'Average measurement value for last 6 hours',
-    example: 12.4,
-    nullable: true,
-  })
-  [PM25Period.HOURS_6]: number | null;
-
-  @ApiProperty({
-    description: 'Average measurement value for last 24 hours',
-    example: 14.2,
-    nullable: true,
-  })
-  [PM25Period.HOURS_24]: number | null;
-
-  @ApiProperty({
-    description: 'Average measurement value for last 7 days',
-    example: 16.8,
-    nullable: true,
-  })
-  [PM25Period.DAYS_7]: number | null;
-
-  @ApiProperty({
-    description: 'Average measurement value for last 30 days',
-    example: 18.3,
-    nullable: true,
-  })
-  [PM25Period.DAYS_30]: number | null;
-
-  @ApiProperty({
-    description: 'Average measurement value for last 90 days',
-    example: 20.1,
-    nullable: true,
-  })
-  [PM25Period.DAYS_90]: number | null;
-}
-
-export class PM25AveragesDto {
+export class MeasurementAveragesDto {
   @ApiProperty({
     description: 'Location identifier',
     example: 13226,
@@ -46,12 +8,22 @@ export class PM25AveragesDto {
   locationId: number;
 
   @ApiProperty({
-    description: 'Average measurement values for different time periods',
-    type: AveragesData,
+    description: 'Average measurement values for requested time periods. Keys are period strings (e.g., "6h", "24h", "7d", "13d"), values are the averages or null if insufficient data.',
+    example: {
+      "6h": 12.4,
+      "24h": 14.2,
+      "7d": 16.8,
+      "13d": 18.1,
+      "30d": 18.3
+    },
+    additionalProperties: {
+      type: 'number',
+      nullable: true
+    }
   })
-  averages: AveragesData;
+  averages: Record<string, number | null>;
 
-  constructor(data: { locationId: number; averages: Record<PM25Period, number | null> }) {
+  constructor(data: { locationId: number; averages: Record<string, number | null> }) {
     this.locationId = data.locationId;
     this.averages = data.averages;
   }

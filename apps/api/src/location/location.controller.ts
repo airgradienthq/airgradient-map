@@ -18,7 +18,8 @@ import TimeseriesQuery from './timeseriesQuery';
 import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
 import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
-import { PM25AveragesDto } from './averages.dto';
+import { MeasurementAveragesDto } from './averages.dto';
+import { AveragesQueryDto } from './averagesQuery.dto';
 
 @Controller('map/api/v1/locations')
 @ApiTags('Locations')
@@ -122,18 +123,19 @@ export class LocationController {
     type: Number,
   })
   @ApiOkResponse({
-    type: PM25AveragesDto,
+    type: MeasurementAveragesDto,
     description: 'Measurement averages for multiple time periods',
   })
   @ApiNotFoundResponse({ description: 'Location not found or no measurement data available' })
   @ApiBadRequestResponse({ description: 'Invalid location ID format or measure type' })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getLocationPM25Averages(
+  async getLocationMeasurementAverages(
     @Param() { id }: FindOneParams,
     @Query() { measure }: MeasureTypeQuery,
-  ): Promise<PM25AveragesDto> {
-    const result = await this.locationService.getLocationAverages(id, measure);
-    return new PM25AveragesDto(result);
+    @Query() { periods }: AveragesQueryDto,
+  ): Promise<MeasurementAveragesDto> {
+    const result = await this.locationService.getLocationAverages(id, measure, periods);
+    return new MeasurementAveragesDto(result);
   }
 
   @Get(':id/measures/history')
