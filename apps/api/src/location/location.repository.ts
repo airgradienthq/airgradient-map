@@ -236,15 +236,15 @@ class LocationRepository {
     if (!match) {
       throw new Error(`Invalid period format: ${period}`);
     }
-    
+
     const [, number, unit] = match;
     const unitMap = {
-      'm': 'minutes',
-      'h': 'hours', 
-      'd': 'days',
-      'w': 'weeks'
+      m: 'minutes',
+      h: 'hours',
+      d: 'days',
+      w: 'weeks',
     };
-    
+
     return `${number} ${unitMap[unit as keyof typeof unitMap]}`;
   }
 
@@ -253,22 +253,27 @@ class LocationRepository {
     const periodInMinutes = periods.map(period => {
       const match = period.match(/^(\d+)([mhdw])$/);
       if (!match) return 0;
-      
+
       const [, number, unit] = match;
       const num = parseInt(number);
-      
+
       switch (unit) {
-        case 'm': return num;
-        case 'h': return num * 60;
-        case 'd': return num * 60 * 24;
-        case 'w': return num * 60 * 24 * 7;
-        default: return 0;
+        case 'm':
+          return num;
+        case 'h':
+          return num * 60;
+        case 'd':
+          return num * 60 * 24;
+        case 'w':
+          return num * 60 * 24 * 7;
+        default:
+          return 0;
       }
     });
 
     // Find the index of the longest period
     const longestIndex = periodInMinutes.indexOf(Math.max(...periodInMinutes));
-    
+
     // Return the PostgreSQL interval for the longest period
     return this.convertPeriodToInterval(periods[longestIndex]);
   }
@@ -277,10 +282,12 @@ class LocationRepository {
     // Use default predefined periods if none specified
     const defaultPeriods = Object.values(PM25Period);
     const requestedPeriods = periods || defaultPeriods;
-    
+
     const periodCases = requestedPeriods
       .map(period => {
-        const interval = periods ? this.convertPeriodToInterval(period) : PM25PeriodConfig[period as PM25Period].interval;
+        const interval = periods
+          ? this.convertPeriodToInterval(period)
+          : PM25PeriodConfig[period as PM25Period].interval;
         return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measure} END) as "${period}"`;
       })
       .join(',\n      ');
@@ -313,7 +320,7 @@ class LocationRepository {
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
     const query = this.buildAveragesQuery(measure, periods);
-    
+
     // Debug logging
     this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);
     this.logger.debug(query);
@@ -332,7 +339,7 @@ class LocationRepository {
 
       const row = result.rows[0];
       const averages: Record<string, number | null> = {};
-      
+
       // Use requested periods or default predefined periods if none specified
       const defaultPeriods = Object.values(PM25Period);
       const requestedPeriods = periods || defaultPeriods;

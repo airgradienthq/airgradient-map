@@ -88,7 +88,11 @@ export class LocationService {
     return results;
   }
 
-  async getLocationAverages(id: number, measure: MeasureType, periods?: string[]): Promise<MeasurementAveragesResult> {
+  async getLocationAverages(
+    id: number,
+    measure: MeasureType,
+    periods?: string[],
+  ): Promise<MeasurementAveragesResult> {
     return await this.locationRepository.retrieveAveragesByLocationId(id, measure, periods);
   }
 }
