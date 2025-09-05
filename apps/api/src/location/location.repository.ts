@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { LocationEntity } from './location.entity';
-import { MeasureType } from 'src/utils/measureTypeQuery';
+import { MeasureType, PM25Period, PM25PeriodConfig, PM25AveragesResult } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
 @Injectable()
@@ -227,6 +227,71 @@ class LocationRepository {
         parameters: { id, start, end, bucketSize, measure },
         error: error.message,
         code: 'LOC_006',
+      });
+    }
+  }
+
+  private buildAveragesQuery(measure: MeasureType): string {
+    const periodCases = Object.values(PM25Period)
+      .map(period => {
+        const config = PM25PeriodConfig[period];
+        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${config.interval}' THEN ${measure} END) as "${period}"`;
+      })
+      .join(',\n      ');
+
+    return `
+      SELECT 
+        $1::integer as location_id,
+        ${periodCases}
+      FROM measurement
+      WHERE location_id = $1
+        AND ${measure} IS NOT NULL
+        AND ${measure} BETWEEN 0 AND 500
+        AND measured_at >= NOW() - INTERVAL '${PM25PeriodConfig[PM25Period.DAYS_90].interval}'
+      GROUP BY location_id
+    `;
+  }
+
+  async retrieveAveragesByLocationId(
+    id: number,
+    measure: MeasureType,
+  ): Promise<PM25AveragesResult> {
+    const query = this.buildAveragesQuery(measure);
+
+    try {
+      const result = await this.databaseService.runQuery(query, [id]);
+
+      if (result.rows.length === 0) {
+        throw new NotFoundException({
+          message: 'LOC_007: No data found for location',
+          operation: 'retrieveAveragesByLocationId',
+          parameters: { id },
+          code: 'LOC_007',
+        });
+      }
+
+      const row = result.rows[0];
+      const averages: Partial<Record<PM25Period, number | null>> = {};
+
+      Object.values(PM25Period).forEach(period => {
+        averages[period] = row[period] !== null ? Math.round(row[period] * 10) / 10 : null;
+      });
+
+      return {
+        locationId: id,
+        averages: averages as Record<PM25Period, number | null>,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_008: Failed to retrieve averages',
+        operation: 'retrieveAveragesByLocationId',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_008',
       });
     }
   }

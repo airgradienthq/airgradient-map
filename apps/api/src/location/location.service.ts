@@ -8,7 +8,9 @@ import {
   LocationByIdResult,
   LocationMeasuresResult,
   CigarettesSmokedResult,
+  PM25AveragesResult,
 } from '../types/location/location.types';
+import { MeasureType } from 'src/types';
 
 @Injectable()
 export class LocationService {
@@ -77,12 +79,16 @@ export class LocationService {
     );
 
     if (measureType === 'pm25') {
-      return results.map(row => ({
+      return results.map((row: any) => ({
         timebucket: row.timebucket,
         value: row.dataSource === 'AirGradient' ? getEPACorrectedPM(row.pm25, row.rhum) : row.pm25,
       }));
     }
 
     return results;
+  }
+
+  async getLocationAverages(id: number, measure: MeasureType): Promise<PM25AveragesResult> {
+    return await this.locationRepository.retrieveAveragesByLocationId(id, measure);
   }
 }

@@ -1,4 +1,4 @@
-import { MeasureType } from './measureTypeQuery';
+import { MeasureType } from 'src/types';
 import * as Constants from '../constants';
 import { MeasureValueValidationConfig } from 'src/types/shared/measure-value-validation';
 

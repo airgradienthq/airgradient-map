@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { MeasurementEntity } from './measurement.entity';
-import { MeasureType } from 'src/utils/measureTypeQuery';
+import { MeasureType } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
 @Injectable()
