@@ -22,7 +22,7 @@ export function useLegendLabels() {
       case MeasureNames.PM25:
       case MeasureNames.PM_AQI:
         return PM25_LEGEND_LABELS;
-      case MeasureNames.CO2:
+      case MeasureNames.RCO2:
         return RCO2_LEGEND_LABELS;
       default:
         return [];

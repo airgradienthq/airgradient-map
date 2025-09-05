@@ -47,3 +47,53 @@ export type LocationMeasuresResult = LocationMeasuresRaw | null;
  * Result type for getCigarettesSmoked service method
  */
 export type CigarettesSmokedResult = Record<string, number>;
+
+/**
+ * PM2.5 time periods for averaging
+ */
+export enum PM25Period {
+  HOURS_6 = '6h',
+  HOURS_24 = '24h',
+  DAYS_7 = '7d',
+  DAYS_30 = '30d',
+  DAYS_90 = '90d',
+}
+
+/**
+ * Configuration for PM2.5 periods
+ */
+export const PM25PeriodConfig = {
+  [PM25Period.HOURS_6]: {
+    interval: '6 hours',
+    label: 'pm25_6h',
+    order: 1,
+  },
+  [PM25Period.HOURS_24]: {
+    interval: '24 hours',
+    label: 'pm25_24h',
+    order: 2,
+  },
+  [PM25Period.DAYS_7]: {
+    interval: '7 days',
+    label: 'pm25_7d',
+    order: 3,
+  },
+  [PM25Period.DAYS_30]: {
+    interval: '30 days',
+    label: 'pm25_30d',
+    order: 4,
+  },
+  [PM25Period.DAYS_90]: {
+    interval: '90 days',
+    label: 'pm25_90d',
+    order: 5,
+  },
+} as const;
+
+/**
+ * Result type for measurement averages
+ */
+export interface MeasurementAveragesResult {
+  locationId: number;
+  averages: Record<string, number | null>;
+}

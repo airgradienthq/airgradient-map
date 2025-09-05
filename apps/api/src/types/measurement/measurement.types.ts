@@ -29,7 +29,15 @@ export type MeasurementClusterResult = MeasurementCluster[];
 /**
  * Available measurement types for filtering
  */
-export type MeasureType = 'pm25' | 'pm10' | 'atmp' | 'rhum' | 'rco2' | 'o3' | 'no2';
+export enum MeasureType {
+  PM25 = 'pm25',
+  PM10 = 'pm10',
+  ATMP = 'atmp',
+  RHUM = 'rhum',
+  RCO2 = 'rco2',
+  O3 = 'o3',
+  NO2 = 'no2',
+}
 
 /**
  * Measurement query parameters for area-based searches

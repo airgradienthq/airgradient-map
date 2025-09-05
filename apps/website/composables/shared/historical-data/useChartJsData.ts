@@ -31,7 +31,7 @@ export function useChartjsData({ data, measure }: UseChartjsDataParams) {
     if (roundedValue === 0 && (measure === MeasureNames.PM25 || measure === MeasureNames.PM_AQI)) {
       chartValues.push(CHART_MIN_VISIBLE_VALUE);
       barColors.push(getPM25Color(CHART_MIN_VISIBLE_VALUE).bgColor);
-    } else if (measure === MeasureNames.CO2) {
+    } else if (measure === MeasureNames.RCO2) {
       barColors.push(getCO2Color(roundedValue).bgColor);
       chartValues.push(roundedValue);
     } else {

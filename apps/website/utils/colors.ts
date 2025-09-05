@@ -152,7 +152,7 @@ export function getColorForMeasure(
   switch (measure) {
     case MeasureNames.PM25:
       return getPM25Color(value, dark);
-    case MeasureNames.CO2:
+    case MeasureNames.RCO2:
       return getCO2Color(value, dark);
     case MeasureNames.PM_AQI:
       return getAQIColor(value);
