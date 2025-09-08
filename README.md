@@ -61,7 +61,11 @@ docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml do
 
 4. **Seed Data to the Database**
 
-- Download database dump from [here](https://drive.google.com/drive/folders/1DU66VaaAoA4704MBNQtk9irZ0QVrO1kO?usp=sharing)
+> **⚠️ Important for Existing Developers:** If you've previously run this project, you'll need to refresh your database and containers due to recent schema changes. See the(#database-refresh) below.
+
+#### Fresh Setup
+
+- Download database dump from [here](https://drive.google.com/drive/folders/1ABAu1JSs4lJRyD22ssN9bLrJzMCUVI7x?usp=sharing)
 - Copy db dump to the db container
 
 ```bash
@@ -80,14 +84,35 @@ docker exec -it postgrex-mono pg_restore -U postgres -d agmap -v /tmp/agmap.dump
 docker exec -it postgrex-mono psql -U postgres -d agmap -c "select count(*) from location;"
 ```
 
-Expected Result:
+Expected Result (updated count):
 
 ```bash
- count
+ count 
 -------
-  9215
+ 13981
 (1 row)
 ```
+
+#### Database Refresh Steps {#database-refresh}
+
+> For developers who have previously worked with this project
+
+The database schema and dump have been updated to support contributor fixes from PR [#196](https://github.com/airgradienthq/airgradient-map/pull/196). You'll need to completely refresh your environment:
+
+- **Remove all containers and images:**
+
+```bash
+docker compose -f docker-compose-dev.yml down --rmi all
+```
+
+- **Remove the database volume:**
+
+```bash
+docker volume rm airgradient-map_pgdata
+```
+
+- **Follow the Fresh Setup steps above** with the updated database dump.
+
 
 5. **Check the UI**
 

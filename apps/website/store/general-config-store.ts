@@ -9,7 +9,8 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
   state: (): GeneralConfigStoreState => ({
     selectedMeasure: MeasureNames.PM25,
     selectedHistoryPeriod: HISTORY_PERIODS[0],
-    selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone.LOCAL
+    selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone.LOCAL,
+    headless: false
   }),
   actions: {
     setSelectedMeasure(measure: MeasureNames) {
@@ -20,6 +21,9 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     },
     setSelectedHistoricalDataTimeZoneConfig(timezone: HistoricalDataTimeZone) {
       this.selectedHistoricalDataTimeZoneConfig = timezone;
+    },
+    setHeadless(headless: boolean) {
+      this.headless = headless;
     }
   }
 });

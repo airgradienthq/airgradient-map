@@ -7,14 +7,13 @@
         <div class="d-flex flex-column flex-lg-row justify-content-between">
           <div class="d-flex flex-column info-container">
             <div class="logo-container">
-              <a target="_blank" href="https://www.airgradient.com/">
+              <a href="https://www.airgradient.com/">
                 <img alt="AirGradient Logo" src="assets/images/logos/logo_white.svg" />
               </a>
             </div>
             <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
-                target="_blank"
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >

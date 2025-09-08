@@ -5,8 +5,6 @@ export interface LocationDetails {
   longitude: number;
   ownerId: number;
   ownerName: string;
-  ownerNameDisplay: string;
-  description?: string;
   url?: string;
   sensorType: string;
   licenses: string[];
