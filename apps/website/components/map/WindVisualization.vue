@@ -30,6 +30,7 @@
     windDataUrl?: string;
     showTooltip?: boolean;
     isMoving?: boolean;
+    zoom?: number;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -42,7 +43,8 @@
     velocityScale: 0.8,
     windDataUrl: `http://localhost:3001/wind-data/file?t=${Date.now()}`,
     showTooltip: true,
-    isMoving: false
+    isMoving: false,
+    zoom: 3
   });
 
   const windCanvas = ref<HTMLCanvasElement>();
@@ -66,6 +68,12 @@
     initParticles();
   });
 
+  watch(() => props.zoom, (newZoom, oldZoom) => {
+    if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
+      particles.forEach(p => p.age = MAX_AGE); 
+    }
+  });
+
   watch(
     () => props.isMoving,
     moving => {
@@ -77,7 +85,7 @@
     }
   );
 
-  const PARTICLE_LINE_WIDTH = 1.4;
+  const PARTICLE_LINE_WIDTH = 1.0;
   const MAX_AGE = props.maxParticleAge;
   const FRAME = props.frameRate;
 
@@ -87,6 +95,32 @@
   let particles: any[] = [];
   let colorStyles: string[] = [];
   let buckets: any[][] = [];
+
+  function latToMercatorY(lat: number): number {
+    const clampedLat = Math.max(-85.0511, Math.min(85.0511, lat));
+    const rad = (clampedLat * Math.PI) / 180;
+    return Math.log(Math.tan(Math.PI / 4 + rad / 2));
+  }
+
+  function mercatorYToLat(y: number): number {
+    return (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * (180 / Math.PI);
+  }
+
+  function pixelToLatLng(x: number, y: number) {
+    let boundsWidth = props.bounds.east - props.bounds.west;
+    if (boundsWidth < 0) boundsWidth += 360;
+
+    let lng = props.bounds.west + (x / canvasWidth.value) * boundsWidth;
+    if (lng > 180) lng -= 360;
+    if (lng < -180) lng += 360;
+    
+    const northMercator = latToMercatorY(props.bounds.north);
+    const southMercator = latToMercatorY(props.bounds.south);
+    const mercatorY = northMercator - (y / canvasHeight.value) * (northMercator - southMercator);
+    const lat = mercatorYToLat(mercatorY);
+
+    return { lat, lng };
+  }
 
   onMounted(async () => {
     if (!windCanvas.value) return;
@@ -175,23 +209,24 @@
 
   function initColors() {
     colorStyles = [
-      'rgba(200, 200, 240, 0.9)',
-      'rgba(255, 230, 200, 0.9)',
-      'rgba(255, 200, 150, 0.9)',
-      'rgba(255, 160, 100, 0.85)',
-      'rgba(255, 120, 70, 0.85)',
-      'rgba(255, 80, 40, 0.85)',
-      'rgba(255, 40, 20, 0.85)',
-      'rgba(220, 0, 0, 0.85)'
+      'rgba(100, 200, 255, 0.9)',   // Light blue - calm winds
+      'rgba(50, 150, 255, 0.9)',    // Blue - light breeze
+      'rgba(0, 255, 100, 0.9)',     // Green - gentle breeze
+      'rgba(255, 255, 0, 0.95)',    // Yellow - moderate breeze
+      'rgba(255, 150, 0, 0.95)',    // Orange - fresh breeze
+      'rgba(255, 100, 0, 0.95)',    // Red-orange - strong breeze
+      'rgba(255, 50, 50, 0.95)',    // Red - near gale
+      'rgba(255, 0, 150, 0.95)'     // Magenta - gale
     ];
     buckets = Array.from({ length: colorStyles.length }, () => []);
   }
 
   function initParticles() {
-    const count = Math.min(
-      Math.round(((canvasWidth.value * canvasHeight.value) / 10000) * 7),
-      props.particleCount
-    );
+    const zoom = props.zoom || 3;
+    const zoomMultiplier = Math.max(0.5, Math.min(3.0, (10 - zoom) * 0.3));
+    const baseCount = Math.round(((canvasWidth.value * canvasHeight.value) / 10000) * 7);
+    const count = Math.min(Math.round(baseCount * zoomMultiplier), props.particleCount * 2);
+    
     particles = Array.from({ length: count }, () => ({
       x: Math.random() * canvasWidth.value,
       y: Math.random() * canvasHeight.value,
@@ -228,14 +263,6 @@
     buckets.forEach(b => (b.length = 0));
   }
 
-  function pixelToLatLng(x: number, y: number) {
-    const lat =
-      props.bounds.north - (y / canvasHeight.value) * (props.bounds.north - props.bounds.south);
-    const lng =
-      props.bounds.west + (x / canvasWidth.value) * (props.bounds.east - props.bounds.west);
-    return { lat, lng };
-  }
-
   function getWind(lat: number, lng: number) {
     if (!windData || windData.data.length < 2) return null;
     const h = windData.header[0];
@@ -270,7 +297,8 @@
       if (!wind || !wind.magnitude) {
         p.age = MAX_AGE;
       } else {
-        const scale = props.velocityScale * (canvasHeight.value / 1000);
+        const zoomScale = Math.max(0.3, Math.min(3.0, (props.zoom || 3) * 0.3));
+        const scale = zoomScale * 0.5;
         const xt = p.x + wind.u * scale;
         const yt = p.y - wind.v * scale;
         if (xt >= 0 && xt < canvasWidth.value && yt >= 0 && yt < canvasHeight.value) {
@@ -303,19 +331,22 @@
 
     const prev = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = 'destination-in';
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+    const zoom = props.zoom || 3;
+    const fadeAlpha = zoom > 8 ? 0.92 : Math.max(0.96, Math.min(0.99, 0.96 + (zoom - 3) * 0.01));
+    ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
     ctx.fillRect(0, 0, canvasWidth.value, canvasHeight.value);
     ctx.globalCompositeOperation = prev;
 
-    ctx.lineWidth = PARTICLE_LINE_WIDTH;
+    const lineWidth = zoom > 8 ? 1.5 : PARTICLE_LINE_WIDTH;
+    ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 1;
 
     buckets.forEach((bucket, i) => {
       if (!bucket.length) return;
       ctx.beginPath();
-      ctx.strokeStyle = colorStyles[i];
+      const baseColor = colorStyles[i];
+      const alpha = zoom > 8 ? '1.0' : baseColor.match(/[\d.]+\)$/)?.[0] || '0.9)';
+      ctx.strokeStyle = baseColor.replace(/[\d.]+\)$/, alpha);
       bucket.forEach(p => {
         if (p.xt !== undefined && p.yt !== undefined) {
           ctx.moveTo(p.x, p.y);
@@ -326,8 +357,6 @@
       });
       ctx.stroke();
     });
-
-    ctx.shadowBlur = 0;
   }
 </script>
 

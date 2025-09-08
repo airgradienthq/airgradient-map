@@ -61,7 +61,7 @@
         :zoom="mapInstance?.getZoom() || 3"
         :wind-data-url="windDataUrl"
         :particle-count="windParticleCount"
-        :velocity-scale="windVelocityScale"
+        :velocity-scale="0.8"
         class="wind-overlay"
       />
 
@@ -142,7 +142,7 @@
   });
   const windVelocityScale = computed(() => {
     const zoom = mapInstance?.getZoom() || 1;
-    return 0.5 + zoom / 10;
+    return Math.max(0.1, Math.min(2.0, zoom * 0.2));
   });
 
   const measureSelectOptions: DropdownOption[] = [
