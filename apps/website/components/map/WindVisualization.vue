@@ -68,11 +68,14 @@
     initParticles();
   });
 
-  watch(() => props.zoom, (newZoom, oldZoom) => {
-    if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
-      particles.forEach(p => p.age = MAX_AGE); 
+  watch(
+    () => props.zoom,
+    (newZoom, oldZoom) => {
+      if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
+        particles.forEach(p => (p.age = MAX_AGE));
+      }
     }
-  });
+  );
 
   watch(
     () => props.isMoving,
@@ -113,7 +116,7 @@
     let lng = props.bounds.west + (x / canvasWidth.value) * boundsWidth;
     if (lng > 180) lng -= 360;
     if (lng < -180) lng += 360;
-    
+
     const northMercator = latToMercatorY(props.bounds.north);
     const southMercator = latToMercatorY(props.bounds.south);
     const mercatorY = northMercator - (y / canvasHeight.value) * (northMercator - southMercator);
@@ -209,14 +212,14 @@
 
   function initColors() {
     colorStyles = [
-      'rgba(100, 200, 255, 0.9)',   // Light blue - calm winds
-      'rgba(50, 150, 255, 0.9)',    // Blue - light breeze
-      'rgba(0, 255, 100, 0.9)',     // Green - gentle breeze
-      'rgba(255, 255, 0, 0.95)',    // Yellow - moderate breeze
-      'rgba(255, 150, 0, 0.95)',    // Orange - fresh breeze
-      'rgba(255, 100, 0, 0.95)',    // Red-orange - strong breeze
-      'rgba(255, 50, 50, 0.95)',    // Red - near gale
-      'rgba(255, 0, 150, 0.95)'     // Magenta - gale
+      'rgba(100, 200, 255, 0.9)', // Light blue - calm winds
+      'rgba(50, 150, 255, 0.9)', // Blue - light breeze
+      'rgba(0, 255, 100, 0.9)', // Green - gentle breeze
+      'rgba(255, 255, 0, 0.95)', // Yellow - moderate breeze
+      'rgba(255, 150, 0, 0.95)', // Orange - fresh breeze
+      'rgba(255, 100, 0, 0.95)', // Red-orange - strong breeze
+      'rgba(255, 50, 50, 0.95)', // Red - near gale
+      'rgba(255, 0, 150, 0.95)' // Magenta - gale
     ];
     buckets = Array.from({ length: colorStyles.length }, () => []);
   }
@@ -226,7 +229,7 @@
     const zoomMultiplier = Math.max(0.5, Math.min(3.0, (10 - zoom) * 0.3));
     const baseCount = Math.round(((canvasWidth.value * canvasHeight.value) / 10000) * 7);
     const count = Math.min(Math.round(baseCount * zoomMultiplier), props.particleCount * 2);
-    
+
     particles = Array.from({ length: count }, () => ({
       x: Math.random() * canvasWidth.value,
       y: Math.random() * canvasHeight.value,
