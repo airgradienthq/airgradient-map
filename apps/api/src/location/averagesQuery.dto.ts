@@ -20,7 +20,8 @@ export class AveragesQueryDto {
   @IsArray()
   @Matches(/^(?:1[5-9]|[2-9][0-9]|[1-9][0-9]{2,})m$|^\d+[hdw]$/, {
     each: true,
-    message: 'Each period must follow format: number + unit (m/h/d/w). Minimum period is 15 minutes, e.g., "15m", "6h", "13d", "2w"',
+    message:
+      'Each period must follow format: number + unit (m/h/d/w). Minimum period is 15 minutes, e.g., "15m", "6h", "13d", "2w"',
   })
   periods?: string[];
 }
