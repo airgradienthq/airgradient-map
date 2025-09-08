@@ -4,4 +4,5 @@ export const OWNER_REFERENCE_ID_PREFIXES = {
   UNKNOWN: 'unknown_',
 } as const;
 
-export type OwnerReferenceIdPrefix = typeof OWNER_REFERENCE_ID_PREFIXES[keyof typeof OWNER_REFERENCE_ID_PREFIXES];
+export type OwnerReferenceIdPrefix =
+  (typeof OWNER_REFERENCE_ID_PREFIXES)[keyof typeof OWNER_REFERENCE_ID_PREFIXES];

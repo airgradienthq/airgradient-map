@@ -51,9 +51,10 @@ export class TasksRepository {
           // Restructure and collect data for each column
           acc.ownerNames.push(r.ownerName ?? 'unknown');
           acc.ownerUrls.push(r.ownerUrl);
-          const prefixedOwnerId = dataSource === DataSource.AIRGRADIENT 
-            ? `${OWNER_REFERENCE_ID_PREFIXES.AIRGRADIENT}${r.ownerReferenceId}` 
-            : `${OWNER_REFERENCE_ID_PREFIXES.OPENAQ}${r.ownerReferenceId}`;
+          const prefixedOwnerId =
+            dataSource === DataSource.AIRGRADIENT
+              ? `${OWNER_REFERENCE_ID_PREFIXES.AIRGRADIENT}${r.ownerReferenceId}`
+              : `${OWNER_REFERENCE_ID_PREFIXES.OPENAQ}${r.ownerReferenceId}`;
           acc.ownerRefIds.push(prefixedOwnerId);
           acc.locationNames.push(r.locationName);
           acc.locationRefIds.push(r.locationReferenceId);
