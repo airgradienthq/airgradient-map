@@ -23,8 +23,6 @@ class LocationRepository {
                 ST_Y(l.coordinate) AS latitude,
                 o.id AS "ownerId",
                 o.owner_name AS "ownerName",
-                o.owner_name_display AS "ownerNameDisplay",
-                o.description,
                 o.url,
                 l.sensor_type AS "sensorType",
                 l.licenses,
@@ -65,8 +63,6 @@ class LocationRepository {
                 ST_Y(l.coordinate) AS latitude,
                 o.id AS "ownerId",
                 o.owner_name AS "ownerName",
-                o.owner_name_display AS "ownerNameDisplay",
-                o.description,
                 o.url,
                 l.sensor_type AS "sensorType",
                 l.licenses,
@@ -171,7 +167,7 @@ class LocationRepository {
 
         let sum = 0;
         for (const row of rows) {
-          sum += parseFloat(row.value);
+          sum += parseFloat(row.pm25);
         }
         const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
         cigaretteData[timeframe.label] = cigaretteNumber;
@@ -202,7 +198,7 @@ class LocationRepository {
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AS timebucket,
+                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
                 l.sensor_type AS sensorType,
                 l.data_source AS dataSource
@@ -222,7 +218,6 @@ class LocationRepository {
 
     try {
       const results = await this.databaseService.runQuery(query, params);
-
       return results.rows;
     } catch (error) {
       this.logger.error(error);

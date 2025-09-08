@@ -8,7 +8,7 @@
         'ag-dropdown-control__trigger--small': size === 'small'
       }"
     >
-      <span>{{ displayValue || placeholder }}</span>
+      <span :style="{ maxWidth: width }">{{ displayValue || placeholder }}</span>
       <svg width="20" height="20" viewBox="0 0 24 24" :class="{ rotate: isMenuOpen }">
         <path d="M8 5V19L19 12L8 5Z" fill="currentColor" />
       </svg>
@@ -61,6 +61,10 @@
     placeholder: {
       type: String,
       default: 'Select an option...'
+    },
+    width: {
+      type: String,
+      default: '100%'
     }
   });
 
@@ -89,6 +93,15 @@
   .ag-dropdown-wrapper {
     position: relative;
     width: 100%;
+    height: 40px;
+    font-family: var(--secondary-font);
+    font-weight: var(--font-weight-medium);
+
+    .v-field__input {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      min-height: 39px !important;
+    }
   }
 
   .ag-dropdown-control__trigger {
@@ -98,11 +111,11 @@
     justify-content: space-between;
     padding: 11px 20px;
     background-color: var(--main-white-color);
-    border: 2px solid var(--airLightGray);
+    border: 2px solid var(--grayColor400);
     border-radius: 100px;
     cursor: pointer;
     transition: var(--main-transition);
-    min-height: 39px;
+    min-height: 40px;
 
     &:hover:not(&--disabled) {
       background-color: var(--primary-color);
@@ -133,6 +146,12 @@
       min-height: 35px;
     }
 
+    span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     svg {
       transform: rotate(90deg);
       transition: var(--main-transition);
@@ -153,8 +172,8 @@
     pointer-events: none !important;
     z-index: -1 !important;
   }
+
   .ag-dropdown-menu {
-    margin-top: 4px !important;
     background-color: var(--main-white-color) !important;
     border: 2px solid var(--grayColor400) !important;
     border-radius: 20px !important;
@@ -164,8 +183,13 @@
     overflow-x: hidden !important;
     padding: 0 !important;
 
+    .v-list {
+      padding: 0 !important;
+      border-radius: unset !important;
+    }
+
     .v-list-item {
-      padding: 12px 20px !important;
+      padding: 8px 20px !important;
       cursor: pointer !important;
       transition: var(--main-transition) !important;
       border-bottom: 1px solid var(--grayColor200) !important;
@@ -192,13 +216,20 @@
       &:hover {
         background-color: var(--primary-color) !important;
         color: var(--main-white-color) !important;
+        border-color: transparent !important;
       }
 
       &.v-list-item--active {
         background-color: var(--light-primary-color) !important;
         color: var(--primary-color) !important;
         font-weight: var(--font-weight-bold) !important;
+        border-color: transparent !important;
       }
+    }
+  }
+  @media (max-width: 779px) {
+    .ag-dropdown-wrapper {
+      font-size: 14px;
     }
   }
 </style>

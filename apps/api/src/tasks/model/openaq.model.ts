@@ -1,3 +1,5 @@
+import { Attribution, Country, Instrument } from '../../types/tasks/openaq.types';
+
 class Meta {
   name: string;
   website: string;
@@ -83,7 +85,7 @@ class Coordinates {
 class License {
   id: number;
   name: string;
-  attribution: any;
+  attribution: Attribution;
   dateFrom: string;
   dateTo: string | null;
 
@@ -101,12 +103,12 @@ class ResultLocations {
   name: string;
   locality: string;
   timezone: string;
-  country: any;
+  country: Country;
   owner: Owner;
   provider: Provider;
   isMobile: boolean;
   isMonitor: boolean;
-  instruments: any;
+  instruments: Instrument[];
   sensors: Sensor[];
   coordinates: Coordinates;
   licenses: License[];

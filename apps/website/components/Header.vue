@@ -4,7 +4,7 @@
   <header id="main-header" class="bg-white">
     <div class="container header-container">
       <nav class="navbar navbar-expand-lg navbar-light">
-        <a target="_blank" class="navbar-brand" href="https://www.airgradient.com">
+        <a class="navbar-brand" href="https://www.airgradient.com">
           <img class="logo-image" alt="AirGradient Logo" src="assets/images/logos/logo_blue.svg" />
         </a>
         <button
@@ -35,7 +35,8 @@
                 class="nav-link"
                 :class="{
                   'dropdown-toggle': link.children,
-                  'active-dropdown': activeDropdown === index
+                  'active-dropdown': activeDropdown === index,
+                  'has-children': link.children
                 }"
                 :href="link.children ? '#' : link.path"
                 :target="link.openBlank ? '_blank' : ''"
@@ -212,7 +213,7 @@
     background-color: #f8f9fa;
   }
 
-  .nav-link:hover {
+  .has-children:hover {
     background-color: rgba(28, 117, 188, 0.1);
     color: var(--primary-color) !important;
   }

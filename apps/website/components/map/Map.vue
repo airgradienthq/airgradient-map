@@ -142,6 +142,7 @@
   });
   const windVelocityScale = computed(() => {
     const zoom = mapInstance?.getZoom() || 1;
+    // Faster at high zoom (zoomed in), slower at low zoom (zoomed out)
     return Math.max(0.1, Math.min(2.0, zoom * 0.2));
   });
 
@@ -395,7 +396,7 @@
   }
 
   #map {
-    height: calc(100vh - 5px);
+    height: calc(100svh - 130px);
     position: relative;
   }
 
@@ -409,13 +410,13 @@
 
   @include desktop {
     #map {
-      height: calc(100vh - 117px);
+      height: calc(100svh - 117px);
     }
   }
 
   .headless {
     #map {
-      height: calc(100vh - 5px);
+      height: calc(100svh - 5px) !important;
     }
   }
 

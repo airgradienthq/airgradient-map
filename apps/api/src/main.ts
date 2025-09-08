@@ -6,7 +6,7 @@ import { createSwaggerConfig } from './config/swagger.config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   // Setup logger
   const logger = new Logger('Bootstrap');
   const isProduction = process.env.NODE_ENV === 'production';

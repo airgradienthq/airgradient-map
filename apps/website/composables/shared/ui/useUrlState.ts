@@ -27,7 +27,6 @@ export const useUrlState = () => {
     meas: DEFAULT_URL_CONFIG.meas,
     wind_layer: String(DEFAULT_MAP_VIEW_CONFIG.wind_layer),
     org: DEFAULT_URL_CONFIG.org,
-    headless: 'false',
     ...route.query
   });
 
