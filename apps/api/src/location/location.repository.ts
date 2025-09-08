@@ -323,7 +323,6 @@ class LocationRepository {
 
     // Debug logging
     this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);
-    this.logger.debug(query);
 
     try {
       const result = await this.databaseService.runQuery(query, [id]);
