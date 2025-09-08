@@ -111,3 +111,15 @@ For this project, common commands that should be explained include:
 - Check for existing files before creating new ones
 - Confirm destructive operations (deletions, overwrites) before proceeding
 - Explain any security implications of commands that handle credentials or sensitive data
+
+## Constants Management
+
+ALWAYS place constants in the `src/constants` directory. Do not hardcode constants directly in service, repository, or controller files. Create separate constant files with descriptive names and export them for use across the application.
+
+## Types and Enums Management
+
+ALWAYS place TypeScript types and enums in the `src/types` directory:
+- Shared types/enums go in `src/types/shared`
+- Module-specific types go in `src/types/[module-name]`
+- Do NOT use `.enum` file extension - just use `.ts` for all type files
+- Export both the enum and a string literal type when creating enums
