@@ -81,8 +81,25 @@ export class WindDataService {
       },
     ];
 
-    await fs.writeFile(this.outputFile, JSON.stringify(windData));
+    await this.writeFileAtomically(windData);
     this.logger.log('Created empty wind fallback file');
+  }
+  private async writeFileAtomically(data: any[]): Promise<void> {
+    const tempFile = `${this.outputFile}.tmp.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`;
+
+    try {
+      await fs.writeFile(tempFile, JSON.stringify(data));
+
+      const stats = await fs.stat(tempFile);
+      if (stats.size === 0) {
+        throw new Error('Temporary file is empty');
+      }
+
+      await fs.rename(tempFile, this.outputFile);
+    } catch (error) {
+      await fs.unlink(tempFile).catch(() => {});
+      throw error;
+    }
   }
 
   private async ensureDirectories(): Promise<void> {
@@ -262,7 +279,7 @@ export class WindDataService {
         },
       ];
 
-      await fs.writeFile(this.outputFile, JSON.stringify(windData));
+      await this.writeFileAtomically(windData);
       await fs.unlink(jsonFile).catch(() => {});
 
       return true;
