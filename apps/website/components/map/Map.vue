@@ -5,7 +5,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-information-outline"
-        :style="'map'"
+        :style="'light'"
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
@@ -20,7 +20,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-weather-windy"
-        :style="'map'"
+        :style="'light'"
         @click="toggleWindLayer"
         title="Toggle Wind Layer"
       >
