@@ -44,10 +44,6 @@ AND reference_id NOT LIKE 'oaq_%';
 ALTER TABLE owner DROP CONSTRAINT IF EXISTS owner_reference_id_key;
 ALTER TABLE owner ADD CONSTRAINT owner_reference_id_key UNIQUE (reference_id);
 
--- 4. Clean up
-ALTER TABLE owner DROP COLUMN IF EXISTS reference_id_new;
-ALTER TABLE owner DROP COLUMN IF EXISTS reference_id_prefixed;
-
 -- 5. Verify
 SELECT 
     COUNT(*) as total_owners,
