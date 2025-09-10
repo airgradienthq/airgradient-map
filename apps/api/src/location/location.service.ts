@@ -82,7 +82,10 @@ export class LocationService {
     if (measureType === MeasureType.PM25) {
       return results.map((row: any) => ({
         timebucket: row.timebucket,
-        value: row.dataSource === DataSource.AIRGRADIENT ? getEPACorrectedPM(row.pm25, row.rhum) : row.pm25,
+        value:
+          row.dataSource === DataSource.AIRGRADIENT
+            ? getEPACorrectedPM(row.pm25, row.rhum)
+            : row.pm25,
       }));
     }
 
@@ -94,7 +97,6 @@ export class LocationService {
     measure: MeasureType,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
-
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
 
