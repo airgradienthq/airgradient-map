@@ -20,7 +20,7 @@ export class TasksRepository {
   }
 
   async upsertLocationsAndOwners(
-    dataSource: string,
+    dataSource: DataSource,
     locationOwnerInput: UpsertLocationOwnerInput[],
   ) {
     try {
@@ -108,35 +108,98 @@ export class TasksRepository {
       // WHY UNNEST: Converts columnar arrays back into rows that SQL can work with
       // Example: unnest(['A','B'], [1,2]) creates rows: ('A',1), ('B',2)
       //
-      // 1. batch_data: Uses unnest() to reconstruct rows from our columnar arrays
-      // 2. insert_owner: Upserts owners first (locations need owner_id foreign key)
-      // 3. location_data: Joins location data with newly created owner IDs
-      //    - ST_GeomFromText(coordinate, 3857): Converts "POINT(lng lat)" string to PostGIS geometry
-      //    - SRID 3857 (Web Mercator): Standard projection for web mapping, matches coordinate system
-      //    - JSON licenses: Converts JSON strings back to PostgreSQL varchar[] arrays using jsonb functions
-      //      WHY JSON: unnest() can't handle JavaScript arrays like ["item1","item2"] directly
-      // 4. Final INSERT: Bulk insert locations with conflict resolution (ON CONFLICT DO UPDATE)
+      // OWNER PROTECTION STRATEGY:
+      // - AirGradient owners: Create minimal placeholders (empty strings), NEVER update existing
+      // - Non-AirGradient owners: Always sync with latest data from external sources
       //
-      // Here basically ON CONFLICT UPDATE for both upsert owner and locations will always overwrite
-      //   even though there's no changes. The performance has no difference than adding another WHERE clause to check first
+      // MODULAR QUERY CONSTRUCTION:
+      // 1. buildBatchDataCTE(): Uses unnest() to reconstruct rows from columnar arrays
+      // 2. Owner Logic (selected by DataSource):
+      //    - buildAirGradientOwnerLogic(): Protects existing AG owners, creates minimal placeholders
+      //    - buildNonAirGradientOwnerLogic(): Traditional upsert with full sync data
+      // 3. buildLocationLogic(): Joins location data with owner IDs and inserts/updates locations
+      //    - ST_GeomFromText(coordinate, 3857): Converts "POINT(lng lat)" string to PostGIS geometry
+      //    - SRID 3857 (Web Mercator): Standard projection for web mapping
+      //    - JSON licenses: Converts JSON strings to PostgreSQL varchar[] arrays
+      //    - ON CONFLICT DO UPDATE: Handles duplicate locations gracefully
+      //
+      // Build query by combining modular components based on data source
+      const ownerLogic = dataSource === DataSource.AIRGRADIENT
+        ? this.buildAirGradientOwnerLogic()
+        : this.buildNonAirGradientOwnerLogic();
+
       const query = `
-        WITH batch_data AS (
-          SELECT *
-          FROM unnest(
-              $1::text[],
-              $2::text[],
-              $3::text[],
-              $4::text[],
-              $5::int[],
-              $6::text[],
-              $7::text[],
-              $8::text[],
-              $9::text[],
-              $10::text[],
-              $11::text[]
-          )
-          AS t(owner_name, owner_url, owner_reference_id, location_name, location_reference_id, sensor_type, timezone, licenses_json, data_source, provider, coordinate)
+        WITH ${this.buildBatchDataCTE()},
+        ${ownerLogic}
+        ${this.buildLocationLogic()}
+      `;
+
+      // Execute the batch operation in single operation
+      await this.databaseService.runQuery(query, values);
+    } catch (error) {
+      this.logger.error('Failed to upsert locations and owners', {
+        error: (error as Error).message,
+        dataSource,
+        inputLength: locationOwnerInput.length,
+      });
+    }
+  }
+
+  private buildBatchDataCTE(): string {
+    return `
+      batch_data AS (
+        SELECT *
+        FROM unnest(
+            $1::text[],
+            $2::text[],
+            $3::text[],
+            $4::text[],
+            $5::int[],
+            $6::text[],
+            $7::text[],
+            $8::text[],
+            $9::text[],
+            $10::text[],
+            $11::text[]
+        )
+        AS t(owner_name, owner_url, owner_reference_id, location_name, location_reference_id, sensor_type, timezone, licenses_json, data_source, provider, coordinate)
+      )`;
+  }
+
+  private buildAirGradientOwnerLogic(): string {
+    return `
+      -- Get existing owners for this batch
+      existing_owners AS (
+        SELECT id, reference_id
+        FROM owner
+        WHERE reference_id = ANY(SELECT DISTINCT owner_reference_id FROM batch_data)
       ),
+
+      -- Create only missing AG owners with minimal data
+      insert_missing_owner AS (
+        INSERT INTO owner (owner_name, url, reference_id)
+        SELECT DISTINCT 
+          '' AS owner_name,
+          NULL AS url,
+          b.owner_reference_id
+        FROM batch_data b
+        WHERE NOT EXISTS (
+          SELECT 1 FROM existing_owners eo
+          WHERE eo.reference_id = b.owner_reference_id
+        )
+        RETURNING id, reference_id
+      ),
+
+      -- Combine existing + newly created owners
+      insert_owner AS (
+        SELECT id, reference_id FROM existing_owners
+        UNION ALL
+        SELECT id, reference_id FROM insert_missing_owner
+      ),`;
+  }
+
+  private buildNonAirGradientOwnerLogic(): string {
+    return `
       insert_owner AS (
         INSERT INTO owner (owner_name, url, reference_id)
         SELECT DISTINCT
@@ -149,7 +212,11 @@ export class TasksRepository {
             owner_name = EXCLUDED.owner_name,
             url = EXCLUDED.url
         RETURNING id, reference_id
-      ),
+      ),`;
+  }
+
+  private buildLocationLogic(): string {
+    return `
       location_data AS (
         SELECT
           b.location_name,
@@ -189,17 +256,9 @@ export class TasksRepository {
         licenses = EXCLUDED.licenses::varchar[],
         timezone = EXCLUDED.timezone,
         coordinate = EXCLUDED.coordinate,
-        provider = EXCLUDED.provider;
-                  `;
-
-      // Execute the batch operation in single operation
-      await this.databaseService.runQuery(query, values);
-    } catch (error) {
-      this.logger.error('Failed to upsert locations and owners', {
-        error: (error as Error).message,
-      });
-    }
+        provider = EXCLUDED.provider;`;
   }
+
 
   async insertNewAirgradientLatest(data: AirgradientModel[]): Promise<void> {
     try {
