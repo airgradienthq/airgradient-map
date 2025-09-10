@@ -62,6 +62,7 @@
         :wind-data-url="windDataUrl"
         :particle-count="windParticleCount"
         :velocity-scale="0.8"
+        :is-moving="isMapMoving"
         class="wind-overlay"
       />
 
@@ -131,6 +132,9 @@
   const mapSize = ref({ width: 800, height: 600 });
   const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
 
+  // Add reactive variable to track map movement state
+  const isMapMoving = ref(false);
+
   const { urlState, setUrlState } = useUrlState();
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
@@ -189,6 +193,15 @@
     markers = L.geoJson(null, {
       pointToLayer: createMarker
     }).addTo(mapInstance);
+
+    // Add movement tracking events for wind layer
+    mapInstance.on('movestart zoomstart', () => {
+      isMapMoving.value = true;
+    });
+
+    mapInstance.on('moveend zoomend', () => {
+      isMapMoving.value = false;
+    });
 
     mapInstance.on('moveend', updateMap);
     mapInstance.on('resize', updateMapDimensions);
