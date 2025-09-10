@@ -10,7 +10,7 @@ class MeasurementRepository {
   private readonly logger = new Logger(MeasurementRepository.name);
 
   private buildMeasureQuery(
-    measure?: string,
+    measure?: MeasureType,
     paramsCount: number = 0,
   ): {
     selectQuery: string;
@@ -38,7 +38,7 @@ class MeasurementRepository {
         validationQuery = `AND m.${measure} BETWEEN $${paramsCount + 1} AND $${paramsCount + 2}`;
       }
 
-      if (measure === 'pm25') {
+      if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
         query.whereQuery = `WHERE m.pm25 IS NOT NULL ${validationQuery}`;
       } else {
@@ -52,7 +52,7 @@ class MeasurementRepository {
   async retrieveLatest(
     offset: number = 0,
     limit: number = 100,
-    measure?: string,
+    measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [offset, limit];
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
@@ -117,7 +117,7 @@ class MeasurementRepository {
     yMin: number,
     xMax: number,
     yMax: number,
-    measure?: string,
+    measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
 

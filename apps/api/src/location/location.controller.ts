@@ -113,8 +113,11 @@ export class LocationController {
   @Get(':id/averages')
   @ApiOperation({
     summary: 'Get measurement averages for a location',
-    description:
-      'Calculate average values for a specified measurement type across different time periods (6h, 24h, 7d, 30d, 90d) for a specific location. Returns null for periods with insufficient data.',
+    description: `Calculate average values for a specified 
+    measurement type across different time periods (6h, 
+    24h, 7d, 30d, 90d) for a specific location. Returns 
+    null for periods with insufficient data. Defaults to
+    PM2.5 if measure is not specified.`,
   })
   @ApiParam({
     name: 'id',
