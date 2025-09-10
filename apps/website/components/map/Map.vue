@@ -131,8 +131,6 @@
   const windLayerEnabled = useStorage('windLayerEnabled', false);
   const mapSize = ref({ width: 800, height: 600 });
   const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
-
-  // Add reactive variable to track map movement state
   const isMapMoving = ref(false);
 
   const { urlState, setUrlState } = useUrlState();
@@ -194,7 +192,6 @@
       pointToLayer: createMarker
     }).addTo(mapInstance);
 
-    // Add movement tracking events for wind layer
     mapInstance.on('movestart zoomstart', () => {
       isMapMoving.value = true;
     });
