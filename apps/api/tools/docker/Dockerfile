@@ -7,6 +7,9 @@ RUN apt-get update && \
     apt-get install -y default-jre-headless && \
     rm -rf /var/lib/apt/lists/*
 
+# Install grib2json tool
+RUN npm install -g weacast-grib2json
+
 # Install deps and copy project to container
 COPY package*.json ./
 RUN npm install
