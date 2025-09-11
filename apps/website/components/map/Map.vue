@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -86,6 +86,10 @@
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
+
+  const isUserInteracting = ref(false);
+  const interactionTimeout = ref<NodeJS.Timeout | null>(null);
+
   const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
@@ -117,7 +121,7 @@
     }
   ];
 
-  const updateMapDebounced = createVueDebounce(updateMap, 300);
+  const updateMapDebounced = createVueDebounce(updateMapData, 500);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -167,8 +171,60 @@
       pointToLayer: createMarker
     }).addTo(mapInstance);
 
-    mapInstance.on('moveend', updateMap);
-    mapInstance.whenReady(updateMap);
+    mapInstance.on('movestart', handleInteractionStart);
+    mapInstance.on('dragstart', handleInteractionStart);
+    mapInstance.on('zoomstart', handleInteractionStart);
+
+    mapInstance.on('moveend', handleMoveEnd);
+    mapInstance.on('dragend', handleInteractionEnd);
+    mapInstance.on('zoomend', handleInteractionEnd);
+
+    startRefreshInterval();
+
+    mapInstance.whenReady(() => {
+      updateMapData();
+    });
+  }
+
+  function handleInteractionStart(): void {
+    isUserInteracting.value = true;
+
+    if (interactionTimeout.value) {
+      clearTimeout(interactionTimeout.value);
+      interactionTimeout.value = null;
+    }
+  }
+
+  function handleInteractionEnd(): void {
+    if (interactionTimeout.value) {
+      clearTimeout(interactionTimeout.value);
+    }
+
+    interactionTimeout.value = setTimeout(() => {
+      isUserInteracting.value = false;
+      updateUrlAndFetchData();
+    }, 200);
+  }
+
+  function handleMoveEnd(): void {
+    updateUrlState();
+
+    if (!isUserInteracting.value) {
+      updateMapDebounced();
+    }
+  }
+
+  function updateUrlState(): void {
+    setUrlState({
+      zoom: mapInstance.getZoom(),
+      lat: mapInstance.getCenter().lat.toFixed(2),
+      long: mapInstance.getCenter().lng.toFixed(2)
+    });
+  }
+
+  function updateUrlAndFetchData(): void {
+    updateUrlState();
+    updateMapDebounced();
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -222,24 +278,17 @@
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
-    loading.value = true;
 
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-
-    if (isRefreshIntervalActive.value) {
-      stopRefreshInterval();
-    } else {
-      startRefreshInterval();
-    }
-
-    await updateMapData();
+    updateUrlAndFetchData();
   }
 
   async function updateMapData(): Promise<void> {
+    if (isUserInteracting.value || loading.value || locationHistoryDialog.value?.isOpen) {
+      return;
+    }
+
+    loading.value = true;
+
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
@@ -257,10 +306,12 @@
         retry: 1
       });
 
-      const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
-      geoJsonMapData = geoJsonData;
-      markers.clearLayers();
-      markers.addData(geoJsonData);
+      if (!isUserInteracting.value) {
+        const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
+        geoJsonMapData = geoJsonData;
+        markers.clearLayers();
+        markers.addData(geoJsonData);
+      }
     } catch (error) {
       console.error('Failed to fetch map data:', error);
     } finally {
@@ -296,7 +347,9 @@
       markers.clearLayers();
       markers.addData(geoJsonMapData);
     } else {
-      updateMapDebounced();
+      if (!isUserInteracting.value) {
+        updateMapDebounced();
+      }
     }
   }
 
@@ -338,6 +391,13 @@
       });
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
+  });
+
+  onUnmounted(() => {
+    if (interactionTimeout.value) {
+      clearTimeout(interactionTimeout.value);
+    }
+    stopRefreshInterval();
   });
 </script>
 
