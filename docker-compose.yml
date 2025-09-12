@@ -34,6 +34,8 @@ services:
       - ./apps/api/.env
     depends_on:
       - postgrex
+    environment:
+      - NODE_ENV=production
 
   app:
     container_name: website-mono
