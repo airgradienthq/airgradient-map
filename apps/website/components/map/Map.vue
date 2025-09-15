@@ -15,6 +15,18 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
+    <div class="wildfire-toggle-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-fire"
+        :style="wildfireLayerEnabled ? 'primary' : 'light'"
+        @click="toggleWildfireLayer"
+        title="Toggle Wildfire Layer"
+      >
+      </UiIconButton>
+    </div>
+
     <UiProgressBar :show="loading"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
@@ -35,13 +47,18 @@
         :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
         :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
         :center="[Number(urlState.lat), Number(urlState.long)]"
-        :attributionControl="true"
         @ready="onMapReady"
+        @move="onMapMove"
+        @zoom="onMapMove"
       >
       </LMap>
-      <div v-if="isLegendShown" class="legend-box">
-        <UiMapMarkersLegend />
-        <UiColorsLegend />
+
+      <div v-if="isLegendShown" class="legend-overlay">
+        <div class="legend-container">
+          <UiMapMarkersLegend class="markers-legend" />
+          <UiColorsLegend class="colors-legend" />
+          <UiWildfireLegend v-if="wildfireLayerEnabled" class="wildfire-legend" />
+        </div>
       </div>
     </div>
     <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
@@ -49,7 +66,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, ref, nextTick } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -79,13 +96,18 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
+  import UiWildfireLegend from '~/components/ui/WildfireLegend.vue';
   import { useStorage } from '@vueuse/core';
+  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
+  import { useWildfireData } from '~/composables/shared/useWildfireData';
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
+  const { handleApiError } = useApiErrorHandler();
+  const { fetchWildfires } = useWildfireData();
   const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
@@ -97,6 +119,7 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
+  const wildfireLayerEnabled = useStorage('wildfireLayerEnabled', false);
 
   const { urlState, setUrlState } = useUrlState();
 
@@ -122,6 +145,20 @@
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
   let markers: GeoJSON;
+  let wildfireMarkers: L.GeoJSON | null = null;
+
+  const fireColors = {
+    low: '#FFA500',
+    medium: '#FF4500',
+    high: '#FF0000',
+    extreme: '#8B0000'
+  };
+
+  const normalizeLongitude = (lng: number): number => {
+    while (lng > 180) lng -= 360;
+    while (lng < -180) lng += 360;
+    return lng;
+  };
 
   const onMapReady = () => {
     setUpMapInstance();
@@ -135,28 +172,6 @@
 
     mapInstance = map.value.leafletObject;
 
-    disableScrollWheelZoomForHeadless();
-
-    try {
-      const attributionContent = `
-      <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
-      <a target="_blank" href="https://leafletjs.com/">Leaflet</a> |
-            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> | 
-             © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
-             `;
-
-      if (mapInstance.attributionControl) {
-        mapInstance.attributionControl.setPrefix(attributionContent);
-      } else {
-        const attributionControl = L.control.attribution({
-          prefix: attributionContent
-        });
-        attributionControl.addTo(mapInstance);
-      }
-    } catch (error) {
-      console.warn('Failed to set custom attribution:', error);
-    }
-
     L.maplibreGL({
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [Number(urlState.lat), Number(urlState.long)],
@@ -169,6 +184,74 @@
 
     mapInstance.on('moveend', updateMap);
     mapInstance.whenReady(updateMap);
+  }
+
+  function toggleWildfireLayer(): void {
+    wildfireLayerEnabled.value = !wildfireLayerEnabled.value;
+    console.log('Wildfire layer toggled:', wildfireLayerEnabled.value);
+
+    if (wildfireLayerEnabled.value) {
+      updateMapDebounced();
+    } else {
+      clearWildfireLayer();
+    }
+  }
+
+  function clearWildfireLayer(): void {
+    console.log('Clearing wildfire layer');
+    if (wildfireMarkers && mapInstance) {
+      mapInstance.removeLayer(wildfireMarkers);
+      wildfireMarkers = null;
+    }
+  }
+
+  function updateWildfireMarkers(wildfireData: any): void {
+    console.log('updateWildfireMarkers called with:', wildfireData);
+    console.log('Number of fire features:', wildfireData.features?.length || 0);
+
+    clearWildfireLayer();
+
+    if (!wildfireData.features || wildfireData.features.length === 0) {
+      console.log('No fire data to display');
+      return;
+    }
+
+    wildfireMarkers = L.geoJSON(wildfireData, {
+      pointToLayer: (feature, latlng) => {
+        const intensity = feature.properties.intensity;
+        const baseSize = 6;
+        const sizeMultiplier =
+          intensity === 'extreme' ? 4 : intensity === 'high' ? 3 : intensity === 'medium' ? 2 : 1;
+
+        return L.circleMarker(latlng, {
+          radius: baseSize + sizeMultiplier,
+          fillColor: fireColors[intensity],
+          color: fireColors[intensity],
+          weight: 2,
+          opacity: 0.9,
+          fillOpacity: 0.7
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        const props = feature.properties;
+        layer.bindPopup(`
+          <div class="fire-popup">
+            <h4>🔥 Active Fire</h4>
+            <p><strong>Intensity:</strong> ${props.intensity.toUpperCase()}</p>
+            <p><strong>Confidence:</strong> ${props.confidence}%</p>
+            <p><strong>Fire Power:</strong> ${props.frp.toFixed(1)} MW</p>
+            <p><strong>Temperature:</strong> ${props.brightness.toFixed(1)}K</p>
+            <p><strong>Detected:</strong> ${props.acq_date} ${props.acq_time}Z</p>
+            <p><strong>Satellite:</strong> ${props.satellite}</p>
+          </div>
+        `);
+      }
+    });
+
+    if (mapInstance && wildfireMarkers) {
+      wildfireMarkers.addTo(mapInstance);
+      console.log('Wildfire layer added to map with', wildfireData.features.length, 'fires');
+    }
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -242,12 +325,28 @@
   async function updateMapData(): Promise<void> {
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
+
+      const normalizedBounds = {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: normalizeLongitude(bounds.getEast()),
+        west: normalizeLongitude(bounds.getWest())
+      };
+
+      console.log('Raw bounds:', {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
+      });
+      console.log('Normalized bounds:', normalizedBounds);
+
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getWest(),
-          ymin: bounds.getSouth(),
-          xmax: bounds.getEast(),
-          ymax: bounds.getNorth(),
+          xmin: bounds.getSouth(),
+          ymin: normalizedBounds.west,
+          xmax: bounds.getNorth(),
+          ymax: normalizedBounds.east,
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
@@ -257,12 +356,31 @@
         retry: 1
       });
 
+      if (wildfireLayerEnabled.value) {
+        console.log('Fetching wildfire data for bounds:', normalizedBounds);
+
+        const wildfireData = await fetchWildfires({
+          north: normalizedBounds.north,
+          south: normalizedBounds.south,
+          east: normalizedBounds.east,
+          west: normalizedBounds.west,
+          days: 1
+        });
+
+        if (wildfireData) {
+          updateWildfireMarkers(wildfireData);
+        }
+      } else {
+        clearWildfireLayer();
+      }
+
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
       markers.clearLayers();
       markers.addData(geoJsonData);
     } catch (error) {
       console.error('Failed to fetch map data:', error);
+      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -275,8 +393,7 @@
       provider,
       style: 'bar',
       autoClose: true,
-      keepResult: true,
-      searchLabel: 'Search'
+      keepResult: true
     });
 
     mapInstance.addControl(searchControl);
@@ -300,15 +417,6 @@
     }
   }
 
-  function disableScrollWheelZoomForHeadless(): void {
-    if (generalConfigStore.headless) {
-      mapInstance.scrollWheelZoom.disable();
-    }
-  }
-
-  /**
-   * Handle successful geolocation
-   */
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, {
@@ -318,16 +426,15 @@
     }
   }
 
-  /**
-   * Handle geolocation error
-   */
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
-    // Could show a toast notification here if available
+  }
+
+  function onMapMove(): void {
+    // Handle map move events if needed
   }
 
   onMounted(() => {
-    generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
       setUrlState({
         meas: MeasureNames.PM25
@@ -348,15 +455,60 @@
 
   #map {
     height: calc(100svh - 130px);
+    position: relative;
   }
+
+  .legend-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 30px;
+  }
+
+  .legend-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    padding: 20px;
+    max-width: 90%;
+    width: fit-content;
+  }
+
+  .markers-legend {
+    margin-bottom: 10px;
+  }
+
+  .colors-legend {
+    width: 100%;
+    min-width: 300px;
+  }
+
+  .wildfire-legend {
+    margin-top: 10px;
+  }
+
   @include desktop {
     #map {
       height: calc(100svh - 117px);
     }
-  }
-  .headless {
-    #map {
-      height: calc(100svh - 5px);
+
+    .legend-container {
+      flex-direction: row;
+      gap: 40px;
+      padding: 20px 30px;
+      max-width: 800px;
+    }
+
+    .colors-legend {
+      min-width: 400px;
     }
   }
 
@@ -402,153 +554,18 @@
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
   }
 
-  .ag-marker-tooltip {
+  .fire-popup {
     font-family: var(--secondary-font);
-    padding: 0;
-    border: none;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    background: var(--main-white-color);
-    backdrop-filter: blur(8px);
-    min-width: 180px;
 
-    &::before {
-      display: none;
+    h4 {
+      margin: 0 0 8px 0;
+      color: #8b0000;
     }
 
-    &::after {
-      content: '';
-      position: absolute;
-      bottom: -6px;
-      left: 50%;
-      transform: translateX(-50%) rotate(45deg);
-      width: 12px;
-      height: 12px;
-      background: var(--main-white-color);
-      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+    p {
+      margin: 4px 0;
+      font-size: 12px;
     }
-
-    .marker-tooltip {
-      .tooltip-header {
-        background: var(--primary-color);
-        color: var(--main-white-color);
-        padding: 8px 12px;
-        font-weight: 600;
-        font-size: 14px;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 100%;
-      }
-
-      .tooltip-content {
-        padding: 12px;
-        text-align: center;
-
-        .measurement {
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-          gap: 8px;
-
-          .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--main-text-color);
-            line-height: 1;
-          }
-
-          .unit {
-            font-size: 12px;
-            color: var(--dark-grey);
-            font-weight: 500;
-            white-space: nowrap;
-          }
-        }
-      }
-    }
-  }
-
-  .leaflet-tooltip {
-    z-index: 1000 !important;
-  }
-
-  .leaflet-geosearch-bar {
-    width: 300px !important;
-    max-width: 300px !important;
-    margin: 10px 10px 0 auto !important;
-  }
-
-  .leaflet-geosearch-bar form {
-    background-image: none;
-    border-radius: 100px;
-    border: 2px solid var(--grayColor400) !important;
-    height: 40px;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  .leaflet-geosearch-bar form input {
-    background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
-    background-position: left 5px top 1px;
-    background-size: 16px;
-    background-repeat: no-repeat;
-    font-size: var(--font-size-base) !important;
-    font-weight: var(--font-weight-medium);
-    font-family: var(--primary-font);
-    padding-left: 25px !important;
-    height: 22px !important;
-    height: 19px !important;
-    padding-right: 50px;
-    text-overflow: ellipsis;
-    margin: 9px 8px 10px 8px;
-    min-width: auto;
-    width: calc(100% - 16px);
-  }
-
-  .leaflet-geosearch-bar form.open {
-    border-radius: 20px;
-    height: auto;
-    padding-bottom: 0px;
-  }
-
-  .leaflet-geosearch-bar form.open .results {
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 18px;
-    padding: 0;
-    overflow: hidden;
-
-    div {
-      font-family: var(--primary-font);
-      border: none;
-      padding: 5px 12px;
-      text-align: left;
-    }
-
-    div:hover {
-      background-color: var(--primaryColor500);
-      color: var(--main-white-color);
-    }
-  }
-
-  .leaflet-geosearch-bar form input::placeholder {
-    color: var(--grayColor400);
-    font-family: var(--primary-font);
-  }
-
-  .leaflet-geosearch-bar .reset {
-    margin-right: 10px;
-    margin-top: 2px;
-    font-size: 18px;
-    background-color: transparent !important;
-  }
-
-  .leaflet-geosearch-bar form input:placeholder-shown + .reset {
-    height: 40px !important;
-    display: none;
   }
 
   .map-controls {
@@ -559,133 +576,24 @@
     width: 300px;
   }
 
-  .leaflet-geosearch-bar {
-    margin-bottom: 8px !important;
-  }
-
-  .legend-box {
-    position: absolute;
-    bottom: 35px;
-    left: 50%;
-    z-index: 400;
-    width: 900px;
-    transform: translateX(-50%);
-    max-width: 90%;
-    display: flex;
-    gap: 20px;
-    flex-direction: column;
-    align-items: center;
-    text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
-  }
-
   .map-info-btn-box {
     position: absolute;
-    top: 110px;
+    top: 90px;
     left: 10px;
     z-index: 999;
   }
 
   .map-geolocation-btn-box {
     position: absolute;
-    top: 154px;
+    top: 134px;
     left: 10px;
     z-index: 999;
   }
 
-  @media (max-width: 779px) {
-    .leaflet-control-geosearch {
-      display: flex;
-    }
-
-    .leaflet-geosearch-bar form {
-      width: 323px !important;
-    }
-
-    .leaflet-geosearch-bar form input {
-      background-position: left 5px center;
-      padding-left: 14px;
-    }
-
-    .legend-box {
-      bottom: 45px;
-    }
-  }
-
-  .leaflet-control-zoom {
-    border: 2px solid var(--grayColor400) !important;
-    border-radius: 100px !important;
-    background-color: var(--main-white-color) !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    padding: 8px 0 !important;
-    width: 40px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: var(--main-text-color) !important;
-    gap: 10px;
-  }
-
-  .leaflet-control-zoom a {
-    background-color: transparent !important;
-    border: none !important;
-    width: 100% !important;
-  }
-
-  .leaflet-control-zoom a.leaflet-disabled {
-    color: var(--grayColor500) !important;
-  }
-
-  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled) {
-    color: var(--main-text-color) !important;
-    position: relative !important;
-  }
-
-  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled)::before {
-    content: '' !important;
-    position: absolute !important;
-    top: -8px !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: -5px !important;
-    background-color: var(--grayColor200) !important;
-    border-radius: 100px 100px 0 0 !important;
-    z-index: -1 !important;
-  }
-
-  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled) {
-    color: var(--main-text-color) !important;
-    position: relative !important;
-  }
-
-  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled)::before {
-    content: '' !important;
-    position: absolute !important;
-    top: -5px !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: -8px !important;
-    background-color: var(--grayColor200) !important;
-    border-radius: 0 0 100px 100px !important;
-    z-index: -1 !important;
-  }
-
-  .leaflet-control-zoom::after {
-    content: '';
+  .wildfire-toggle-btn-box {
     position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 100%;
-    height: 1px;
-    background-color: var(--grayColor400);
-    z-index: 1;
-  }
-
-  .leaflet-control-attribution {
-    background-color: var(--main-white-color);
-    border-radius: 4px !important;
-    padding: 4px 8px !important;
-    text-align: center;
-    word-wrap: break-word !important;
+    top: 178px;
+    left: 10px;
+    z-index: 999;
   }
 </style>

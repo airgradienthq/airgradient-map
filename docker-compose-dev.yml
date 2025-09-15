@@ -1,4 +1,3 @@
-# API
 services:
   postgrex:
     container_name: postgrex-mono
@@ -28,6 +27,17 @@ services:
       - 3001:3001
     volumes:
       - ./apps/api/src:/app/src
+    environment:
+      - DATABASE_HOST=${DATABASE_HOST}
+      - DATABASE_PORT=${DATABASE_PORT}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - MAP_CLUSTER_RADIUS=${MAP_CLUSTER_RADIUS}
+      - MAP_CLUSTER_MAX_ZOOM=${MAP_CLUSTER_MAX_ZOOM}
+      - API_KEY_OPENAQ=${API_KEY_OPENAQ}
+      - PORT=${PORT}
+      - NASA_FIRMS_API_KEY=${NASA_FIRMS_API_KEY}
     networks:
       - dev
     depends_on:
@@ -56,4 +66,3 @@ networks:
 
 volumes:
   pgdata:
-
