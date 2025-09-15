@@ -200,15 +200,15 @@ class LocationRepository {
             SELECT
                 date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
-                l.sensor_type AS sensorType,
-                l.data_source AS dataSource
+                l.sensor_type AS "sensorType",
+                l.data_source AS "dataSource"
             FROM measurement m
             JOIN location l on m.location_id = l.id
             WHERE 
                 m.location_id = $1 AND 
                 m.measured_at BETWEEN $2 AND $3 
                 ${validationQuery}
-            GROUP BY timebucket, sensorType, dataSource
+            GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
         `;
 
