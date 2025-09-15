@@ -70,11 +70,14 @@ export const useWildfireData = () => {
       wildfireData.value = response;
       lastUpdate.value = new Date();
       return response;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Wildfire fetch error:', error);
 
-      if (error.response?.status === 400) {
-        console.error('Bad request - likely invalid bounds:', error.data);
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { status?: number; data?: unknown } };
+        if (apiError.response?.status === 400) {
+          console.error('Bad request - likely invalid bounds:', apiError.response.data);
+        }
       }
 
       handleApiError(error, 'Failed to load wildfire data');

@@ -21,8 +21,8 @@
         :size="ButtonSize.NORMAL"
         icon="mdi-fire"
         :style="wildfireLayerEnabled ? 'primary' : 'light'"
-        @click="toggleWildfireLayer"
         title="Toggle Wildfire Layer"
+        @click="toggleWildfireLayer"
       >
       </UiIconButton>
     </div>
