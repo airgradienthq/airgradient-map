@@ -113,8 +113,8 @@
       value: MeasureNames.PM_AQI
     },
     {
-      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.CO2],
-      value: MeasureNames.CO2
+      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2],
+      value: MeasureNames.RCO2
     }
   ];
 
@@ -247,10 +247,10 @@
       const bounds: LatLngBounds = mapInstance.getBounds();
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getSouth(),
-          ymin: bounds.getWest(),
-          xmax: bounds.getNorth(),
-          ymax: bounds.getEast(),
+          xmin: bounds.getWest(),
+          ymin: bounds.getSouth(),
+          xmax: bounds.getEast(),
+          ymax: bounds.getNorth(),
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI

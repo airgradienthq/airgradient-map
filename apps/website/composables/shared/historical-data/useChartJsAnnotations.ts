@@ -55,7 +55,7 @@ function getAveragesData(
 } | null {
   if (!data.length) return null;
 
-  const isCO2 = measure === MeasureNames.CO2;
+  const isCO2 = measure === MeasureNames.RCO2;
   const averageApproximation = isCO2 ? 0 : 1;
   const avgLabel = MEASURE_UNITS[measure] || '';
 

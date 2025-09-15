@@ -265,7 +265,7 @@
         value = pm25ToAQI(value);
         colorConfig = getAQIColor(value);
         break;
-      case MeasureNames.CO2:
+      case MeasureNames.RCO2:
         colorConfig = getCO2Color(value);
         break;
       default:

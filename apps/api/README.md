@@ -24,13 +24,13 @@ Database is PostgreSQL with 2 extensions [PostGIS](https://postgis.net/) and [pg
 
 #### DB Schema
 
-![db schema](db-schema.png)
+![db schema](schema.png)
 
 **Constraints**
 
 - owner
   - `id` ➝ Primary Key
-  - `owner_name` ➝ Unique
+  - `reference_id` ➝ Unique Key
 - location
   - `id` ➝ Primary Key
   - `reference_id` and `data_source` ➝ Unique on combination
@@ -40,6 +40,10 @@ Database is PostgreSQL with 2 extensions [PostGIS](https://postgis.net/) and [pg
 **Description**
 
 - owner ➝ store owners of every sensors available on location table
+  - `id` ➝ actual owner id that provided by this service
+  - `reference_id` ➝ owner id that given from data source
+  - `owner_name` ➝ name of the owner
+  - `url` ➝ sites of each owner
 - location ➝ store sensors with each sensor have a unique properties such as coordinates, locations name, etc 
   - `id` ➝ actual location id that provided by this service when sensor pulled from source 
   - `location_name` ➝ the location name of the sensor

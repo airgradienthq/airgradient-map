@@ -1,4 +1,4 @@
-export function escapeSingleQuote(str: string) {
+export function escapeSingleQuote(str: string): string | null {
   if (str === null) {
     return null;
   }

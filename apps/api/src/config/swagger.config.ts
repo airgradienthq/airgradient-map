@@ -1,7 +1,10 @@
 import { DocumentBuilder } from '@nestjs/swagger';
 
 export const createSwaggerConfig = () => {
-  return new DocumentBuilder()
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Build the base configuration
+  const builder = new DocumentBuilder()
     .setTitle('AirGradient Map API')
     .setDescription(
       `
@@ -30,9 +33,17 @@ All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to 
       'AirGradient Support',
       'https://www.airgradient.com/support/',
       'support@airgradient.com',
-    )
-    .addServer('https://map-data-int.airgradient.com', 'Integration Server')
-    .addServer('http://localhost:3001', 'Local Development')
+    );
+
+  if (isProduction) {
+    builder.addServer('https://map-data-int.airgradient.com', 'Integration Server');
+  } else {
+    builder
+      .addServer('http://localhost:3001', 'Local Development')
+      .addServer('https://map-data-int.airgradient.com', 'Integration Server');
+  }
+
+  return builder
     .addTag('Measurements', 'Current and historical air quality measurements')
     .addTag('Locations', 'Information about monitoring locations and sensors')
     .build();
