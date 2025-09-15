@@ -3,7 +3,7 @@ import { MeasureNames } from '~/types';
 export function getChartFontSize(measure: string) {
   let annotationsFontSize = 12;
 
-  if (measure === MeasureNames.CO2) {
+  if (measure === MeasureNames.RCO2) {
     return 11;
   }
 

@@ -9,8 +9,10 @@ import {
   MeasurementServiceResult,
   MeasurementsByAreaResult,
   MeasurementClusterResult,
+  MeasureType,
 } from '../types/measurement/measurement.types';
 import { MeasurementGeoJSONFeature } from '../types/shared/geojson.types';
+import { DataSource } from 'src/types/shared/data-source';
 
 @Injectable()
 export class MeasurementService {
@@ -34,7 +36,7 @@ export class MeasurementService {
   }
 
   async getLastMeasurements(
-    measure?: string,
+    measure?: MeasureType,
     page = 1,
     pagesize = 100,
   ): Promise<MeasurementServiceResult> {
@@ -49,7 +51,7 @@ export class MeasurementService {
     yMin: number,
     xMax: number,
     yMax: number,
-    measure?: string,
+    measure?: MeasureType,
   ): Promise<MeasurementsByAreaResult> {
     const measurements = await this.measurementRepository.retrieveLatestByArea(
       xMin,
@@ -68,10 +70,10 @@ export class MeasurementService {
     xMax: number,
     yMax: number,
     zoom: number,
-    measure?: string,
+    measure?: MeasureType,
   ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
-    measure = measure || 'pm25';
+    measure = measure || MeasureType.PM25;
 
     // Query locations by certain area with measurementType as the value
     const locations = await this.measurementRepository.retrieveLatestByArea(
@@ -90,7 +92,7 @@ export class MeasurementService {
     let geojson = new Array<MeasurementGeoJSONFeature>();
     locations.map(point => {
       const value =
-        measure === 'pm25' && point.dataSource === 'AirGradient'
+        measure === MeasureType.PM25 && point.dataSource === DataSource.AIRGRADIENT
           ? getEPACorrectedPM(point.pm25, point.rhum)
           : point[measure];
       geojson.push({
@@ -137,7 +139,7 @@ export class MeasurementService {
 
   private setEPACorrectedPM(measurements: MeasurementEntity[]) {
     return measurements.map(point => {
-      if (point.dataSource === 'AirGradient' && (point.pm25 || point.pm25 === 0)) {
+      if (point.dataSource === DataSource.AIRGRADIENT && (point.pm25 || point.pm25 === 0)) {
         point.pm25 = getEPACorrectedPM(point.pm25, point.rhum);
       }
       return point;
