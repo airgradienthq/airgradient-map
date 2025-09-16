@@ -1,0 +1,57 @@
+# API
+services:
+  postgrex:
+    container_name: postgrex-mono
+    build:
+      context: apps/api/tools/docker/db
+      dockerfile: Dockerfile
+      args:
+        - CRON_DATABASE_NAME=${DATABASE_NAME}
+    restart: unless-stopped
+    expose:
+      - 5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${DATABASE_USER}
+    networks:
+      - airgradient-map-prod
+
+  mapapi:
+    container_name: mapapi-mono
+    build:
+      context: apps/api
+      dockerfile: tools/docker/Dockerfile
+      target: production
+    restart: unless-stopped
+    ports:
+      - 3001:3001
+    networks:
+      - airgradient-map-prod
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - postgrex
+    environment:
+      - NODE_ENV=production
+
+  app:
+    container_name: website-mono
+    build:
+      context: apps/website
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=80
+
+networks:
+  airgradient-map-prod:
+    driver: bridge
+
+volumes:
+  pgdata:
