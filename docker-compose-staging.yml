@@ -8,8 +8,8 @@ services:
       args:
         - CRON_DATABASE_NAME=${DATABASE_NAME}
     restart: unless-stopped
-    expose:
-      - 5432
+    ports:
+      - 9876:5432
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
