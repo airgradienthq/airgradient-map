@@ -66,9 +66,11 @@
         class="wind-overlay"
       />
 
-      <div v-if="isLegendShown" class="legend-box">
-        <UiMapMarkersLegend />
-        <UiColorsLegend />
+      <div v-if="isLegendShown" class="legend-overlay">
+        <div class="legend-container">
+          <UiMapMarkersLegend class="markers-legend" />
+          <UiColorsLegend class="colors-legend" :is-white-mode="windLayerEnabled" />
+        </div>
       </div>
     </div>
     <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
@@ -144,7 +146,6 @@
   });
   const windVelocityScale = computed(() => {
     const zoom = mapInstance?.getZoom() || 1;
-    // Faster at high zoom (zoomed in), slower at low zoom (zoomed out)
     return Math.max(0.1, Math.min(2.0, zoom * 0.2));
   });
 
@@ -418,9 +419,53 @@
     z-index: 200;
   }
 
+  .legend-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 30px;
+  }
+
+  .legend-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    padding: 20px;
+    max-width: 90%;
+    width: fit-content;
+  }
+
+  .markers-legend {
+    margin-bottom: 10px;
+  }
+
+  .colors-legend {
+    width: 100%;
+    min-width: 300px;
+  }
+
   @include desktop {
     #map {
       height: calc(100svh - 117px);
+    }
+
+    .legend-container {
+      flex-direction: row;
+      gap: 40px;
+      padding: 20px 30px;
+      max-width: 800px;
+    }
+
+    .colors-legend {
+      min-width: 400px;
     }
   }
 
@@ -612,21 +657,6 @@
 
   .display-type-selector::-ms-expand {
     display: none;
-  }
-
-  .legend-box {
-    position: absolute;
-    bottom: 30px;
-    left: 50%;
-    z-index: 400;
-    width: 900px;
-    transform: translateX(-50%);
-    max-width: 90%;
-    display: flex;
-    gap: 20px;
-    flex-direction: column;
-    align-items: center;
-    text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
   }
 
   .map-info-btn-box {
