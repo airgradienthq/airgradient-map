@@ -158,8 +158,8 @@
       value: MeasureNames.PM_AQI
     },
     {
-      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.CO2],
-      value: MeasureNames.CO2
+      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2],
+      value: MeasureNames.RCO2
     }
   ];
 
