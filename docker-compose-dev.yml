@@ -23,15 +23,18 @@ services:
     build:
       context: apps/api
       dockerfile: tools/docker/Dockerfile
-    command: npm run start:dev
+      target: development
+    restart: unless-stopped
     ports:
       - 3001:3001
-    volumes:
-      - ./apps/api/src:/app/src
     networks:
-      - dev
+      - dev 
+    env_file:
+      - ./apps/api/.env.development
     depends_on:
       - postgrex
+    environment:
+      - NODE_ENV=development
 
   app:
     container_name: website-mono
