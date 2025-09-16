@@ -4,7 +4,7 @@ import { LogLevel, Logger } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createSwaggerConfig } from './config/swagger.config';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   // Setup logger
   const logger = new Logger('Bootstrap');
   const isProduction = process.env.NODE_ENV === 'production';

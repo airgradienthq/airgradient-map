@@ -18,6 +18,8 @@ import TimeseriesQuery from './timeseriesQuery';
 import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
 import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
+import { MeasurementAveragesDto } from './averages.dto';
+import { AveragesQueryDto } from './averagesQuery.dto';
 
 @Controller('map/api/v1/locations')
 @ApiTags('Locations')
@@ -86,14 +88,57 @@ export class LocationController {
 
   @Get(':id/cigarettes/smoked')
   @ApiOperation({
-    summary: 'Retrieve number of cigarettes smoked equivalent to amount of air pollution',
+    summary: 'Get cigarettes equivalent for air pollution exposure',
+    description:
+      'Calculates the equivalent number of cigarettes smoked based on PM2.5 exposure levels for different time periods. Uses the Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day.',
   })
-  @ApiOkResponse({ type: CigarettesSmokedDto })
-  @ApiNotFoundResponse()
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier',
+    example: 12345,
+    type: Number,
+  })
+  @ApiOkResponse({
+    type: CigarettesSmokedDto,
+    description: 'Cigarette equivalents for multiple time periods',
+  })
+  @ApiNotFoundResponse({ description: 'Location not found or no PM2.5 data available' })
+  @ApiBadRequestResponse({ description: 'Invalid location ID format' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getCigarettesSmoked(@Param() { id }: FindOneParams): Promise<CigarettesSmokedDto> {
     const result = await this.locationService.getCigarettesSmoked(id);
     return new CigarettesSmokedDto(result);
+  }
+
+  @Get(':id/averages')
+  @ApiOperation({
+    summary: 'Get measurement averages for a location',
+    description: `Calculate average values for a specified 
+    measurement type across different time periods (6h, 
+    24h, 7d, 30d, 90d) for a specific location. Returns 
+    null for periods with insufficient data. Defaults to
+    PM2.5 if measure is not specified.`,
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier',
+    example: 12345,
+    type: Number,
+  })
+  @ApiOkResponse({
+    type: MeasurementAveragesDto,
+    description: 'Measurement averages for multiple time periods',
+  })
+  @ApiNotFoundResponse({ description: 'Location not found or no measurement data available' })
+  @ApiBadRequestResponse({ description: 'Invalid location ID format or measure type' })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async getLocationMeasurementAverages(
+    @Param() { id }: FindOneParams,
+    @Query() { measure }: MeasureTypeQuery,
+    @Query() { periods }: AveragesQueryDto,
+  ): Promise<MeasurementAveragesDto> {
+    const result = await this.locationService.getLocationAverages(id, measure, periods);
+    return new MeasurementAveragesDto(result);
   }
 
   @Get(':id/measures/history')

@@ -1,35 +1,18 @@
-import { IsString, IsIn, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
-
-export enum MeasureType {
-  PM25 = 'pm25',
-  PM10 = 'pm10',
-  ATMP = 'atmp',
-  RHUM = 'rhum',
-  RCO2 = 'rco2',
-  O3 = 'o3',
-  NO2 = 'no2',
-}
+import { MeasureType } from '../types';
 
 class MeasureTypeQuery {
-  @ApiProperty({ enum: MeasureType, required: false })
+  @ApiProperty({
+    enum: MeasureType,
+    required: false,
+    description: 'Type of measurement to filter by',
+  })
   @IsOptional()
-  @IsString()
-  @IsIn(
-    [
-      MeasureType.PM25,
-      MeasureType.PM10,
-      MeasureType.ATMP,
-      MeasureType.RHUM,
-      MeasureType.RCO2,
-      MeasureType.O3,
-      MeasureType.NO2,
-    ],
-    { message: 'Invalid measure parameter' },
-  )
+  @IsEnum(MeasureType, { message: 'Invalid measure parameter' })
   @Transform(({ value }) => value?.toLowerCase())
-  measure: string;
+  measure?: MeasureType;
 }
 
 export default MeasureTypeQuery;

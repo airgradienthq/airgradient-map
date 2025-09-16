@@ -4,6 +4,9 @@ import { Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { AirgradientModel } from './model/airgradient.model';
 import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
+import { OpenAQLatestData } from '../types/tasks/openaq.types';
+import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
+import { DataSource } from 'src/types/shared/data-source';
 
 @Injectable()
 export class TasksRepository {
@@ -11,7 +14,7 @@ export class TasksRepository {
 
   private readonly logger = new Logger(TasksRepository.name);
 
-  async getAll() {
+  async getAll(): Promise<any[]> {
     const result = await this.databaseService.runQuery('SELECT * FROM measurement;');
     return result.rows;
   }
@@ -48,7 +51,11 @@ export class TasksRepository {
           // Restructure and collect data for each column
           acc.ownerNames.push(r.ownerName ?? 'unknown');
           acc.ownerUrls.push(r.ownerUrl);
-          acc.ownerRefIds.push(r.ownerReferenceId);
+          const prefixedOwnerId =
+            dataSource === DataSource.AIRGRADIENT
+              ? `${OWNER_REFERENCE_ID_PREFIXES.AIRGRADIENT}${r.ownerReferenceId}`
+              : `${OWNER_REFERENCE_ID_PREFIXES.OPENAQ}${r.ownerReferenceId}`;
+          acc.ownerRefIds.push(prefixedOwnerId);
           acc.locationNames.push(r.locationName);
           acc.locationRefIds.push(r.locationReferenceId);
           acc.sensorTypes.push(r.sensorType);
@@ -63,7 +70,7 @@ export class TasksRepository {
         {
           ownerNames: [] as (string | null)[],
           ownerUrls: [] as (string | null)[],
-          ownerRefIds: [] as number[],
+          ownerRefIds: [] as string[],
           locationNames: [] as string[],
           locationRefIds: [] as number[],
           sensorTypes: [] as string[],
@@ -118,7 +125,7 @@ export class TasksRepository {
           FROM unnest(
               $1::text[],
               $2::text[],
-              $3::int[],
+              $3::text[],
               $4::text[],
               $5::int[],
               $6::text[],
@@ -194,7 +201,7 @@ export class TasksRepository {
     }
   }
 
-  async insertNewAirgradientLatest(data: AirgradientModel[]) {
+  async insertNewAirgradientLatest(data: AirgradientModel[]): Promise<void> {
     try {
       const measurementValues = data
         .map(
@@ -219,7 +226,7 @@ export class TasksRepository {
             VALUES ${measurementValues}
           ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at)
           JOIN public."location" loc
-              ON loc.data_source = 'AirGradient'
+              ON loc.data_source = '${DataSource.AIRGRADIENT}'
              AND loc.reference_id = m.reference_id
           ON CONFLICT (location_id, measured_at) DO NOTHING;
         `;
@@ -233,7 +240,7 @@ export class TasksRepository {
   async retrieveOpenAQLocationId(): Promise<object | null> {
     try {
       const result = await this.databaseService.runQuery(
-        `SELECT json_object_agg(reference_id::TEXT, id) FROM "location" WHERE data_source = 'OpenAQ';`,
+        `SELECT json_object_agg(reference_id::TEXT, id) FROM "location" WHERE data_source = '${DataSource.OPENAQ}';`,
       );
       if (result.rowCount === 0 || result.rows[0].json_object_agg === null) {
         return {};
@@ -245,7 +252,7 @@ export class TasksRepository {
     }
   }
 
-  async insertNewOpenAQLatest(latests: any[]) {
+  async insertNewOpenAQLatest(latests: OpenAQLatestData[]): Promise<void> {
     try {
       const latestValues = latests
         .flatMap(({ locationId, pm25, measuredAt }) => {
@@ -253,7 +260,7 @@ export class TasksRepository {
         })
         .join(',');
 
-      var query = `
+      const query = `
         INSERT INTO measurement (location_id, pm25, measured_at) 
             VALUES ${latestValues} 
         ON CONFLICT (location_id, measured_at)
