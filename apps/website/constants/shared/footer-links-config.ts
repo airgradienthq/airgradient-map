@@ -85,7 +85,7 @@ export const FOOTER_LINKS_CONFIG: FooterLinkGroup[] = [
         openBlank: false
       },
       {
-        label: 'Resellers',
+        label: 'resellers',
         path: 'https://www.airgradient.com/resellers/',
         openBlank: false
       },

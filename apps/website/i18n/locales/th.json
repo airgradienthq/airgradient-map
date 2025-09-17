@@ -34,6 +34,8 @@
   "terms_conditions_quiz": "ควิซข้อกำหนด & เงื่อนไข AQ",
   "dashboard": "แดชบอร์ด",
   "integrations": "Integrations",
+  "homey": "Homey",
+  "home_assistant": "Home Assistant",
   "api": "API",
   "corporate_social": "ความรับผิดชอบต่อสังคมขององค์กร",
   "server_status": "สถานะเซิร์ฟเวอร์",
@@ -42,6 +44,7 @@
   "partner_program": "โปรแกรมพันธมิตร",
   "press_influencers": "สื่อ / ผู้มีอิทธิพล",
   "company_address": "181 หมู่ที่ 10 บ้านน้ำหลง ซอย 2 ตำบลสันโป่ง อำเภอแม่ริม จังหวัดเชียงใหม่ 50180 ประเทศไทย",
+  "resellers": "ผู้ขายสินค้า",
 
   "error_title": "คุณหมดอากาศแล้ว.",
   "error_body": "หน้าที่คุณกำลังค้นหาอยู่นอกเหนือการเข้าถึงของเรา...",

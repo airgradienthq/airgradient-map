@@ -35,6 +35,8 @@
   "terms_conditions_quiz": "AQ Terms & Conditions Quiz",
   "dashboard": "Dashboard",
   "integrations": "Integrations",
+  "homey": "Homey",
+  "home_assistant": "Home Assistant",
   "api": "API",
   "corporate_social": "Corporate Social Responsibility",
   "server_status": "Server Status",
@@ -43,6 +45,7 @@
   "partner_program": "Partner Program",
   "press_influencers": "Press / Influencers",
   "company_address": "181 M.10 Baan Nam Long Soi 2 Chiang Mai 50180, Thailand",
+  "resellers": "Resellers",
 
   "error_title": "You ran out of air.",
   "error_body": "The page you're looking for is beyond our reach...",
