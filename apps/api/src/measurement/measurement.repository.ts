@@ -147,7 +147,11 @@ class MeasurementRepository {
                         ST_MakeEnvelope($1, $2, $3, $4, 3857)
                     )
                 AND
+                  ${whereQuery}
+                AND
                     m.measured_at  >= NOW() - INTERVAL '6 hours'
+                AND
+                    m.measured_at <= NOW()
                 GROUP BY 
                     l.id
             )
@@ -163,10 +167,12 @@ class MeasurementRepository {
             FROM 
                 latest_measurements lm
             JOIN 
-                measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
+                measurement m ON
+                    lm.location_id = m.location_id
+                    AND lm.last_measured_at = m.measured_at
+                    AND m.measured_at >= NOW() - INTERVAL '6 hours'
             JOIN 
-                location l ON m.location_id = l.id
-                ${whereQuery};
+                location l ON m.location_id = l.id;
         `;
 
     try {
