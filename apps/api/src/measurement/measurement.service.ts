@@ -19,6 +19,7 @@ export class MeasurementService {
   // Default constant values
   private clusterRadius = 80;
   private clusterMaxZoom = 8;
+  private minPoints = 2;
 
   constructor(
     private readonly measurementRepository: MeasurementRepository,
@@ -118,6 +119,7 @@ export class MeasurementService {
     } else {
       const clustersIndexes = new Supercluster({
         radius: this.clusterRadius,
+        minPoints: this.minPoints,
         map: props => ({
           sum: props.value,
         }),
