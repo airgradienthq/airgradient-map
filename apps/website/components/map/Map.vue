@@ -87,10 +87,7 @@
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
 
-  const isUserInteracting = ref(false);
-  const interactionTimeout = ref<NodeJS.Timeout | null>(null);
-
-  const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
     {
@@ -121,7 +118,8 @@
     }
   ];
 
-  const updateMapDebounced = createVueDebounce(updateMapData, 500);
+  // SINGLE debouncing flow - no complex interaction logic
+  const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -171,60 +169,20 @@
       pointToLayer: createMarker
     }).addTo(mapInstance);
 
-    mapInstance.on('movestart', handleInteractionStart);
-    mapInstance.on('dragstart', handleInteractionStart);
-    mapInstance.on('zoomstart', handleInteractionStart);
-
-    mapInstance.on('moveend', handleMoveEnd);
-    mapInstance.on('dragend', handleInteractionEnd);
-    mapInstance.on('zoomend', handleInteractionEnd);
+    mapInstance.on('moveend', () => {
+      setUrlState({
+        zoom: mapInstance.getZoom(),
+        lat: mapInstance.getCenter().lat.toFixed(2),
+        long: mapInstance.getCenter().lng.toFixed(2)
+      });
+      
+      updateMapDebounced();
+    });
 
     startRefreshInterval();
-
     mapInstance.whenReady(() => {
       updateMapData();
     });
-  }
-
-  function handleInteractionStart(): void {
-    isUserInteracting.value = true;
-
-    if (interactionTimeout.value) {
-      clearTimeout(interactionTimeout.value);
-      interactionTimeout.value = null;
-    }
-  }
-
-  function handleInteractionEnd(): void {
-    if (interactionTimeout.value) {
-      clearTimeout(interactionTimeout.value);
-    }
-
-    interactionTimeout.value = setTimeout(() => {
-      isUserInteracting.value = false;
-      updateUrlAndFetchData();
-    }, 200);
-  }
-
-  function handleMoveEnd(): void {
-    updateUrlState();
-
-    if (!isUserInteracting.value) {
-      updateMapDebounced();
-    }
-  }
-
-  function updateUrlState(): void {
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-  }
-
-  function updateUrlAndFetchData(): void {
-    updateUrlState();
-    updateMapDebounced();
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -279,14 +237,19 @@
       return;
     }
 
-    updateUrlAndFetchData();
+    setUrlState({
+      zoom: mapInstance.getZoom(),
+      lat: mapInstance.getCenter().lat.toFixed(2),
+      long: mapInstance.getCenter().lng.toFixed(2)
+    });
+    updateMapDebounced();
   }
 
   async function updateMapData(): Promise<void> {
-    if (isUserInteracting.value || loading.value || locationHistoryDialog.value?.isOpen) {
+    if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
-
+    
     loading.value = true;
 
     try {
@@ -306,12 +269,13 @@
         retry: 1
       });
 
-      if (!isUserInteracting.value) {
-        const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
-        geoJsonMapData = geoJsonData;
+      const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
+      geoJsonMapData = geoJsonData;
+      
+      requestAnimationFrame(() => {
         markers.clearLayers();
         markers.addData(geoJsonData);
-      }
+      });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
     } finally {
@@ -347,9 +311,7 @@
       markers.clearLayers();
       markers.addData(geoJsonMapData);
     } else {
-      if (!isUserInteracting.value) {
-        updateMapDebounced();
-      }
+      updateMapDebounced();
     }
   }
 
@@ -359,9 +321,6 @@
     }
   }
 
-  /**
-   * Handle successful geolocation
-   */
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, {
@@ -371,12 +330,8 @@
     }
   }
 
-  /**
-   * Handle geolocation error
-   */
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
-    // Could show a toast notification here if available
   }
 
   onMounted(() => {
@@ -394,9 +349,6 @@
   });
 
   onUnmounted(() => {
-    if (interactionTimeout.value) {
-      clearTimeout(interactionTimeout.value);
-    }
     stopRefreshInterval();
   });
 </script>
