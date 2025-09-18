@@ -175,7 +175,7 @@
         lat: mapInstance.getCenter().lat.toFixed(2),
         long: mapInstance.getCenter().lng.toFixed(2)
       });
-      
+
       updateMapDebounced();
     });
 
@@ -249,7 +249,7 @@
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
-    
+
     loading.value = true;
 
     try {
@@ -271,7 +271,7 @@
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
-      
+
       requestAnimationFrame(() => {
         markers.clearLayers();
         markers.addData(geoJsonData);
