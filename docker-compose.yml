@@ -1,3 +1,4 @@
+# API
 services:
   postgrex:
     container_name: postgrex-mono
@@ -6,8 +7,9 @@ services:
       dockerfile: Dockerfile
       args:
         - CRON_DATABASE_NAME=${DATABASE_NAME}
-    ports:
-      - 5432:5432
+    restart: unless-stopped
+    expose:
+      - 5432
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
@@ -15,50 +17,43 @@ services:
       - POSTGRES_DB=${DATABASE_NAME}
       - POSTGRES_USER=${DATABASE_USER}
     networks:
-      - dev
+      - airgradient-map-prod
+
   mapapi:
     container_name: mapapi-mono
     build:
       context: apps/api
       dockerfile: tools/docker/Dockerfile
+      target: production
     restart: unless-stopped
     ports:
       - 3001:3001
     networks:
-      - dev 
-    volumes:
-      - ./apps/api/src:/app/src
-    environment:
-      - DATABASE_HOST=${DATABASE_HOST}
-      - DATABASE_PORT=${DATABASE_PORT}
-      - DATABASE_USER=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-      - DATABASE_NAME=${DATABASE_NAME}
-      - MAP_CLUSTER_RADIUS=${MAP_CLUSTER_RADIUS}
-      - MAP_CLUSTER_MAX_ZOOM=${MAP_CLUSTER_MAX_ZOOM}
-      - API_KEY_OPENAQ=${API_KEY_OPENAQ}
-      - PORT=${PORT}
-      - NASA_FIRMS_API_KEY=${NASA_FIRMS_API_KEY}
+      - airgradient-map-prod
+    env_file:
+      - ./apps/api/.env
     depends_on:
       - postgrex
+    environment:
+      - NODE_ENV=production
+
   app:
     container_name: website-mono
     build:
       context: apps/website
-      target: build
+      args:
+        - APP_ENV=production
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-    volumes:
-      - ./apps/website:/app
-      - /app/node_modules
-      - ./apps/website/.nuxt:/app/.nuxt
-    command: npm run dev
+      - "3000:80"
     environment:
+      - APP_ENV=production
       - HOST=0.0.0.0
-      - PORT=3000
-      - NODE_ENV=development
+      - PORT=80
+
 networks:
-  dev:
+  airgradient-map-prod:
     driver: bridge
+
 volumes:
   pgdata:

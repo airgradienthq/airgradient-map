@@ -8,7 +8,10 @@ import {
   LocationByIdResult,
   LocationMeasuresResult,
   CigarettesSmokedResult,
+  MeasurementAveragesResult,
 } from '../types/location/location.types';
+import { MeasureType } from 'src/types';
+import { DataSource } from 'src/types/shared/data-source';
 
 @Injectable()
 export class LocationService {
@@ -26,7 +29,7 @@ export class LocationService {
 
   async getLocationLastMeasures(id: number): Promise<LocationMeasuresResult> {
     const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
-    if (results.dataSource === 'AirGradient') {
+    if (results.dataSource === DataSource.AIRGRADIENT) {
       results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
     }
     return results;
@@ -41,10 +44,10 @@ export class LocationService {
     start: string,
     end: string,
     bucketSize: string,
-    measure?: string,
+    measure?: MeasureType,
   ) {
     // Default set to pm25 if not provided
-    let measureType = measure == null ? 'pm25' : measure;
+    let measureType = measure == null ? MeasureType.PM25 : measure;
 
     // Declare and set placeholder
     let startTime: DateTime;
@@ -76,13 +79,27 @@ export class LocationService {
       measureType,
     );
 
-    if (measureType === 'pm25') {
-      return results.map(row => ({
+    if (measureType === MeasureType.PM25) {
+      return results.map((row: any) => ({
         timebucket: row.timebucket,
-        value: row.dataSource === 'AirGradient' ? getEPACorrectedPM(row.pm25, row.rhum) : row.pm25,
+        value:
+          row.dataSource === DataSource.AIRGRADIENT
+            ? getEPACorrectedPM(row.pm25, row.rhum)
+            : row.pm25,
       }));
     }
 
     return results;
+  }
+
+  async getLocationAverages(
+    id: number,
+    measure: MeasureType,
+    periods?: string[],
+  ): Promise<MeasurementAveragesResult> {
+    // Default set to pm25 if not provided
+    let measureType = measure == null ? MeasureType.PM25 : measure;
+
+    return await this.locationRepository.retrieveAveragesByLocationId(id, measureType, periods);
   }
 }
