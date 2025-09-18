@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import MeasurementRepository from './measurement.repository';
 import Supercluster from 'supercluster';
 import MeasurementCluster from './measurementCluster.model';
@@ -19,7 +19,8 @@ export class MeasurementService {
   // Default constant values
   private clusterRadius = 80;
   private clusterMaxZoom = 8;
-  private minPoints = 2;
+  private clusterMinPoints = 2;
+  private readonly logger = new Logger(MeasurementService.name);
 
   constructor(
     private readonly measurementRepository: MeasurementRepository,
@@ -119,7 +120,7 @@ export class MeasurementService {
     } else {
       const clustersIndexes = new Supercluster({
         radius: this.clusterRadius,
-        minPoints: this.minPoints,
+        minPoints: this.clusterMinPoints,
         map: props => ({
           sum: props.value,
         }),
