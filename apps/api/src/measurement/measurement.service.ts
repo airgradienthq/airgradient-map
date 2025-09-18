@@ -76,7 +76,6 @@ export class MeasurementService {
     minPoints?: number,
     radius?: number,
     maxZoom?: number,
-
   ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
     measure = measure || MeasureType.PM25;

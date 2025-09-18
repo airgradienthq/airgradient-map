@@ -80,7 +80,7 @@ export class MeasurementController {
       measure,
       cluster.minPoints,
       cluster.radius,
-      cluster.maxZoom
+      cluster.maxZoom,
     );
     return new Pagination(measurementClusterModel, null, null);
   }
