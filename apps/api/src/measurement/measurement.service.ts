@@ -73,6 +73,10 @@ export class MeasurementService {
     yMax: number,
     zoom: number,
     measure?: MeasureType,
+    minPoints?: number,
+    radius?: number,
+    maxZoom?: number,
+
   ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
     measure = measure || MeasureType.PM25;
@@ -89,6 +93,13 @@ export class MeasurementService {
       // Directly return if query result empty
       return new Array<MeasurementCluster>();
     }
+
+    this.clusterMinPoints = minPoints ?? this.clusterMinPoints;
+    this.clusterRadius = radius ?? this.clusterRadius;
+    this.clusterMaxZoom = maxZoom ?? this.clusterMaxZoom;
+    this.logger.debug(`minPoints ${this.clusterMinPoints}`);
+    this.logger.debug(`radius ${this.clusterRadius}`);
+    this.logger.debug(`maxZoom ${this.clusterMaxZoom}`);
 
     // converting to .geojson features array
     let geojson = new Array<MeasurementGeoJSONFeature>();
