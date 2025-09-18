@@ -49,8 +49,8 @@ export class TasksRepository {
           if (r.locationName === null) return acc;
 
           // Restructure and collect data for each column
-          acc.ownerNames.push(r.ownerName ?? 'unknown');
-          acc.ownerUrls.push(r.ownerUrl);
+          acc.ownerNames.push(r.ownerName || null);
+          acc.ownerUrls.push(r.ownerUrl || null);
           const prefixedOwnerId =
             dataSource === DataSource.AIRGRADIENT
               ? `${OWNER_REFERENCE_ID_PREFIXES.AIRGRADIENT}${r.ownerReferenceId}`
