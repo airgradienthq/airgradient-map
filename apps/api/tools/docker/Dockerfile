@@ -3,7 +3,15 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install Java for grib2json conversion (required for real GFS data)
+RUN apt-get update && \
+    apt-get install -y default-jre-headless && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install grib2json tool
+RUN npm install -g weacast-grib2json
+
+# Install deps and copy project to container
 COPY package*.json ./
 COPY tsconfig*.json ./
 

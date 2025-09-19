@@ -15,6 +15,18 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
+    <div class="wind-toggle-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-weather-windy"
+        :style="'light'"
+        @click="toggleWindLayer"
+        title="Toggle Wind Layer"
+      >
+      </UiIconButton>
+    </div>
+
     <UiProgressBar :show="loading"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
@@ -26,6 +38,7 @@
         >
         </UiDropdownControl>
       </div>
+
       <LMap
         ref="map"
         class="map"
@@ -37,19 +50,38 @@
         :center="[Number(urlState.lat), Number(urlState.long)]"
         :attributionControl="true"
         @ready="onMapReady"
+        @move="onMapMove"
+        @zoom="onMapMove"
       >
       </LMap>
-      <div v-if="isLegendShown" class="legend-box">
-        <UiMapMarkersLegend />
-        <UiColorsLegend />
+
+      <WindVisualization
+        v-if="windLayerEnabled && mapBounds"
+        :width="mapSize.width"
+        :height="mapSize.height"
+        :bounds="mapBounds"
+        :zoom="mapInstance?.getZoom() || 3"
+        :wind-data-url="windDataUrl"
+        :particle-count="windParticleCount"
+        :velocity-scale="0.8"
+        :is-moving="isMapMoving"
+        class="wind-overlay"
+      />
+
+      <div v-if="isLegendShown" class="legend-overlay">
+        <div class="legend-container">
+          <UiMapMarkersLegend class="markers-legend" />
+          <UiColorsLegend class="colors-legend" :is-white-mode="windLayerEnabled" />
+        </div>
       </div>
     </div>
+
     <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
   </div>
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -79,13 +111,16 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
+  import WindVisualization from '~/components/map/WindVisualization.vue';
   import { useStorage } from '@vueuse/core';
+  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
+  const { handleApiError } = useApiErrorHandler();
 
   const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
@@ -99,26 +134,27 @@
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
 
+  const windLayerEnabled = useStorage('windLayerEnabled', false);
+  const mapSize = ref({ width: 800, height: 600 });
+  const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
+  const isMapMoving = ref(false);
+
   const { urlState, setUrlState } = useUrlState();
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
+  const windDataUrl = computed(() => 'http://localhost:3001/wind-data/file');
+  const windParticleCount = computed(() => {
+    const area = mapSize.value.width * mapSize.value.height;
+    return Math.min(Math.max(Math.floor(area / 5000), 500), 3000);
+  });
+
   const measureSelectOptions: DropdownOption[] = [
-    {
-      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25],
-      value: MeasureNames.PM25
-    },
-    {
-      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM_AQI],
-      value: MeasureNames.PM_AQI
-    },
-    {
-      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2],
-      value: MeasureNames.RCO2
-    }
+    { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
+    { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM_AQI], value: MeasureNames.PM_AQI },
+    { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2], value: MeasureNames.RCO2 }
   ];
 
-  // SINGLE debouncing flow - no complex interaction logic
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
@@ -128,12 +164,11 @@
   const onMapReady = () => {
     setUpMapInstance();
     addGeocodeControl();
+    updateMapDimensions();
   };
 
   function setUpMapInstance(): void {
-    if (!map.value) {
-      return;
-    }
+    if (!map.value) return;
 
     mapInstance = map.value.leafletObject;
 
@@ -143,20 +178,17 @@
       const attributionContent = `
       <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
       <a target="_blank" href="https://leafletjs.com/">Leaflet</a> |
-            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> | 
-             © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
-             `;
-
+      © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> |
+      © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
+    `;
       if (mapInstance.attributionControl) {
         mapInstance.attributionControl.setPrefix(attributionContent);
       } else {
-        const attributionControl = L.control.attribution({
-          prefix: attributionContent
-        });
+        const attributionControl = L.control.attribution({ prefix: attributionContent });
         attributionControl.addTo(mapInstance);
       }
-    } catch (error) {
-      console.warn('Failed to set custom attribution:', error);
+    } catch (e) {
+      console.warn('Attribution init failed:', e);
     }
 
     L.maplibreGL({
@@ -165,9 +197,14 @@
       zoom: Number(urlState.zoom)
     }).addTo(mapInstance);
 
-    markers = L.geoJson(null, {
-      pointToLayer: createMarker
-    }).addTo(mapInstance);
+    markers = L.geoJson(null, { pointToLayer: createMarker }).addTo(mapInstance);
+
+    mapInstance.on('movestart zoomstart', () => {
+      isMapMoving.value = true;
+    });
+    mapInstance.on('moveend zoomend', () => {
+      isMapMoving.value = false;
+    });
 
     mapInstance.on('moveend', () => {
       setUrlState({
@@ -179,10 +216,41 @@
       updateMapDebounced();
     });
 
+    mapInstance.on('resize', updateMapDimensions);
+
     startRefreshInterval();
     mapInstance.whenReady(() => {
       updateMapData();
     });
+  }
+
+  function updateMapDimensions(): void {
+    if (!mapInstance) return;
+    const container = mapInstance.getContainer();
+    mapSize.value = { width: container.offsetWidth, height: container.offsetHeight };
+    updateMapBounds();
+  }
+
+  function updateMapBounds(): void {
+    if (!mapInstance) return;
+    const bounds = mapInstance.getBounds();
+    mapBounds.value = {
+      north: bounds.getNorth(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      west: bounds.getWest()
+    };
+  }
+
+  function onMapMove(): void {
+    updateMapBounds();
+  }
+
+  function toggleWindLayer(): void {
+    windLayerEnabled.value = !windLayerEnabled.value;
+    if (windLayerEnabled.value) {
+      nextTick(() => updateMapDimensions());
+    }
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -206,9 +274,9 @@
 
     const icon: DivIcon = L.divIcon({
       html: `<div class="ag-marker${!isSensor ? ' is-cluster' : ''}${isReference ? ' is-reference' : ''} ${colorConfig?.textColorClass}" 
-             style="background-color: ${colorConfig?.bgColor}">
-             <span>${Math.round(displayValue)}</span>
-           </div>`,
+            style="background-color: ${colorConfig?.bgColor}">
+            <span>${Math.round(displayValue)}</span>
+          </div>`,
       className: `marker-box ${!isSensor ? 'is-cluster-marker-box' : ''}`,
       iconSize: L.point(markerSize, markerSize)
     });
@@ -221,28 +289,11 @@
       } else if (!isSensor) {
         const currentZoom = mapInstance.getZoom();
         const newZoom = Math.min(currentZoom + 2, DEFAULT_MAP_VIEW_CONFIG.maxZoom);
-
-        mapInstance.flyTo(latlng, newZoom, {
-          animate: true,
-          duration: 0.8
-        });
+        mapInstance.flyTo(latlng, newZoom, { animate: true, duration: 0.8 });
       }
     });
 
     return marker;
-  }
-
-  async function updateMap(): Promise<void> {
-    if (loading.value || locationHistoryDialog.value?.isOpen) {
-      return;
-    }
-
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-    updateMapDebounced();
   }
 
   async function updateMapData(): Promise<void> {
@@ -278,6 +329,7 @@
       });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
+      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -300,9 +352,7 @@
   function handleMeasureChange(value: MeasureNames): void {
     const previousMeasure = generalConfigStore.selectedMeasure;
     useGeneralConfigStore().setSelectedMeasure(value);
-    setUrlState({
-      meas: value
-    });
+    setUrlState({ meas: value });
 
     if (
       [MeasureNames.PM25, MeasureNames.PM_AQI].includes(previousMeasure) &&
@@ -323,10 +373,7 @@
 
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
-      mapInstance.flyTo([lat, lng], 12, {
-        animate: true,
-        duration: 1.2
-      });
+      mapInstance.flyTo([lat, lng], 12, { animate: true, duration: 1.2 });
     }
   }
 
@@ -337,13 +384,9 @@
   onMounted(() => {
     generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
-      setUrlState({
-        meas: MeasureNames.PM25
-      });
+      setUrlState({ meas: MeasureNames.PM25 });
     } else if (urlState.meas === <MeasureNames>'pi02') {
-      setUrlState({
-        meas: MeasureNames.PM_AQI
-      });
+      setUrlState({ meas: MeasureNames.PM_AQI });
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
   });
@@ -361,14 +404,62 @@
   #map {
     height: calc(100svh - 130px);
   }
+
+  .wind-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 200;
+  }
+
+  .legend-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 500;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 30px;
+  }
+
+  .legend-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    padding: 20px;
+    max-width: 90%;
+    width: fit-content;
+  }
+
+  .markers-legend {
+    margin-bottom: 10px;
+  }
+
+  .colors-legend {
+    width: 100%;
+    min-width: 300px;
+  }
+
   @include desktop {
     #map {
       height: calc(100svh - 117px);
     }
-  }
-  .headless {
-    #map {
-      height: calc(100svh - 5px);
+
+    .legend-container {
+      flex-direction: row;
+      gap: 40px;
+      padding: 20px 30px;
+      max-width: 800px;
+    }
+
+    .colors-legend {
+      min-width: 400px;
     }
   }
 
@@ -492,6 +583,7 @@
     width: 300px !important;
     max-width: 300px !important;
     margin: 10px 10px 0 auto !important;
+    margin-bottom: 8px !important;
   }
 
   .leaflet-geosearch-bar form {
@@ -513,7 +605,6 @@
     font-family: var(--primary-font);
     padding-left: 25px !important;
     height: 22px !important;
-    height: 19px !important;
     padding-right: 50px;
     text-overflow: ellipsis;
     margin: 9px 8px 10px 8px;
@@ -571,25 +662,6 @@
     width: 300px;
   }
 
-  .leaflet-geosearch-bar {
-    margin-bottom: 8px !important;
-  }
-
-  .legend-box {
-    position: absolute;
-    bottom: 35px;
-    left: 50%;
-    z-index: 400;
-    width: 900px;
-    transform: translateX(-50%);
-    max-width: 90%;
-    display: flex;
-    gap: 20px;
-    flex-direction: column;
-    align-items: center;
-    text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
-  }
-
   .map-info-btn-box {
     position: absolute;
     top: 110px;
@@ -600,6 +672,13 @@
   .map-geolocation-btn-box {
     position: absolute;
     top: 154px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .wind-toggle-btn-box {
+    position: absolute;
+    top: 198px;
     left: 10px;
     z-index: 999;
   }
@@ -616,10 +695,6 @@
     .leaflet-geosearch-bar form input {
       background-position: left 5px center;
       padding-left: 14px;
-    }
-
-    .legend-box {
-      bottom: 45px;
     }
   }
 
