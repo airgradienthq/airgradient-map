@@ -10,9 +10,6 @@ RUN npm install --ignore-scripts \
 
 COPY . .
 
-# Ensure locale files are in the expected location for the build
-RUN mkdir -p locales && \
-    if [ -d "i18n/locales" ]; then cp -r i18n/locales/* locales/; fi
 
 RUN npm run build
 
