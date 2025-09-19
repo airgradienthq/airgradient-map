@@ -15,6 +15,18 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
+    <div class="wildfire-toggle-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-fire"
+        :style="wildfireLayerEnabled ? 'primary' : 'light'"
+        title="Toggle Wildfire Layer"
+        @click="toggleWildfireLayer"
+      >
+      </UiIconButton>
+    </div>
+
     <UiProgressBar :show="loading"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
@@ -80,12 +92,16 @@
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import { useStorage } from '@vueuse/core';
+  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
+  import { useWildfireData } from '~/composables/shared/useWildfireData';
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
+  const { handleApiError } = useApiErrorHandler();
+  const { fetchWildfires } = useWildfireData();
 
   const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
@@ -98,6 +114,7 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
+  const wildfireLayerEnabled = useStorage('wildfireLayerEnabled', false);
 
   const { urlState, setUrlState } = useUrlState();
 
@@ -118,12 +135,18 @@
     }
   ];
 
-  // SINGLE debouncing flow - no complex interaction logic
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
   let markers: GeoJSON;
+  let wildfireMarkers: L.GeoJSON | null = null;
+
+  const normalizeLongitude = (lng: number): number => {
+    while (lng > 180) lng -= 360;
+    while (lng < -180) lng += 360;
+    return lng;
+  };
 
   const onMapReady = () => {
     setUpMapInstance();
@@ -185,6 +208,68 @@
     });
   }
 
+  function toggleWildfireLayer(): void {
+    wildfireLayerEnabled.value = !wildfireLayerEnabled.value;
+    console.log('Wildfire layer toggled:', wildfireLayerEnabled.value);
+
+    if (wildfireLayerEnabled.value) {
+      updateMapDebounced();
+    } else {
+      clearWildfireLayer();
+    }
+  }
+
+  function clearWildfireLayer(): void {
+    console.log('Clearing wildfire layer');
+    if (wildfireMarkers && mapInstance) {
+      mapInstance.removeLayer(wildfireMarkers);
+      wildfireMarkers = null;
+    }
+  }
+
+  function updateWildfireMarkers(wildfireData: any): void {
+    console.log('updateWildfireMarkers called with:', wildfireData);
+    console.log('Number of fire features:', wildfireData.features?.length || 0);
+
+    clearWildfireLayer();
+
+    if (!wildfireData.features || wildfireData.features.length === 0) {
+      console.log('No fire data to display');
+      return;
+    }
+
+    wildfireMarkers = L.geoJSON(wildfireData, {
+      pointToLayer: (feature, latlng) => {
+        return L.circleMarker(latlng, {
+          radius: 3,
+          fillColor: '#FF0000',
+          color: '#FF0000',
+          weight: 1,
+          opacity: 0.8,
+          fillOpacity: 0.6
+        });
+      },
+      onEachFeature: (feature, layer) => {
+        const props = feature.properties;
+        layer.bindPopup(`
+          <div class="fire-popup">
+            <h4>🔥 Active Fire</h4>
+            <p><strong>Confidence:</strong> ${props.confidence}%</p>
+            <p><strong>Fire Power:</strong> ${props.frp.toFixed(1)} MW</p>
+            <p><strong>Temperature:</strong> ${props.brightness.toFixed(1)}K</p>
+            <p><strong>Detected:</strong> ${props.acq_date} ${props.acq_time}Z</p>
+            <p><strong>Satellite:</strong> ${props.satellite}</p>
+          </div>
+        `);
+      }
+    });
+
+    if (mapInstance && wildfireMarkers) {
+      wildfireMarkers.addTo(mapInstance);
+      console.log('Wildfire layer added to map with', wildfireData.features.length, 'fires');
+    }
+  }
+
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
     let displayValue: number = feature.properties?.value;
     if (
@@ -232,19 +317,6 @@
     return marker;
   }
 
-  async function updateMap(): Promise<void> {
-    if (loading.value || locationHistoryDialog.value?.isOpen) {
-      return;
-    }
-
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-    updateMapDebounced();
-  }
-
   async function updateMapData(): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
@@ -254,30 +326,77 @@
 
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
-      const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
-        params: {
-          xmin: bounds.getWest(),
-          ymin: bounds.getSouth(),
-          xmax: bounds.getEast(),
-          ymax: bounds.getNorth(),
-          zoom: mapInstance.getZoom(),
-          measure:
-            generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
-              ? MeasureNames.PM25
-              : generalConfigStore.selectedMeasure
-        },
-        retry: 1
-      });
 
-      const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
-      geoJsonMapData = geoJsonData;
+      const normalizedBounds = {
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: normalizeLongitude(bounds.getEast()),
+        west: normalizeLongitude(bounds.getWest())
+      };
 
-      requestAnimationFrame(() => {
+      console.log('Fetching map data for bounds:', normalizedBounds);
+
+      // Try to fetch measurements data - if it fails, continue with wildfire only
+      try {
+        const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
+          params: {
+            xmin: bounds.getWest(),
+            ymin: bounds.getSouth(),
+            xmax: bounds.getEast(),
+            ymax: bounds.getNorth(),
+            zoom: mapInstance.getZoom(),
+            measure:
+              generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
+                ? MeasureNames.PM25
+                : generalConfigStore.selectedMeasure
+          },
+          retry: 1
+        });
+
+        console.log('Measurements data loaded successfully');
+        const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
+        geoJsonMapData = geoJsonData;
+
+        requestAnimationFrame(() => {
+          markers.clearLayers();
+          markers.addData(geoJsonData);
+        });
+      } catch (measurementError) {
+        console.log(
+          'Measurements API unavailable (database not connected) - continuing with wildfire data only'
+        );
+        // Clear any existing markers since we can't load air quality data
         markers.clearLayers();
-        markers.addData(geoJsonData);
-      });
+      }
+
+      // Fetch wildfire data if enabled - this should work independently
+      if (wildfireLayerEnabled.value) {
+        console.log('Fetching wildfire data for bounds:', normalizedBounds);
+
+        try {
+          const wildfireData = await fetchWildfires({
+            north: normalizedBounds.north,
+            south: normalizedBounds.south,
+            east: normalizedBounds.east,
+            west: normalizedBounds.west,
+            days: 1
+          });
+
+          if (wildfireData) {
+            console.log('Wildfire data received:', wildfireData.features?.length || 0, 'fires');
+            updateWildfireMarkers(wildfireData);
+          } else {
+            console.log('No wildfire data received');
+          }
+        } catch (wildfireError) {
+          console.error('Failed to fetch wildfire data:', wildfireError);
+        }
+      } else {
+        clearWildfireLayer();
+      }
     } catch (error) {
       console.error('Failed to fetch map data:', error);
+      // Don't show error toast if it's just measurements failing - wildfire might still work
     } finally {
       loading.value = false;
     }
@@ -308,8 +427,10 @@
       [MeasureNames.PM25, MeasureNames.PM_AQI].includes(previousMeasure) &&
       [MeasureNames.PM25, MeasureNames.PM_AQI].includes(value)
     ) {
-      markers.clearLayers();
-      markers.addData(geoJsonMapData);
+      if (geoJsonMapData) {
+        markers.clearLayers();
+        markers.addData(geoJsonMapData);
+      }
     } else {
       updateMapDebounced();
     }
@@ -366,12 +487,6 @@
       height: calc(100svh - 117px);
     }
   }
-  .headless {
-    #map {
-      height: calc(100svh - 5px);
-    }
-  }
-
   .headless {
     #map {
       height: calc(100svh - 5px) !important;
@@ -513,7 +628,6 @@
     font-family: var(--primary-font);
     padding-left: 25px !important;
     height: 22px !important;
-    height: 19px !important;
     padding-right: 50px;
     text-overflow: ellipsis;
     margin: 9px 8px 10px 8px;
@@ -602,6 +716,27 @@
     top: 154px;
     left: 10px;
     z-index: 999;
+  }
+
+  .wildfire-toggle-btn-box {
+    position: absolute;
+    top: 198px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .fire-popup {
+    font-family: var(--secondary-font);
+
+    h4 {
+      margin: 0 0 8px 0;
+      color: #8b0000;
+    }
+
+    p {
+      margin: 4px 0;
+      font-size: 12px;
+    }
   }
 
   @media (max-width: 779px) {

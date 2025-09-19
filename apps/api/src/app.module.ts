@@ -5,6 +5,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
+import { WildfireModule } from './wildfire/wildfire.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { LocationModule } from './location/location.module';
     }),
     MeasurementModule,
     LocationModule,
+    WildfireModule,
   ],
   controllers: [],
   providers: [],
