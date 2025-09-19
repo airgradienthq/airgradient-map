@@ -14,11 +14,14 @@
             <h2 class="text-white">Open Data <br />Real Impact <br />No Secrets.</h2>
             <span class="footer-buttons d-flex flex-wrap">
               <a
+                v-if="isEnglish"
                 href="https://www.airgradient.com/onboarding/welcome/"
                 class="btn-small button-orange"
               >
-                Get Started with AirGradient
+                {{ $t('get_started') }}
               </a>
+
+              <UiLangSelector />
             </span>
           </div>
           <div class="footer-links-container">
@@ -27,7 +30,7 @@
                 <ul class="footer-links">
                   <li v-for="(link, index) in item.links" :key="index">
                     <a :target="link.openBlank ? '_blank' : ''" :href="link.path">
-                      {{ link.label }}
+                      {{ $t(link.label) }}
                     </a>
                   </li>
                 </ul>
@@ -36,7 +39,7 @@
             </div>
             <hr class="footer-divider d-none d-lg-block" />
             <div class="social-links">
-              <h5 class="text-white">Connect with us</h5>
+              <h5 class="text-white">{{ $t('connect') }}</h5>
               <span class="d-flex flex-row social-links-inner">
                 <a
                   href="https://www.linkedin.com/company/airgradient/"
@@ -55,8 +58,8 @@
                 <a
                   href="https://www.airgradient.com/newsletter-signup"
                   target="_blank"
-                  class="btn-small button-white"
-                  >Join Newsletter</a
+                  class="btn-small button-white mr-1"
+                  >{{ $t('join_newsletter') }}</a
                 >
                 <a
                   target="_blank"
@@ -72,9 +75,7 @@
         </div>
         <div class="copyright d-flex flex-wrap justify-content-between" style="margin-top: 20px">
           <span class="copyright-text text-left mr-5">© AirGradient Co. Ltd.</span>
-          <span class="copyright-text text-left"
-            >181 M.10 Baan Nam Long Soi 2 Chiang Mai 50180, Thailand</span
-          >
+          <span class="copyright-text text-left">{{ $t('company_address') }}</span>
         </div>
       </div>
     </div>
@@ -88,15 +89,32 @@
             alt="1 Percent logo"
           />
         </a>
-        <p class="text-white m-0">
-          We’ve pledged 1% of sales to the preservation and restoration of the natural environment.
+        <p class="text-white m-0 one-percent-text">
+          {{ $t('pledge') }}
         </p>
       </div>
     </div>
   </footer>
 </template>
 <script setup lang="ts">
-  import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
+  import {
+    FOOTER_LINKS_CONFIG_EN,
+    FOOTER_LINKS_CONFIG_TH
+  } from '~/constants/shared/footer-links-config';
+  import { useI18n } from 'vue-i18n';
+  import { computed } from 'vue';
+  import { FooterLinkGroup } from '~/types';
+
+  const { locale } = useI18n();
+  const isEnglish = locale.value === 'en';
+
+  const FOOTER_LINKS_CONFIG = computed<FooterLinkGroup[]>(() => {
+    if (locale.value === 'th') {
+      return FOOTER_LINKS_CONFIG_TH;
+    } else {
+      return FOOTER_LINKS_CONFIG_EN;
+    }
+  });
 </script>
 <style lang="scss" scoped>
   footer {
@@ -298,5 +316,9 @@
         }
       }
     }
+  }
+
+  .one-percent-text {
+    font-size: var(--font-size-ml);
   }
 </style>

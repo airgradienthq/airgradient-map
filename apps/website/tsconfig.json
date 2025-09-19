@@ -8,7 +8,8 @@
     "types": ["node", "@capacitor/core", "vue"],
     "paths": {
       "~/*": ["./*"],
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "#imports": [".nuxt/imports.d.ts"]
     },
     "baseUrl": "."
   },
