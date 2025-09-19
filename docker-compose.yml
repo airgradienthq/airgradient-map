@@ -41,11 +41,13 @@ services:
     container_name: website-mono
     build:
       context: apps/website
+      args:
+        - APP_ENV=production
     restart: unless-stopped
     ports:
       - "3000:80"
     environment:
-      - NODE_ENV=production
+      - APP_ENV=production
       - HOST=0.0.0.0
       - PORT=80
 
