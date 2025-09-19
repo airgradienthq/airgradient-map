@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -86,7 +86,8 @@
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
-  const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
+
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
     {
@@ -117,7 +118,8 @@
     }
   ];
 
-  const updateMapDebounced = createVueDebounce(updateMap, 300);
+  // SINGLE debouncing flow - no complex interaction logic
+  const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -167,8 +169,20 @@
       pointToLayer: createMarker
     }).addTo(mapInstance);
 
-    mapInstance.on('moveend', updateMap);
-    mapInstance.whenReady(updateMap);
+    mapInstance.on('moveend', () => {
+      setUrlState({
+        zoom: mapInstance.getZoom(),
+        lat: mapInstance.getCenter().lat.toFixed(2),
+        long: mapInstance.getCenter().lng.toFixed(2)
+      });
+
+      updateMapDebounced();
+    });
+
+    startRefreshInterval();
+    mapInstance.whenReady(() => {
+      updateMapData();
+    });
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -222,24 +236,22 @@
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
-    loading.value = true;
 
     setUrlState({
       zoom: mapInstance.getZoom(),
       lat: mapInstance.getCenter().lat.toFixed(2),
       long: mapInstance.getCenter().lng.toFixed(2)
     });
-
-    if (isRefreshIntervalActive.value) {
-      stopRefreshInterval();
-    } else {
-      startRefreshInterval();
-    }
-
-    await updateMapData();
+    updateMapDebounced();
   }
 
   async function updateMapData(): Promise<void> {
+    if (loading.value || locationHistoryDialog.value?.isOpen) {
+      return;
+    }
+
+    loading.value = true;
+
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
@@ -259,8 +271,11 @@
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
-      markers.clearLayers();
-      markers.addData(geoJsonData);
+
+      requestAnimationFrame(() => {
+        markers.clearLayers();
+        markers.addData(geoJsonData);
+      });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
     } finally {
@@ -306,9 +321,6 @@
     }
   }
 
-  /**
-   * Handle successful geolocation
-   */
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, {
@@ -318,12 +330,8 @@
     }
   }
 
-  /**
-   * Handle geolocation error
-   */
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
-    // Could show a toast notification here if available
   }
 
   onMounted(() => {
@@ -338,6 +346,10 @@
       });
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
+  });
+
+  onUnmounted(() => {
+    stopRefreshInterval();
   });
 </script>
 
