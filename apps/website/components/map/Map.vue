@@ -54,7 +54,6 @@
       <div v-if="isLegendShown" class="legend-box">
         <UiMapMarkersLegend />
         <UiColorsLegend />
-        <UiWildfireLegend v-if="wildfireLayerEnabled" />
       </div>
     </div>
     <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
@@ -92,7 +91,6 @@
   import { CURRENT_DATA_REFRESH_INTERVAL } from '~/constants/map/refresh-interval';
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
-  import UiWildfireLegend from '~/components/ui/WildfireLegend.vue';
   import { useStorage } from '@vueuse/core';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { useWildfireData } from '~/composables/shared/useWildfireData';
@@ -143,13 +141,6 @@
   let mapInstance: L.Map;
   let markers: GeoJSON;
   let wildfireMarkers: L.GeoJSON | null = null;
-
-  const fireColors = {
-    low: '#FFA500',
-    medium: '#FF4500',
-    high: '#FF0000',
-    extreme: '#8B0000'
-  };
 
   const normalizeLongitude = (lng: number): number => {
     while (lng > 180) lng -= 360;
@@ -249,18 +240,13 @@
 
     wildfireMarkers = L.geoJSON(wildfireData, {
       pointToLayer: (feature, latlng) => {
-        const intensity = feature.properties.intensity;
-        const baseSize = 6;
-        const sizeMultiplier =
-          intensity === 'extreme' ? 4 : intensity === 'high' ? 3 : intensity === 'medium' ? 2 : 1;
-
         return L.circleMarker(latlng, {
-          radius: baseSize + sizeMultiplier,
-          fillColor: fireColors[intensity],
-          color: fireColors[intensity],
-          weight: 2,
-          opacity: 0.9,
-          fillOpacity: 0.7
+          radius: 3,
+          fillColor: '#FF0000',
+          color: '#FF0000',
+          weight: 1,
+          opacity: 0.8,
+          fillOpacity: 0.6
         });
       },
       onEachFeature: (feature, layer) => {
@@ -268,7 +254,6 @@
         layer.bindPopup(`
           <div class="fire-popup">
             <h4>🔥 Active Fire</h4>
-            <p><strong>Intensity:</strong> ${props.intensity.toUpperCase()}</p>
             <p><strong>Confidence:</strong> ${props.confidence}%</p>
             <p><strong>Fire Power:</strong> ${props.frp.toFixed(1)} MW</p>
             <p><strong>Temperature:</strong> ${props.brightness.toFixed(1)}K</p>
@@ -349,47 +334,69 @@
         west: normalizeLongitude(bounds.getWest())
       };
 
-      const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
-        params: {
-          xmin: bounds.getWest(),
-          ymin: bounds.getSouth(),
-          xmax: bounds.getEast(),
-          ymax: bounds.getNorth(),
-          zoom: mapInstance.getZoom(),
-          measure:
-            generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
-              ? MeasureNames.PM25
-              : generalConfigStore.selectedMeasure
-        },
-        retry: 1
-      });
+      console.log('Fetching map data for bounds:', normalizedBounds);
 
-      if (wildfireLayerEnabled.value) {
-        const wildfireData = await fetchWildfires({
-          north: normalizedBounds.north,
-          south: normalizedBounds.south,
-          east: normalizedBounds.east,
-          west: normalizedBounds.west,
-          days: 1
+      // Try to fetch measurements data - if it fails, continue with wildfire only
+      try {
+        const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
+          params: {
+            xmin: bounds.getWest(),
+            ymin: bounds.getSouth(),
+            xmax: bounds.getEast(),
+            ymax: bounds.getNorth(),
+            zoom: mapInstance.getZoom(),
+            measure:
+              generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
+                ? MeasureNames.PM25
+                : generalConfigStore.selectedMeasure
+          },
+          retry: 1
         });
 
-        if (wildfireData) {
-          updateWildfireMarkers(wildfireData);
+        console.log('Measurements data loaded successfully');
+        const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
+        geoJsonMapData = geoJsonData;
+
+        requestAnimationFrame(() => {
+          markers.clearLayers();
+          markers.addData(geoJsonData);
+        });
+      } catch (measurementError) {
+        console.log(
+          'Measurements API unavailable (database not connected) - continuing with wildfire data only'
+        );
+        // Clear any existing markers since we can't load air quality data
+        markers.clearLayers();
+      }
+
+      // Fetch wildfire data if enabled - this should work independently
+      if (wildfireLayerEnabled.value) {
+        console.log('Fetching wildfire data for bounds:', normalizedBounds);
+
+        try {
+          const wildfireData = await fetchWildfires({
+            north: normalizedBounds.north,
+            south: normalizedBounds.south,
+            east: normalizedBounds.east,
+            west: normalizedBounds.west,
+            days: 1
+          });
+
+          if (wildfireData) {
+            console.log('Wildfire data received:', wildfireData.features?.length || 0, 'fires');
+            updateWildfireMarkers(wildfireData);
+          } else {
+            console.log('No wildfire data received');
+          }
+        } catch (wildfireError) {
+          console.error('Failed to fetch wildfire data:', wildfireError);
         }
       } else {
         clearWildfireLayer();
       }
-
-      const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
-      geoJsonMapData = geoJsonData;
-
-      requestAnimationFrame(() => {
-        markers.clearLayers();
-        markers.addData(geoJsonData);
-      });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
-      handleApiError(error, 'Failed to load map data. Please try again.');
+      // Don't show error toast if it's just measurements failing - wildfire might still work
     } finally {
       loading.value = false;
     }
@@ -420,8 +427,10 @@
       [MeasureNames.PM25, MeasureNames.PM_AQI].includes(previousMeasure) &&
       [MeasureNames.PM25, MeasureNames.PM_AQI].includes(value)
     ) {
-      markers.clearLayers();
-      markers.addData(geoJsonMapData);
+      if (geoJsonMapData) {
+        markers.clearLayers();
+        markers.addData(geoJsonMapData);
+      }
     } else {
       updateMapDebounced();
     }
