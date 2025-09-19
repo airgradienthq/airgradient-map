@@ -47,18 +47,14 @@
         :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
         :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
         :center="[Number(urlState.lat), Number(urlState.long)]"
+        :attributionControl="true"
         @ready="onMapReady"
-        @move="onMapMove"
-        @zoom="onMapMove"
       >
       </LMap>
-
-      <div v-if="isLegendShown" class="legend-overlay">
-        <div class="legend-container">
-          <UiMapMarkersLegend class="markers-legend" />
-          <UiColorsLegend class="colors-legend" />
-          <UiWildfireLegend v-if="wildfireLayerEnabled" class="wildfire-legend" />
-        </div>
+      <div v-if="isLegendShown" class="legend-box">
+        <UiMapMarkersLegend />
+        <UiColorsLegend />
+        <UiWildfireLegend v-if="wildfireLayerEnabled" />
       </div>
     </div>
     <DialogsLocationHistoryDialog v-if="locationHistoryDialog" :dialog="locationHistoryDialog" />
@@ -66,7 +62,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -141,7 +137,6 @@
     }
   ];
 
-  // SINGLE debouncing flow - no complex interaction logic
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
@@ -175,6 +170,26 @@
     mapInstance = map.value.leafletObject;
 
     disableScrollWheelZoomForHeadless();
+
+    try {
+      const attributionContent = `
+      <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
+      <a target="_blank" href="https://leafletjs.com/">Leaflet</a> |
+            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> | 
+             © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
+             `;
+
+      if (mapInstance.attributionControl) {
+        mapInstance.attributionControl.setPrefix(attributionContent);
+      } else {
+        const attributionControl = L.control.attribution({
+          prefix: attributionContent
+        });
+        attributionControl.addTo(mapInstance);
+      }
+    } catch (error) {
+      console.warn('Failed to set custom attribution:', error);
+    }
 
     L.maplibreGL({
       style: 'https://tiles.openfreemap.org/styles/liberty',
@@ -334,20 +349,12 @@
         west: normalizeLongitude(bounds.getWest())
       };
 
-      console.log('Raw bounds:', {
-        north: bounds.getNorth(),
-        south: bounds.getSouth(),
-        east: bounds.getEast(),
-        west: bounds.getWest()
-      });
-      console.log('Normalized bounds:', normalizedBounds);
-
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getSouth(),
-          ymin: normalizedBounds.west,
-          xmax: bounds.getNorth(),
-          ymax: normalizedBounds.east,
+          xmin: bounds.getWest(),
+          ymin: bounds.getSouth(),
+          xmax: bounds.getEast(),
+          ymax: bounds.getNorth(),
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
@@ -358,8 +365,6 @@
       });
 
       if (wildfireLayerEnabled.value) {
-        console.log('Fetching wildfire data for bounds:', normalizedBounds);
-
         const wildfireData = await fetchWildfires({
           north: normalizedBounds.north,
           south: normalizedBounds.south,
@@ -397,7 +402,8 @@
       provider,
       style: 'bar',
       autoClose: true,
-      keepResult: true
+      keepResult: true,
+      searchLabel: 'Search'
     });
 
     mapInstance.addControl(searchControl);
@@ -440,10 +446,6 @@
     console.error('Geolocation error:', message);
   }
 
-  function onMapMove(): void {
-    // Handle map move events if needed
-  }
-
   onMounted(() => {
     generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
@@ -470,63 +472,12 @@
 
   #map {
     height: calc(100svh - 130px);
-    position: relative;
   }
-
-  .legend-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 500;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 30px;
-  }
-
-  .legend-container {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: center;
-    padding: 20px;
-    max-width: 90%;
-    width: fit-content;
-  }
-
-  .markers-legend {
-    margin-bottom: 10px;
-  }
-
-  .colors-legend {
-    width: 100%;
-    min-width: 300px;
-  }
-
-  .wildfire-legend {
-    margin-top: 10px;
-  }
-
   @include desktop {
     #map {
       height: calc(100svh - 117px);
     }
-
-    .legend-container {
-      flex-direction: row;
-      gap: 40px;
-      padding: 20px 30px;
-      max-width: 800px;
-    }
-
-    .colors-legend {
-      min-width: 400px;
-    }
   }
-
   .headless {
     #map {
       height: calc(100svh - 5px) !important;
@@ -569,6 +520,202 @@
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
   }
 
+  .ag-marker-tooltip {
+    font-family: var(--secondary-font);
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    background: var(--main-white-color);
+    backdrop-filter: blur(8px);
+    min-width: 180px;
+
+    &::before {
+      display: none;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: var(--main-white-color);
+      box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .marker-tooltip {
+      .tooltip-header {
+        background: var(--primary-color);
+        color: var(--main-white-color);
+        padding: 8px 12px;
+        font-weight: 600;
+        font-size: 14px;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+
+      .tooltip-content {
+        padding: 12px;
+        text-align: center;
+
+        .measurement {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 8px;
+
+          .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--main-text-color);
+            line-height: 1;
+          }
+
+          .unit {
+            font-size: 12px;
+            color: var(--dark-grey);
+            font-weight: 500;
+            white-space: nowrap;
+          }
+        }
+      }
+    }
+  }
+
+  .leaflet-tooltip {
+    z-index: 1000 !important;
+  }
+
+  .leaflet-geosearch-bar {
+    width: 300px !important;
+    max-width: 300px !important;
+    margin: 10px 10px 0 auto !important;
+  }
+
+  .leaflet-geosearch-bar form {
+    background-image: none;
+    border-radius: 100px;
+    border: 2px solid var(--grayColor400) !important;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .leaflet-geosearch-bar form input {
+    background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
+    background-position: left 5px top 1px;
+    background-size: 16px;
+    background-repeat: no-repeat;
+    font-size: var(--font-size-base) !important;
+    font-weight: var(--font-weight-medium);
+    font-family: var(--primary-font);
+    padding-left: 25px !important;
+    height: 22px !important;
+    padding-right: 50px;
+    text-overflow: ellipsis;
+    margin: 9px 8px 10px 8px;
+    min-width: auto;
+    width: calc(100% - 16px);
+  }
+
+  .leaflet-geosearch-bar form.open {
+    border-radius: 20px;
+    height: auto;
+    padding-bottom: 0px;
+  }
+
+  .leaflet-geosearch-bar form.open .results {
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    padding: 0;
+    overflow: hidden;
+
+    div {
+      font-family: var(--primary-font);
+      border: none;
+      padding: 5px 12px;
+      text-align: left;
+    }
+
+    div:hover {
+      background-color: var(--primaryColor500);
+      color: var(--main-white-color);
+    }
+  }
+
+  .leaflet-geosearch-bar form input::placeholder {
+    color: var(--grayColor400);
+    font-family: var(--primary-font);
+  }
+
+  .leaflet-geosearch-bar .reset {
+    margin-right: 10px;
+    margin-top: 2px;
+    font-size: 18px;
+    background-color: transparent !important;
+  }
+
+  .leaflet-geosearch-bar form input:placeholder-shown + .reset {
+    height: 40px !important;
+    display: none;
+  }
+
+  .map-controls {
+    position: absolute;
+    top: 60px;
+    right: 10px;
+    z-index: 999;
+    width: 300px;
+  }
+
+  .leaflet-geosearch-bar {
+    margin-bottom: 8px !important;
+  }
+
+  .legend-box {
+    position: absolute;
+    bottom: 35px;
+    left: 50%;
+    z-index: 400;
+    width: 900px;
+    transform: translateX(-50%);
+    max-width: 90%;
+    display: flex;
+    gap: 20px;
+    flex-direction: column;
+    align-items: center;
+    text-shadow: 1px 2px 2px rgb(108 108 108 / 43%);
+  }
+
+  .map-info-btn-box {
+    position: absolute;
+    top: 110px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .map-geolocation-btn-box {
+    position: absolute;
+    top: 154px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .wildfire-toggle-btn-box {
+    position: absolute;
+    top: 198px;
+    left: 10px;
+    z-index: 999;
+  }
+
   .fire-popup {
     font-family: var(--secondary-font);
 
@@ -583,32 +730,100 @@
     }
   }
 
-  .map-controls {
-    position: absolute;
-    top: 60px;
-    right: 10px;
-    z-index: 999;
-    width: 300px;
+  @media (max-width: 779px) {
+    .leaflet-control-geosearch {
+      display: flex;
+    }
+
+    .leaflet-geosearch-bar form {
+      width: 323px !important;
+    }
+
+    .leaflet-geosearch-bar form input {
+      background-position: left 5px center;
+      padding-left: 14px;
+    }
+
+    .legend-box {
+      bottom: 45px;
+    }
   }
 
-  .map-info-btn-box {
-    position: absolute;
-    top: 90px;
-    left: 10px;
-    z-index: 999;
+  .leaflet-control-zoom {
+    border: 2px solid var(--grayColor400) !important;
+    border-radius: 100px !important;
+    background-color: var(--main-white-color) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 0 !important;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--main-text-color) !important;
+    gap: 10px;
   }
 
-  .map-geolocation-btn-box {
-    position: absolute;
-    top: 134px;
-    left: 10px;
-    z-index: 999;
+  .leaflet-control-zoom a {
+    background-color: transparent !important;
+    border: none !important;
+    width: 100% !important;
   }
 
-  .wildfire-toggle-btn-box {
+  .leaflet-control-zoom a.leaflet-disabled {
+    color: var(--grayColor500) !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -8px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -5px !important;
+    background-color: var(--grayColor200) !important;
+    border-radius: 100px 100px 0 0 !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -5px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -8px !important;
+    background-color: var(--grayColor200) !important;
+    border-radius: 0 0 100px 100px !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom::after {
+    content: '';
     position: absolute;
-    top: 178px;
-    left: 10px;
-    z-index: 999;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 1px;
+    background-color: var(--grayColor400);
+    z-index: 1;
+  }
+
+  .leaflet-control-attribution {
+    background-color: var(--main-white-color);
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    text-align: center;
+    word-wrap: break-word !important;
   }
 </style>
