@@ -98,7 +98,6 @@ export const FOOTER_LINKS_CONFIG_EN: FooterLinkGroup[] = [
   }
 ];
 
-
 export const FOOTER_LINKS_CONFIG_TH: FooterLinkGroup[] = [
   {
     group: 1,

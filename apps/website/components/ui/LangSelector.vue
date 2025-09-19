@@ -4,7 +4,7 @@
       <img :src="`images/icons/${locale}.svg`" class="flag-icon" />
       {{ locales.find(l => l.code === locale)?.name }}
     </button>
-    <div  class="dropdown-menu lang-dropdown-menu" :class="{ show: activeLanguageDropdown }">
+    <div class="dropdown-menu lang-dropdown-menu" :class="{ show: activeLanguageDropdown }">
       <button v-for="locale in locales" class="dropdown-item btn-small button-white text-left">
         <NuxtLink :key="locale.code" @click="setLocale(locale.code)">
           <img :src="`images/icons/${locale.code}.svg`" class="flag-icon" />
@@ -23,8 +23,6 @@
   const { locale } = useI18n();
   const locales = $i18n.locales;
   const activeLanguageDropdown = ref(false);
-
-  
 
   const toggleLanguageDropdown = () => {
     activeLanguageDropdown.value = !activeLanguageDropdown.value;
