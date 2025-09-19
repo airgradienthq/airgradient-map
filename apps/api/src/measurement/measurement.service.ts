@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import MeasurementRepository from './measurement.repository';
 import Supercluster from 'supercluster';
 import MeasurementCluster from './measurementCluster.model';
@@ -19,6 +19,8 @@ export class MeasurementService {
   // Default constant values
   private clusterRadius = 80;
   private clusterMaxZoom = 8;
+  private clusterMinPoints = 2;
+  private readonly logger = new Logger(MeasurementService.name);
 
   constructor(
     private readonly measurementRepository: MeasurementRepository,
@@ -71,6 +73,9 @@ export class MeasurementService {
     yMax: number,
     zoom: number,
     measure?: MeasureType,
+    minPoints?: number,
+    radius?: number,
+    maxZoom?: number,
   ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
     measure = measure || MeasureType.PM25;
@@ -87,6 +92,13 @@ export class MeasurementService {
       // Directly return if query result empty
       return new Array<MeasurementCluster>();
     }
+
+    this.clusterMinPoints = minPoints ?? this.clusterMinPoints;
+    this.clusterRadius = radius ?? this.clusterRadius;
+    this.clusterMaxZoom = maxZoom ?? this.clusterMaxZoom;
+    this.logger.debug(`minPoints ${this.clusterMinPoints}`);
+    this.logger.debug(`radius ${this.clusterRadius}`);
+    this.logger.debug(`maxZoom ${this.clusterMaxZoom}`);
 
     // converting to .geojson features array
     let geojson = new Array<MeasurementGeoJSONFeature>();
@@ -118,6 +130,7 @@ export class MeasurementService {
     } else {
       const clustersIndexes = new Supercluster({
         radius: this.clusterRadius,
+        minPoints: this.clusterMinPoints,
         map: props => ({
           sum: props.value,
         }),

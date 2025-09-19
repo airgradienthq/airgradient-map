@@ -9,6 +9,7 @@ import MeasureTypeQuery from '../utils/measureTypeQuery';
 import { MeasurementEntity } from './measurement.entity';
 import MeasurementClusterModel from './measurementCluster.model';
 import PaginationQuery from 'src/utils/paginationQuery';
+import ClusterQuery from './clusterQuery';
 
 @Controller('map/api/v1/measurements')
 @ApiTags('Measurements')
@@ -68,6 +69,7 @@ export class MeasurementController {
   async getLastMeasurementsByCluster(
     @Query() { measure }: MeasureTypeQuery,
     @Query() area: AreaQuery,
+    @Query() cluster: ClusterQuery,
   ): Promise<Pagination<MeasurementClusterModel>> {
     const measurementClusterModel = await this.measurementService.getLastMeasurementsByCluster(
       area.xmin,
@@ -76,6 +78,9 @@ export class MeasurementController {
       area.ymax,
       area.zoom,
       measure,
+      cluster.minPoints,
+      cluster.radius,
+      cluster.maxZoom,
     );
     return new Pagination(measurementClusterModel, null, null);
   }

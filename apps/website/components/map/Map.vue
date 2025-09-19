@@ -66,7 +66,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref, nextTick } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -108,7 +108,8 @@
   const generalConfigStore = useGeneralConfigStore();
   const { handleApiError } = useApiErrorHandler();
   const { fetchWildfires } = useWildfireData();
-  const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
+
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
     {
@@ -140,7 +141,8 @@
     }
   ];
 
-  const updateMapDebounced = createVueDebounce(updateMap, 300);
+  // SINGLE debouncing flow - no complex interaction logic
+  const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -172,6 +174,8 @@
 
     mapInstance = map.value.leafletObject;
 
+    disableScrollWheelZoomForHeadless();
+
     L.maplibreGL({
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [Number(urlState.lat), Number(urlState.long)],
@@ -182,8 +186,20 @@
       pointToLayer: createMarker
     }).addTo(mapInstance);
 
-    mapInstance.on('moveend', updateMap);
-    mapInstance.whenReady(updateMap);
+    mapInstance.on('moveend', () => {
+      setUrlState({
+        zoom: mapInstance.getZoom(),
+        lat: mapInstance.getCenter().lat.toFixed(2),
+        long: mapInstance.getCenter().lng.toFixed(2)
+      });
+
+      updateMapDebounced();
+    });
+
+    startRefreshInterval();
+    mapInstance.whenReady(() => {
+      updateMapData();
+    });
   }
 
   function toggleWildfireLayer(): void {
@@ -301,28 +317,13 @@
     return marker;
   }
 
-  async function updateMap(): Promise<void> {
+  async function updateMapData(): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
+
     loading.value = true;
 
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-
-    if (isRefreshIntervalActive.value) {
-      stopRefreshInterval();
-    } else {
-      startRefreshInterval();
-    }
-
-    await updateMapData();
-  }
-
-  async function updateMapData(): Promise<void> {
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
 
@@ -376,8 +377,11 @@
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
-      markers.clearLayers();
-      markers.addData(geoJsonData);
+
+      requestAnimationFrame(() => {
+        markers.clearLayers();
+        markers.addData(geoJsonData);
+      });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
       handleApiError(error, 'Failed to load map data. Please try again.');
@@ -417,6 +421,12 @@
     }
   }
 
+  function disableScrollWheelZoomForHeadless(): void {
+    if (generalConfigStore.headless) {
+      mapInstance.scrollWheelZoom.disable();
+    }
+  }
+
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, {
@@ -435,6 +445,7 @@
   }
 
   onMounted(() => {
+    generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
       setUrlState({
         meas: MeasureNames.PM25
@@ -445,6 +456,10 @@
       });
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
+  });
+
+  onUnmounted(() => {
+    stopRefreshInterval();
   });
 </script>
 
