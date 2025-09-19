@@ -97,10 +97,24 @@
   </footer>
 </template>
 <script setup lang="ts">
-  import { FOOTER_LINKS_CONFIG } from '~/constants/shared/footer-links-config';
+  import {
+    FOOTER_LINKS_CONFIG_EN,
+    FOOTER_LINKS_CONFIG_TH
+  } from '~/constants/shared/footer-links-config';
   import { useI18n } from 'vue-i18n';
+  import { computed } from 'vue';
+  import { FooterLinkGroup } from '~/types';
 
-  const isEnglish = useI18n().locale.value === 'en';
+  const { locale } = useI18n();
+  const isEnglish = locale.value === 'en';
+
+  const FOOTER_LINKS_CONFIG = computed<FooterLinkGroup[]>(() => {
+    if (locale.value === 'th') {
+      return FOOTER_LINKS_CONFIG_TH;
+    } else {
+      return FOOTER_LINKS_CONFIG_EN;
+    }
+  });
 </script>
 <style lang="scss" scoped>
   footer {

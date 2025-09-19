@@ -124,7 +124,7 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
 export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
   {
     label: 'indoor_monitor',
-    path: 'https://www.airgradient.com/indoor/',
+    path: 'https://www.airgradient.com/th/indoor/',
     openBlank: false
   },
   {
@@ -134,19 +134,19 @@ export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
     children: [
       {
         label: 'open_air',
-        path: 'https://www.airgradient.com/outdoor/',
+        path: 'https://www.airgradient.com/th/outdoor/',
         openBlank: false
       },
       {
         label: 'open_air_max',
-        path: 'https://www.airgradient.com/open-air-max/',
+        path: 'https://www.airgradient.com/th/open-air-max/',
         openBlank: false
       }
     ]
   },
   {
     label: 'documentation',
-    path: '',
+    path: 'https://www.airgradient.com/th/documentation/',
     openBlank: false
   },
   {
@@ -156,19 +156,19 @@ export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
     children: [
       {
         label: 'research',
-        path: 'https://www.airgradient.com/research/',
+        path: 'https://www.airgradient.com/th/research/',
         openBlank: false
       },
       {
         label: 'about_us',
-        path: 'https://www.airgradient.com/join-us/',
+        path: 'https://www.airgradient.com/th/join-us/',
         openBlank: false
       }
     ]
   },
   {
     label: 'support',
-    path: 'https://www.airgradient.com/support/',
+    path: 'https://www.airgradient.com/th/support/',
     openBlank: false
   },
   {
@@ -178,7 +178,7 @@ export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
   },
   {
     label: 'shop',
-    path: 'https://www.airgradient.com/shop/',
+    path: 'https://www.airgradient.com/th/shop/',
     openBlank: false
   }
 ];
