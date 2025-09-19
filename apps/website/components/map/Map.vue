@@ -81,7 +81,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref, nextTick } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -121,7 +121,8 @@
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
   const { handleApiError } = useApiErrorHandler();
-  const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
+
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
     {
@@ -133,7 +134,6 @@
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
 
-  // Wind layer functionality
   const windLayerEnabled = useStorage('windLayerEnabled', false);
   const mapSize = ref({ width: 800, height: 600 });
   const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
@@ -155,7 +155,7 @@
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2], value: MeasureNames.RCO2 }
   ];
 
-  const updateMapDebounced = createVueDebounce(updateMap, 300);
+  const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -206,9 +206,22 @@
       isMapMoving.value = false;
     });
 
-    mapInstance.on('moveend', updateMap);
+    mapInstance.on('moveend', () => {
+      setUrlState({
+        zoom: mapInstance.getZoom(),
+        lat: mapInstance.getCenter().lat.toFixed(2),
+        long: mapInstance.getCenter().lng.toFixed(2)
+      });
+
+      updateMapDebounced();
+    });
+
     mapInstance.on('resize', updateMapDimensions);
-    mapInstance.whenReady(updateMap);
+
+    startRefreshInterval();
+    mapInstance.whenReady(() => {
+      updateMapData();
+    });
   }
 
   function updateMapDimensions(): void {
@@ -283,24 +296,13 @@
     return marker;
   }
 
-  async function updateMap(): Promise<void> {
-    if (loading.value || locationHistoryDialog.value?.isOpen) return;
+  async function updateMapData(): Promise<void> {
+    if (loading.value || locationHistoryDialog.value?.isOpen) {
+      return;
+    }
+
     loading.value = true;
 
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-
-    if (isRefreshIntervalActive.value) stopRefreshInterval();
-    else startRefreshInterval();
-
-    await updateMapData();
-    updateMapBounds();
-  }
-
-  async function updateMapData(): Promise<void> {
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
@@ -320,8 +322,11 @@
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
-      markers.clearLayers();
-      markers.addData(geoJsonData);
+
+      requestAnimationFrame(() => {
+        markers.clearLayers();
+        markers.addData(geoJsonData);
+      });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
       handleApiError(error, 'Failed to load map data. Please try again.');
@@ -385,6 +390,10 @@
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
   });
+
+  onUnmounted(() => {
+    stopRefreshInterval();
+  });
 </script>
 
 <style lang="scss">
@@ -404,7 +413,6 @@
     z-index: 200;
   }
 
-  /* Legend overlay kept from original wind version */
   .legend-overlay {
     position: absolute;
     top: 0;
@@ -571,7 +579,6 @@
     z-index: 1000 !important;
   }
 
-  /* ====== Search bar + controls (from second snippet) ====== */
   .leaflet-geosearch-bar {
     width: 300px !important;
     max-width: 300px !important;
@@ -647,7 +654,6 @@
     display: none;
   }
 
-  /* Dropdown control container */
   .map-controls {
     position: absolute;
     top: 60px;
@@ -656,7 +662,6 @@
     width: 300px;
   }
 
-  /* ====== Button positions (from second snippet) ====== */
   .map-info-btn-box {
     position: absolute;
     top: 110px;
@@ -671,15 +676,13 @@
     z-index: 999;
   }
 
-  /* Wind button positioned below geolocation */
   .wind-toggle-btn-box {
     position: absolute;
-    top: 198px; /* 44px spacing from geolocation button */
+    top: 198px;
     left: 10px;
     z-index: 999;
   }
 
-  /* Responsive tweaks from second snippet */
   @media (max-width: 779px) {
     .leaflet-control-geosearch {
       display: flex;
@@ -695,7 +698,6 @@
     }
   }
 
-  /* ====== Zoom controls styling (from second snippet) ====== */
   .leaflet-control-zoom {
     border: 2px solid var(--grayColor400) !important;
     border-radius: 100px !important;

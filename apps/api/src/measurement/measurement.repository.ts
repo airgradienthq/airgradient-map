@@ -21,7 +21,7 @@ class MeasurementRepository {
   } {
     const query = {
       selectQuery: `m.pm25, m.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2`,
-      whereQuery: '',
+      whereQuery: '1=1',
       hasValidation: false,
       minVal: null,
       maxVal: null,
@@ -40,10 +40,10 @@ class MeasurementRepository {
 
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
-        query.whereQuery = `WHERE m.pm25 IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `m.pm25 IS NOT NULL ${validationQuery}`;
       } else {
         query.selectQuery = `m.${measure}`;
-        query.whereQuery = `WHERE m.${measure} IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `m.${measure} IS NOT NULL ${validationQuery}`;
       }
     }
     return query;
@@ -89,7 +89,8 @@ class MeasurementRepository {
                 measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
             JOIN 
                 location l ON m.location_id = l.id
-            ${whereQuery}
+            WHERE
+              ${whereQuery}
             ORDER BY 
                 lm.location_id 
             OFFSET $1 LIMIT $2; 
@@ -146,7 +147,11 @@ class MeasurementRepository {
                         ST_MakeEnvelope($1, $2, $3, $4, 3857)
                     )
                 AND
+                  ${whereQuery}
+                AND
                     m.measured_at  >= NOW() - INTERVAL '6 hours'
+                AND
+                    m.measured_at <= NOW()
                 GROUP BY 
                     l.id
             )
@@ -162,10 +167,12 @@ class MeasurementRepository {
             FROM 
                 latest_measurements lm
             JOIN 
-                measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
+                measurement m ON
+                    lm.location_id = m.location_id
+                    AND lm.last_measured_at = m.measured_at
+                    AND m.measured_at >= NOW() - INTERVAL '6 hours'
             JOIN 
-                location l ON m.location_id = l.id
-                ${whereQuery};
+                location l ON m.location_id = l.id;
         `;
 
     try {
