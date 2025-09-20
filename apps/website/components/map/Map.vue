@@ -20,7 +20,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-fire"
-        :style="wildfireLayerEnabled ? 'primary' : 'light'"
+        :style="wildfireLayerEnabled ? 'light' : 'light'"
         title="Toggle Wildfire Layer"
         @click="toggleWildfireLayer"
       >
