@@ -59,60 +59,75 @@ To stop the services, run:
 docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml down
 ```
 
-4. **Seed Data to the Database**
+4. **Setup Database**
 
-> **⚠️ Important for Existing Developers:** If you've previously run this project, you'll need to refresh your database and containers due to recent schema changes. See the(#database-refresh) below.
+This project uses [Knexjs](https://knexjs.org/) for database migrations and seeding to keep the schema and test data consistent with project changes.
 
-#### Fresh Setup
+> **⚠️ Important for Existing Developers:** 
 
-- Download database dump from [here](https://drive.google.com/drive/folders/1ABAu1JSs4lJRyD22ssN9bLrJzMCUVI7x?usp=sharing)
-- Copy db dump to the db container
-
-```bash
-docker cp agmap.dump postgrex-mono:/tmp/
-```
-
-- Restore database
-
-```bash
-docker exec -it postgrex-mono pg_restore -U postgres -d agmap -v /tmp/agmap.dump
-```
-
-- Make sure database is ready
-
-```bash
-docker exec -it postgrex-mono psql -U postgres -d agmap -c "select count(*) from location;"
-```
-
-Expected Result (updated count):
-
-```bash
- count 
--------
- 13981
-(1 row)
-```
-
-#### Database Refresh Steps {#database-refresh}
-
-> For developers who have previously worked with this project
-
-The database schema and dump have been updated to support contributor fixes from PR [#196](https://github.com/airgradienthq/airgradient-map/pull/196). You'll need to completely refresh your environment:
-
-- **Remove all containers and images:**
-
-```bash
-docker compose -f docker-compose-dev.yml down --rmi all
-```
-
-- **Remove the database volume:**
+If you’ve previously run this project before migrations were introduced, it’s recommended to start fresh and make sure removing the existing Postgres volume:
 
 ```bash
 docker volume rm airgradient-map_pgdata
 ```
 
-- **Follow the Fresh Setup steps above** with the updated database dump.
+- Run Migrations
 
+Create/update tables with the latest schema:
+
+```bash
+docker exec -it mapapi-mono npx knex migrate:latest --knexfile knexfile.ts
+```
+
+- Seed Data
+
+Populate tables with sample/initial data:
+
+```bash
+$ docker exec -it mapapi-mono npx knex seed:run --knexfile knexfile.ts
+```
+
+Example Output:
+
+```
+Requiring external module ts-node/register
+Seeded 1761 owner
+Seeded 14176 locations with PostgreSQL timestamps
+Processing 65680 measurement records...
+Inserted 1000 of 65680 records
+Inserted 6000 of 65680 records
+Inserted 11000 of 65680 records
+Inserted 16000 of 65680 records
+Inserted 21000 of 65680 records
+Inserted 26000 of 65680 records
+Inserted 31000 of 65680 records
+Inserted 36000 of 65680 records
+Inserted 41000 of 65680 records
+Inserted 46000 of 65680 records
+Inserted 51000 of 65680 records
+Inserted 56000 of 65680 records
+Inserted 61000 of 65680 records
+Inserted 65680 of 65680 records
+Seeded 65680 measurements mapped to the last 6 hours
+Ran 3 seed files
+```
+
+- Verify Database Setup 
+
+Check that the data has been seeded correctly:
+
+```bash
+docker exec -it postgrex-mono psql -U postgres -d agmap -c "select count(*) from location;"
+```
+
+Expected result (row count may differ if seed data changes):
+
+```bash
+ count 
+-------
+ 14176
+(1 row)
+```
 
 5. **Check the UI**
 
