@@ -35,6 +35,18 @@ export class LocationService {
     return results;
   }
 
+  async getLocationLastPM25ByLocationsList(
+    locationIds: number[],
+  ): Promise<LocationMeasuresResult[]> {
+    const results = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
+    for (const result of results) {
+      if (result.dataSource === DataSource.AIRGRADIENT) {
+        result.pm25 = getEPACorrectedPM(result.pm25, result.rhum);
+      }
+    }
+    return results;
+  }
+
   async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
     return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
   }

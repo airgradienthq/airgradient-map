@@ -103,6 +103,28 @@ class LocationRepository {
     }
   }
 
+  async retrieveLastPM25ByLocationsList(locationIds: number[]) {
+    if (locationIds.length === 0) {
+      return [];
+    }
+    const query = `
+        SELECT DISTINCT ON (m.location_id)
+                m.location_id AS "locationId",
+                m.pm25,
+                m.rhum,
+                m.measured_at AS "measuredAt",
+                l.location_name AS "locationName",
+                l.sensor_type AS "sensorType",
+                l.data_source AS "dataSource"
+        FROM measurement m
+        JOIN location l ON m.location_id = l.id
+        WHERE m.location_id = ANY($1::int[])
+        ORDER BY m.location_id, m.measured_at DESC;
+    `;
+    const results = await this.databaseService.runQuery(query, [locationIds]);
+    return results.rows;
+  }
+
   async retrieveLastMeasuresByLocationId(id: number) {
     const query = `
             SELECT 
