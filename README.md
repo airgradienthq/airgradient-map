@@ -64,12 +64,12 @@ docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml do
 This project uses [Knexjs](https://knexjs.org/) for database migrations and seeding to keep the schema and test data consistent with project changes.
 
 > **⚠️ Important for Existing Developers:** 
-
-If you’ve previously run this project before migrations were introduced, it’s recommended to start fresh and make sure removing the existing Postgres volume:
-
-```bash
-docker volume rm airgradient-map_pgdata
-```
+>
+> If you’ve previously run this project before migrations were introduced, it’s recommended to start fresh and make sure removing the existing Postgres volume:
+> 
+> ```bash
+> docker volume rm airgradient-map_pgdata
+> ```
 
 - Run Migrations
 
