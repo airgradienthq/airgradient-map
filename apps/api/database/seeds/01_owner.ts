@@ -21,7 +21,9 @@ export async function seed(knex: Knex): Promise<void> {
     reference_id: row.reference_id || null
   }));
   
-  // Clear existing data
+  // Clear existing data in orderto prevent foreign key constrain 
+  await knex('measurement').del();
+  await knex('location').del();
   await knex('owner').del();
   
   // Reset the sequence to avoid conflicts
