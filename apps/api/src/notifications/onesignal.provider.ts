@@ -59,14 +59,6 @@ export class OneSignalProvider {
         }),
       );
 
-      this.logger.debug('OneSignal notification sent successfully', {
-        message: payload.contents,
-        heading: payload.headings,
-        image: payload.ios_attachments.id1,
-        notificationId: response.data.id,
-        statusCode: response.status,
-      });
-
       return response.data;
     } catch (error) {
       // Log error without exposing sensitive data
@@ -81,7 +73,7 @@ export class OneSignalProvider {
   public async sendAirQualityNotification(
     playerIds: string[],
     locationName: string,
-    airQuality: number,
+    pmValue: number,
     unit: NotificationPMUnit = NotificationPMUnit.UG,
     imageUrl?: string,
   ): Promise<any> {
@@ -92,8 +84,8 @@ export class OneSignalProvider {
         de: locationName,
       },
       contents: {
-        en: `Air Quality is now ${airQuality} ${unit}`,
-        de: `Die Luftqualität ist derzeit ${airQuality} ${unit}`,
+        en: `Air Quality is now ${pmValue} ${unit}`,
+        de: `Die Luftqualität ist derzeit ${pmValue} ${unit}`,
       },
       ios_attachments: imageUrl
         ? {

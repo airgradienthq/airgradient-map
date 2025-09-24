@@ -6,6 +6,7 @@ import { UpdateNotificationDto } from './update-notification.dto';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import LocationRepository from 'src/location/location.repository';
+import { convertPmToUsAqi } from 'src/utils/convert_pm_us_aqi';
 
 @Injectable()
 export class NotificationsService {
@@ -33,10 +34,7 @@ export class NotificationsService {
     const newNotification = new NotificationEntity({
       ...notification,
       active: notification.active ?? true,
-      scheduled_days:
-        notification.scheduled_days?.length > 0
-          ? notification.scheduled_days
-          : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+      scheduled_days: notification.scheduled_days || [],
     });
 
     const result = await this.notificationRepository.createNotification(newNotification);
@@ -144,20 +142,18 @@ export class NotificationsService {
         continue;
       }
 
+      const pmValue =
+        notification.unit === NotificationPMUnit.UG
+          ? measurement.pm25
+          : convertPmToUsAqi(measurement.pm25);
+
       const job = {
         playerId: notification.player_id,
         locationName: measurement.locationName,
-        value: measurement.pm25,
+        value: pmValue,
         unit: notification.unit as NotificationPMUnit,
         imageUrl: this.getImageUrlForAQI(measurement.pm25),
       };
-
-      this.logger.debug(`Prepared notification job:`, {
-        player: job.playerId,
-        location: job.locationName,
-        pm25: job.value,
-        unit: job.unit,
-      });
 
       jobs.push(job);
     }
@@ -188,10 +184,8 @@ export class NotificationsService {
   private validateNotificationData(data: Partial<CreateNotificationDto>): void {
     // Validate based on alarm type
     if (data.alarm_type === AlarmType.THRESHOLD) {
-      if (!data.threshold_ug_m3 && !data.threshold_category) {
-        throw new BadRequestException(
-          'Threshold notifications require either threshold_ug_m3 or threshold_category',
-        );
+      if (!data.threshold_ug_m3) {
+        throw new BadRequestException('Threshold notifications require threshold_ug_m3');
       }
     }
 
@@ -201,28 +195,22 @@ export class NotificationsService {
           'Scheduled notifications require scheduled_time and scheduled_timezone',
         );
       }
-
-      if (!data.scheduled_days || data.scheduled_days.length === 0) {
-        throw new BadRequestException('Scheduled notifications require at least one scheduled day');
-      }
     }
 
-    // Validate location ID
     if (!data.location_id || data.location_id <= 0) {
       throw new BadRequestException('Valid location_id is required');
     }
   }
 
   private getImageUrlForAQI(pm25: number): string {
-    // Convert PM2.5 to AQI and return appropriate image
-    if (pm25 <= 12) return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-good.png';
+    if (pm25 <= 9) return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-good.png';
     if (pm25 <= 35.4)
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-moderate.png';
     if (pm25 <= 55.4)
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy-sensitive.png';
-    if (pm25 <= 150.4)
+    if (pm25 <= 125.4)
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy.png';
-    if (pm25 <= 250.4)
+    if (pm25 <= 225.4)
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-very-unhealthy.png';
     return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-hazardous.png';
   }

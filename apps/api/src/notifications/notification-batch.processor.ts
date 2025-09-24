@@ -56,9 +56,6 @@ export class NotificationBatchProcessor {
         this.processWithRetry(notification)
           .then(() => {
             successful.push(notification.playerId);
-            this.logger.debug(
-              `Successfully sent notification to player: ${notification.playerId} for ${notification.locationName}`,
-            );
             return { success: true, playerId: notification.playerId };
           })
           .catch(error => {
@@ -88,7 +85,7 @@ export class NotificationBatchProcessor {
     const totalTime = Date.now() - startTime;
 
     this.logger.log(
-      `Batch processing completed: ${successful.length} successful, ${failed.length} failed, ${totalTime}ms`,
+      `Batch processing completed: ${successful.length}/${notifications.length} notifications sent successfully, ${failed.length} failed, total time: ${totalTime}ms`,
     );
 
     return { successful, failed, totalTime };

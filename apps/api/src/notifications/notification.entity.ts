@@ -27,9 +27,6 @@ export class NotificationEntity {
   threshold_ug_m3: number | null;
 
   @ApiProperty()
-  threshold_category: string | null;
-
-  @ApiProperty()
   threshold_cycle: string | null;
 
   @ApiProperty()

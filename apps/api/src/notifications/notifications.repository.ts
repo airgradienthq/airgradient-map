@@ -10,10 +10,10 @@ export class NotificationsRepository {
     const result = await this.databaseService.runQuery(
       `INSERT INTO notifications (
         player_id, user_id, alarm_type, location_id,
-        threshold_ug_m3, threshold_category, threshold_cycle,
+        threshold_ug_m3, threshold_cycle,
         scheduled_days, scheduled_time, scheduled_timezone,
         active, unit
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         notification.player_id,
@@ -21,7 +21,6 @@ export class NotificationsRepository {
         notification.alarm_type,
         notification.location_id,
         notification.threshold_ug_m3,
-        notification.threshold_category,
         notification.threshold_cycle,
         notification.scheduled_days,
         notification.scheduled_time,
@@ -68,14 +67,13 @@ export class NotificationsRepository {
 
   async updateNotification(notification: NotificationEntity): Promise<NotificationEntity> {
     const result = await this.databaseService.runQuery(
-      'UPDATE notifications SET player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, threshold_ug_m3 = $5, threshold_category = $6, threshold_cycle = $7, scheduled_days = $8, scheduled_time = $9, scheduled_timezone = $10, active = $11, unit = $12 WHERE id = $13 RETURNING *',
+      'UPDATE notifications SET player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, threshold_ug_m3 = $5, threshold_cycle = $6, scheduled_days = $7, scheduled_time = $8, scheduled_timezone = $9, active = $10, unit = $11 WHERE id = $12 RETURNING *',
       [
         notification.player_id,
         notification.user_id,
         notification.alarm_type,
         notification.location_id,
         notification.threshold_ug_m3,
-        notification.threshold_category,
         notification.threshold_cycle,
         notification.scheduled_days,
         notification.scheduled_time,

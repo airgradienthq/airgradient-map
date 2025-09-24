@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     alarm_type VARCHAR(50) NOT NULL CHECK (alarm_type IN ('threshold', 'scheduled')),
     location_id INTEGER NOT NULL,
     threshold_ug_m3 NUMERIC,
-    threshold_category VARCHAR(50),
     threshold_cycle VARCHAR(50),
     scheduled_days TEXT[],
     scheduled_time VARCHAR(10),

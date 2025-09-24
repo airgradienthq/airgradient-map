@@ -16,11 +16,6 @@ export class UpdateNotificationDto {
   @IsNumber()
   threshold_ug_m3?: number;
 
-  @ApiProperty({ description: 'Threshold category', required: false })
-  @IsOptional()
-  @IsString()
-  threshold_category?: string;
-
   @ApiProperty({ description: 'Threshold cycle', required: false })
   @IsOptional()
   @IsString()

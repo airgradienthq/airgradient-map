@@ -46,16 +46,6 @@ export class CreateNotificationDto {
   threshold_ug_m3?: number;
 
   @ApiProperty({
-    description: 'AQI category threshold for notifications (not used for scheduled notifications)',
-    required: false,
-    enum: ['good', 'moderate', 'unhealthy_sensitive', 'unhealthy', 'very_unhealthy', 'hazardous'],
-    example: 'moderate',
-  })
-  @IsOptional()
-  @IsString()
-  threshold_category?: string;
-
-  @ApiProperty({
     description: 'How often to check threshold conditions (not used for scheduled notifications)',
     required: false,
     enum: ['once', '1h', '6h', '24h'],
