@@ -17,7 +17,11 @@ export class NotificationEntity {
   @ApiProperty()
   user_id: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: AlarmType,
+    enumName: 'AlarmType',
+    description: 'Type of notification: threshold-based or scheduled'
+  })
   alarm_type: AlarmType;
 
   @ApiProperty()
@@ -29,7 +33,11 @@ export class NotificationEntity {
   @ApiProperty()
   threshold_cycle: string | null;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Days on which scheduled notifications are sent. Empty array means no notifications will be sent.',
+    type: [String],
+    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+  })
   scheduled_days: string[];
 
   @ApiProperty()

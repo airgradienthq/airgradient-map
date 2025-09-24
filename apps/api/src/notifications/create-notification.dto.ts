@@ -56,7 +56,7 @@ export class CreateNotificationDto {
   threshold_cycle?: string;
 
   @ApiProperty({
-    description: 'Days to send scheduled notifications (required for scheduled notifications)',
+    description: 'Days to send scheduled notifications. Leave empty or omit to disable scheduled notifications. If empty array is provided, no notifications will be sent.',
     type: [String],
     required: false,
     enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
