@@ -33,7 +33,10 @@ export class NotificationsRepository {
     return result.rows[0];
   }
 
-  async getNotifications(playerId: string = null, locationId: number = null): Promise<NotificationEntity[]> {
+  async getNotifications(
+    playerId: string = null,
+    locationId: number = null,
+  ): Promise<NotificationEntity[]> {
     let query = 'SELECT * FROM notifications';
     const params = [];
     const conditions = [];
@@ -56,7 +59,10 @@ export class NotificationsRepository {
   }
 
   async getNotificationById(id: string): Promise<NotificationEntity> {
-    const result = await this.databaseService.runQuery('SELECT * FROM notifications WHERE id = $1', [id]);
+    const result = await this.databaseService.runQuery(
+      'SELECT * FROM notifications WHERE id = $1',
+      [id],
+    );
     return result.rows[0];
   }
 

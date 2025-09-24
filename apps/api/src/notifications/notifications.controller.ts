@@ -14,7 +14,15 @@ import {
   Query,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { ApiBadRequestResponse, ApiBody, ApiNoContentResponse, ApiOkResponse, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { NotificationEntity } from './notification.entity';
 import { CreateNotificationDto } from './create-notification.dto';
 import { UpdateNotificationDto } from './update-notification.dto';
@@ -41,7 +49,12 @@ export class NotificationsController {
 
   @Get('players/:playerId/registrations')
   @ApiParam({ name: 'playerId', description: 'Player ID', required: true })
-  @ApiQuery({ name: 'locationId', required: false, type: Number, description: 'Optional location ID filter' })
+  @ApiQuery({
+    name: 'locationId',
+    required: false,
+    type: Number,
+    description: 'Optional location ID filter',
+  })
   @ApiOkResponse({ type: [NotificationEntity], isArray: true })
   @ApiBadRequestResponse({ description: 'Bad request' })
   async getRegistrations(
@@ -69,13 +82,10 @@ export class NotificationsController {
   }
 
   @Delete('players/:playerId/registrations/:id')
-  @ApiParam({ name: 'playerId', description:
-'Player ID' })
-  @ApiParam({ name: 'id', description:
-'Registration ID' })
-  @ApiNoContentResponse({ description: 'Deleted successfully' }) 
-  @HttpCode(204) 
-
+  @ApiParam({ name: 'playerId', description: 'Player ID' })
+  @ApiParam({ name: 'id', description: 'Registration ID' })
+  @ApiNoContentResponse({ description: 'Deleted successfully' })
+  @HttpCode(204)
   async deleteRegistration(
     @Param('playerId') playerId: string,
     @Param('id') id: string,

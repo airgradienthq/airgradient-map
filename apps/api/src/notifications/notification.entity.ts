@@ -1,8 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { AlarmType, NotificationPMUnit } from "./notification.model";
+import { ApiProperty } from '@nestjs/swagger';
+import { AlarmType, NotificationPMUnit } from './notification.model';
 
 export class NotificationEntity {
-
   @ApiProperty()
   id: number;
 
@@ -45,7 +44,10 @@ export class NotificationEntity {
   @ApiProperty()
   active: boolean;
 
-  @ApiProperty()
+  @ApiProperty({
+    enum: NotificationPMUnit,
+    enumName: 'NotificationPMUnit',
+  })
   unit: NotificationPMUnit;
 
   constructor(partial: Partial<NotificationEntity>) {

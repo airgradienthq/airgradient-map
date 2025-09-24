@@ -76,7 +76,7 @@ export class TasksService {
     await this.tasksRepository.insertNewAirgradientLatest(data);
   }
 
-  @Cron('*/20 * * * *')
+  @Cron('* * * * *')
   async sendNotifications() {
     const startTime = Date.now();
     this.logger.log('Starting scheduled notification check...');
@@ -98,7 +98,6 @@ export class TasksService {
       this.logger.error('Notification job failed:', error);
     }
   }
-
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {

@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsBoolean, IsArray, IsEnum, IsOptional, Matches } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsBoolean,
+  IsArray,
+  IsEnum,
+  IsOptional,
+  Matches,
+} from 'class-validator';
 import { NotificationPMUnit } from './notification.model';
 
 export class UpdateNotificationDto {
@@ -18,29 +26,37 @@ export class UpdateNotificationDto {
   @IsString()
   threshold_cycle?: string;
 
-  @ApiProperty({ description: 'Days to send scheduled notifications', type: [String], required: false })
+  @ApiProperty({
+    description: 'Days to send scheduled notifications',
+    type: [String],
+    required: false,
+  })
   @IsOptional()
   @IsArray()
   @IsString({ each: true })
   scheduled_days?: string[];
 
-  @ApiProperty({ description: 'Time to send scheduled notifications (HH:mm format)', required: false })
+  @ApiProperty({
+    description: 'Time to send scheduled notifications (HH:mm format)',
+    required: false,
+  })
   @IsOptional()
   @IsString()
   @Matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, {
-    message: 'scheduled_time must be in HH:mm format (e.g., 09:30, 23:45)'
+    message: 'scheduled_time must be in HH:mm format (e.g., 09:30, 23:45)',
   })
   scheduled_time?: string;
 
   @ApiProperty({
     description: 'Timezone for scheduled notifications (IANA timezone format)',
     example: 'America/New_York',
-    required: false
+    required: false,
   })
   @IsOptional()
   @IsString()
-  @Matches(/^[A-Za-z]+\/[A-Za-z_]+([A-Za-z_\/]*)?$/, {
-    message: 'scheduled_timezone must be a valid IANA timezone (e.g., America/New_York, Europe/London)'
+  @Matches(/^[A-Za-z]+\/[A-Za-z_]+([A-Za-z_/]*)?$/, {
+    message:
+      'scheduled_timezone must be a valid IANA timezone (e.g., America/New_York, Europe/London)',
   })
   scheduled_timezone?: string;
 

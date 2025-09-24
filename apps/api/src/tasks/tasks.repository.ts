@@ -273,8 +273,5 @@ export class TasksRepository {
     }
   }
 
-
-  async sendNotifications() {
-    
-  }
+  async sendNotifications() {}
 }

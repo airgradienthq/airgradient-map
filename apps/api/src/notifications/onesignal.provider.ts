@@ -37,7 +37,9 @@ export class OneSignalProvider {
     this.apiKey = this.configService.get<string>('ONESIGNAL_API_KEY');
 
     if (!this.appId || !this.apiKey) {
-      throw new Error('OneSignal configuration missing: ONESIGNAL_APP_ID and ONESIGNAL_API_KEY must be set in environment variables');
+      throw new Error(
+        'OneSignal configuration missing: ONESIGNAL_APP_ID and ONESIGNAL_API_KEY must be set in environment variables',
+      );
     }
   }
 
@@ -52,16 +54,25 @@ export class OneSignalProvider {
         this.httpService.post(this.apiUrl, payload, {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Basic ${this.apiKey}`,
+            Authorization: `Basic ${this.apiKey}`,
           },
-        })
+        }),
       );
+
+      this.logger.debug('OneSignal notification sent successfully', {
+        message: payload.contents,
+        heading: payload.headings,
+        image: payload.ios_attachments.id1,
+        notificationId: response.data.id,
+        statusCode: response.status,
+      });
+
       return response.data;
     } catch (error) {
       // Log error without exposing sensitive data
       this.logger.error('Failed to send OneSignal notification', {
         statusCode: error.response?.status,
-        message: error.message
+        message: error.message,
       });
       throw error;
     }
@@ -84,19 +95,15 @@ export class OneSignalProvider {
         en: `Air Quality is now ${airQuality} ${unit}`,
         de: `Die Luftqualität ist derzeit ${airQuality} ${unit}`,
       },
-      ios_attachments: imageUrl ? {
-        id1: imageUrl || 'https://www.airgradient.com/images/alert-icons-mascot/aqi-moderate.png',
-      } : undefined,
+      ios_attachments: imageUrl
+        ? {
+            id1:
+              imageUrl || 'https://www.airgradient.com/images/alert-icons-mascot/aqi-moderate.png',
+          }
+        : undefined,
       mutable_content: true,
       ios_sound: 'default',
     };
-
-    this.logger.debug(`Sending OneSignal notification:`, {
-      players: playerIds,
-      location: locationName,
-      pm25: airQuality,
-      unit: unit,
-    });
 
     return this.sendNotification(notification);
   }

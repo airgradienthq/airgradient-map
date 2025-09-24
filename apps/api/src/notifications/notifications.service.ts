@@ -26,15 +26,17 @@ export class NotificationsService {
     try {
       await this.locationRepository.retrieveLocationById(notification.location_id);
     } catch (error) {
+      console.log(error);
       throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
     }
 
     const newNotification = new NotificationEntity({
       ...notification,
       active: notification.active ?? true,
-      scheduled_days: notification.scheduled_days?.length > 0
-        ? notification.scheduled_days
-        : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+      scheduled_days:
+        notification.scheduled_days?.length > 0
+          ? notification.scheduled_days
+          : ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
     });
 
     const result = await this.notificationRepository.createNotification(newNotification);
@@ -87,9 +89,7 @@ export class NotificationsService {
     // Only update fields that are actually provided in updateDto
     const updatedNotification = new NotificationEntity({
       ...notification,
-      ...Object.fromEntries(
-        Object.entries(updateDto).filter(([_, value]) => value !== undefined)
-      ),
+      ...Object.fromEntries(Object.entries(updateDto).filter(([, value]) => value !== undefined)),
       updated_at: new Date(),
     });
 
@@ -99,7 +99,6 @@ export class NotificationsService {
 
     return result;
   }
-
 
   /**
    * Process scheduled notifications with batch processing
@@ -116,7 +115,9 @@ export class NotificationsService {
     this.logger.log(`Found ${notifications.length} scheduled notifications to process`);
 
     const locationIds = [...new Set(notifications.map(n => n.location_id))];
-    this.logger.debug(`Fetching measurements for ${locationIds.length} unique locations: ${locationIds.join(', ')}`);
+    this.logger.debug(
+      `Fetching measurements for ${locationIds.length} unique locations: ${locationIds.join(', ')}`,
+    );
 
     const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
 
@@ -137,7 +138,9 @@ export class NotificationsService {
       const measurement = measurementMap.get(notification.location_id);
 
       if (!measurement) {
-        this.logger.warn(`No measurement found for location ${notification.location_id} - skipping notification for player ${notification.player_id}`);
+        this.logger.warn(
+          `No measurement found for location ${notification.location_id} - skipping notification for player ${notification.player_id}`,
+        );
         continue;
       }
 

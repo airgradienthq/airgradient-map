@@ -56,11 +56,15 @@ export class NotificationBatchProcessor {
         this.processWithRetry(notification)
           .then(() => {
             successful.push(notification.playerId);
-            this.logger.debug(`Successfully sent notification to player: ${notification.playerId} for ${notification.locationName}`);
+            this.logger.debug(
+              `Successfully sent notification to player: ${notification.playerId} for ${notification.locationName}`,
+            );
             return { success: true, playerId: notification.playerId };
           })
           .catch(error => {
-            this.logger.error(`Failed to send notification to player ${notification.playerId}: ${error.message}`);
+            this.logger.error(
+              `Failed to send notification to player ${notification.playerId}: ${error.message}`,
+            );
             failed.push({
               playerId: notification.playerId,
               error: error.message || 'Unknown error',
