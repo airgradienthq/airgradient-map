@@ -9,6 +9,7 @@ import {
   Matches,
 } from 'class-validator';
 import { NotificationPMUnit } from './notification.model';
+import { IsValidTimezone } from './validators/timezone.validator';
 
 export class UpdateNotificationDto {
   @ApiProperty({ description: 'PM2.5 threshold in ug/m3', required: false })
@@ -51,10 +52,7 @@ export class UpdateNotificationDto {
   })
   @IsOptional()
   @IsString()
-  @Matches(/^[A-Za-z]+\/[A-Za-z_]+([A-Za-z_/]*)?$/, {
-    message:
-      'scheduled_timezone must be a valid IANA timezone (e.g., America/New_York, Europe/London)',
-  })
+  @IsValidTimezone()
   scheduled_timezone?: string;
 
   @ApiProperty({ description: 'Whether notification is active', required: false })

@@ -9,7 +9,8 @@ import {
   Min,
   Matches,
 } from 'class-validator';
-import { AlarmType, NotificationPMUnit } from './notification.model';
+import { NotificationType, NotificationPMUnit } from './notification.model';
+import { IsValidTimezone } from './validators/timezone.validator';
 
 export class CreateNotificationDto {
   @ApiProperty({
@@ -83,13 +84,9 @@ export class CreateNotificationDto {
     description:
       'Timezone for scheduled notifications (required for scheduled notifications, IANA timezone format)',
     example: 'America/New_York',
-    pattern: '^[A-Za-z]+/[A-Za-z_]+([A-Za-z_/]*)?$',
   })
   @IsString()
-  @Matches(/^[A-Za-z]+\/[A-Za-z_]+([A-Za-z_/]*)?$/, {
-    message:
-      'scheduled_timezone must be a valid IANA timezone (e.g., America/New_York, Europe/London)',
-  })
+  @IsValidTimezone()
   scheduled_timezone: string;
 
   @ApiProperty({
@@ -114,10 +111,10 @@ export class CreateNotificationDto {
   @ApiProperty({
     description:
       'Type of notification - threshold-based or time-scheduled. Options: "threshold" or "scheduled"',
-    enum: AlarmType,
+    enum: NotificationType,
     enumName: 'AlarmType',
-    example: AlarmType.THRESHOLD,
+    example: NotificationType.THRESHOLD,
   })
-  @IsEnum(AlarmType)
-  alarm_type: AlarmType;
+  @IsEnum(NotificationType)
+  alarm_type: NotificationType;
 }

@@ -55,7 +55,7 @@ export class NotificationsController {
     type: Number,
     description: 'Optional location ID filter',
   })
-  @ApiOkResponse({ type: [NotificationEntity], isArray: true })
+  @ApiOkResponse({ type: NotificationEntity, isArray: true })
   @ApiBadRequestResponse({ description: 'Bad request' })
   async getRegistrations(
     @Param('playerId') playerId: string,
