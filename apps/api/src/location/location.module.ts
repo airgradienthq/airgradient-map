@@ -6,5 +6,6 @@ import LocationRepository from './location.repository';
 @Module({
   controllers: [LocationController],
   providers: [LocationService, LocationRepository],
+  exports: [LocationRepository],
 })
 export class LocationModule {}
