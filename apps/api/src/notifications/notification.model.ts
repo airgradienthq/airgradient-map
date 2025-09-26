@@ -1,4 +1,4 @@
-export enum AlarmType {
+export enum NotificationType {
   THRESHOLD = 'threshold',
   SCHEDULED = 'scheduled',
 }
@@ -13,6 +13,7 @@ export interface NotificationJob {
   locationName: string;
   value: number;
   unit: NotificationPMUnit;
+  unitLabel: string;
   imageUrl?: string;
   retries?: number;
   lastError?: string;

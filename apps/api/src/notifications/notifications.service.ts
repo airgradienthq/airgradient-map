@@ -1,12 +1,18 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateNotificationDto } from './create-notification.dto';
 import { NotificationEntity } from './notification.entity';
-import { NotificationPMUnit, AlarmType, NotificationJob, BatchResult } from './notification.model';
+import {
+  NotificationPMUnit,
+  NotificationType,
+  NotificationJob,
+  BatchResult,
+} from './notification.model';
 import { UpdateNotificationDto } from './update-notification.dto';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import LocationRepository from 'src/location/location.repository';
 import { convertPmToUsAqi } from 'src/utils/convert_pm_us_aqi';
+import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 
 @Injectable()
 export class NotificationsService {
@@ -84,6 +90,18 @@ export class NotificationsService {
       throw new BadRequestException('Player ID does not match notification registration');
     }
 
+    // Validate timezone if provided
+    if (updateDto.scheduled_timezone) {
+      try {
+        new Intl.DateTimeFormat('en-US', { timeZone: updateDto.scheduled_timezone });
+      } catch (error) {
+        console.log(error);
+        throw new BadRequestException(
+          `Invalid timezone '${updateDto.scheduled_timezone}'. Please provide a valid IANA timezone (e.g., America/New_York, Europe/London)`,
+        );
+      }
+    }
+
     // Only update fields that are actually provided in updateDto
     const updatedNotification = new NotificationEntity({
       ...notification,
@@ -151,6 +169,7 @@ export class NotificationsService {
         playerId: notification.player_id,
         locationName: measurement.locationName,
         value: pmValue,
+        unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
         unit: notification.unit as NotificationPMUnit,
         imageUrl: this.getImageUrlForAQI(measurement.pm25),
       };
@@ -183,17 +202,29 @@ export class NotificationsService {
 
   private validateNotificationData(data: Partial<CreateNotificationDto>): void {
     // Validate based on alarm type
-    if (data.alarm_type === AlarmType.THRESHOLD) {
+    if (data.alarm_type === NotificationType.THRESHOLD) {
       if (!data.threshold_ug_m3) {
         throw new BadRequestException('Threshold notifications require threshold_ug_m3');
       }
     }
 
-    if (data.alarm_type === AlarmType.SCHEDULED) {
+    if (data.alarm_type === NotificationType.SCHEDULED) {
       if (!data.scheduled_time || !data.scheduled_timezone) {
         throw new BadRequestException(
           'Scheduled notifications require scheduled_time and scheduled_timezone',
         );
+      }
+
+      // Additional runtime timezone validation
+      if (data.scheduled_timezone) {
+        try {
+          new Intl.DateTimeFormat('en-US', { timeZone: data.scheduled_timezone });
+        } catch (error) {
+          console.log(error);
+          throw new BadRequestException(
+            `Invalid timezone '${data.scheduled_timezone}'. Please provide a valid IANA timezone (e.g., America/New_York, Europe/London)`,
+          );
+        }
       }
     }
 

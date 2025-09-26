@@ -104,8 +104,8 @@ export class NotificationBatchProcessor {
           [notification.playerId],
           notification.locationName,
           notification.value,
-          notification.unit,
           notification.imageUrl,
+          notification.unitLabel,
         ),
         timeoutHelper(this.REQUEST_TIMEOUT),
       ]);

@@ -7,87 +7,112 @@ export class NotificationsRepository {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async createNotification(notification: NotificationEntity): Promise<NotificationEntity> {
-    const result = await this.databaseService.runQuery(
-      `INSERT INTO notifications (
-        player_id, user_id, alarm_type, location_id,
-        threshold_ug_m3, threshold_cycle,
-        scheduled_days, scheduled_time, scheduled_timezone,
-        active, unit
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *`,
-      [
-        notification.player_id,
-        notification.user_id,
-        notification.alarm_type,
-        notification.location_id,
-        notification.threshold_ug_m3,
-        notification.threshold_cycle,
-        notification.scheduled_days,
-        notification.scheduled_time,
-        notification.scheduled_timezone,
-        notification.active,
-        notification.unit,
-      ],
-    );
-    return result.rows[0];
+    try {
+      const result = await this.databaseService.runQuery(
+        `INSERT INTO notifications (
+          player_id, user_id, alarm_type, location_id,
+          threshold_ug_m3, threshold_cycle,
+          scheduled_days, scheduled_time, scheduled_timezone,
+          active, unit
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        RETURNING *`,
+        [
+          notification.player_id,
+          notification.user_id,
+          notification.alarm_type,
+          notification.location_id,
+          notification.threshold_ug_m3,
+          notification.threshold_cycle,
+          notification.scheduled_days,
+          notification.scheduled_time,
+          notification.scheduled_timezone,
+          notification.active,
+          notification.unit,
+        ],
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Failed to create notification:', error.message);
+      throw error;
+    }
   }
 
   async getNotifications(
     playerId: string = null,
     locationId: number = null,
   ): Promise<NotificationEntity[]> {
-    let query = 'SELECT * FROM notifications';
-    const params = [];
-    const conditions = [];
+    try {
+      let query = 'SELECT * FROM notifications';
+      const params = [];
+      const conditions = [];
 
-    if (playerId) {
-      conditions.push(`player_id = $${params.length + 1}`);
-      params.push(playerId);
-    }
-    if (locationId) {
-      conditions.push(`location_id = $${params.length + 1}`);
-      params.push(locationId);
-    }
+      if (playerId) {
+        conditions.push(`player_id = $${params.length + 1}`);
+        params.push(playerId);
+      }
+      if (locationId) {
+        conditions.push(`location_id = $${params.length + 1}`);
+        params.push(locationId);
+      }
 
-    if (conditions.length > 0) {
-      query += ' WHERE ' + conditions.join(' AND ');
-    }
+      if (conditions.length > 0) {
+        query += ' WHERE ' + conditions.join(' AND ');
+      }
 
-    const result = await this.databaseService.runQuery(query, params);
-    return result.rows;
+      const result = await this.databaseService.runQuery(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('Failed to get notifications:', error.message);
+      return [];
+    }
   }
 
   async getNotificationById(id: string): Promise<NotificationEntity> {
-    const result = await this.databaseService.runQuery(
-      'SELECT * FROM notifications WHERE id = $1',
-      [id],
-    );
-    return result.rows[0];
+    try {
+      const result = await this.databaseService.runQuery(
+        'SELECT * FROM notifications WHERE id = $1',
+        [id],
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Failed to get notification by id:', error.message);
+      return null;
+    }
   }
 
   async updateNotification(notification: NotificationEntity): Promise<NotificationEntity> {
-    const result = await this.databaseService.runQuery(
-      'UPDATE notifications SET player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, threshold_ug_m3 = $5, threshold_cycle = $6, scheduled_days = $7, scheduled_time = $8, scheduled_timezone = $9, active = $10, unit = $11 WHERE id = $12 RETURNING *',
-      [
-        notification.player_id,
-        notification.user_id,
-        notification.alarm_type,
-        notification.location_id,
-        notification.threshold_ug_m3,
-        notification.threshold_cycle,
-        notification.scheduled_days,
-        notification.scheduled_time,
-        notification.scheduled_timezone,
-        notification.active,
-        notification.unit,
-        notification.id,
-      ],
-    );
-    return result.rows[0];
+    try {
+      const result = await this.databaseService.runQuery(
+        'UPDATE notifications SET player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, threshold_ug_m3 = $5, threshold_cycle = $6, scheduled_days = $7, scheduled_time = $8, scheduled_timezone = $9, active = $10, unit = $11 WHERE id = $12 RETURNING *',
+        [
+          notification.player_id,
+          notification.user_id,
+          notification.alarm_type,
+          notification.location_id,
+          notification.threshold_ug_m3,
+          notification.threshold_cycle,
+          notification.scheduled_days,
+          notification.scheduled_time,
+          notification.scheduled_timezone,
+          notification.active,
+          notification.unit,
+          notification.id,
+        ],
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('Failed to update notification:', error.message);
+      throw error;
+    }
   }
 
   async deleteNotificationById(id: string): Promise<void> {
-    await this.databaseService.runQuery('DELETE FROM notifications WHERE id = $1', [id]);
+    try {
+      await this.databaseService.runQuery('DELETE FROM notifications WHERE id = $1', [id]);
+    } catch (error) {
+      console.error('Failed to delete notification:', error.message);
+      throw error;
+    }
   }
 
   async getScheduledNotificationsForNow(): Promise<NotificationEntity[]> {
@@ -111,7 +136,15 @@ export class NotificationsRepository {
         ]
     `;
 
-    const result = await this.databaseService.runQuery(query, []);
-    return result.rows;
+    try {
+      const result = await this.databaseService.runQuery(query, []);
+      return result.rows;
+    } catch (error) {
+      console.error('Failed to fetch scheduled notifications due to database error:', {
+        error: error.message,
+      });
+
+      return [];
+    }
   }
 }

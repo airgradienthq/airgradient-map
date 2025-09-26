@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { AlarmType, NotificationPMUnit } from './notification.model';
+import { NotificationType, NotificationPMUnit } from './notification.model';
 
 export class NotificationEntity {
   @ApiProperty()
@@ -18,11 +18,11 @@ export class NotificationEntity {
   user_id: string;
 
   @ApiProperty({
-    enum: AlarmType,
+    enum: NotificationType,
     enumName: 'AlarmType',
     description: 'Type of notification: threshold-based or scheduled',
   })
-  alarm_type: AlarmType;
+  alarm_type: NotificationType;
 
   @ApiProperty()
   location_id: number;

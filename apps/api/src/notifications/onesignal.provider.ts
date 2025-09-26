@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
-import { NotificationPMUnit } from './notification.model';
 
 export interface OneSignalNotification {
   app_id?: string;
@@ -74,8 +73,8 @@ export class OneSignalProvider {
     playerIds: string[],
     locationName: string,
     pmValue: number,
-    unit: NotificationPMUnit = NotificationPMUnit.UG,
     imageUrl?: string,
+    unitLabel?: string,
   ): Promise<any> {
     const notification: OneSignalNotification = {
       include_player_ids: playerIds,
@@ -84,8 +83,8 @@ export class OneSignalProvider {
         de: locationName,
       },
       contents: {
-        en: `Air Quality is now ${pmValue} ${unit}`,
-        de: `Die Luftqualität ist derzeit ${pmValue} ${unit}`,
+        en: `Air Quality is now ${pmValue} ${unitLabel}`,
+        de: `Die Luftqualität ist derzeit ${pmValue} ${unitLabel}`,
       },
       ios_attachments: imageUrl
         ? {
