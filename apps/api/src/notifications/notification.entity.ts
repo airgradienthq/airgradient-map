@@ -56,6 +56,12 @@ export class NotificationEntity {
   })
   unit: NotificationPMUnit;
 
+  @ApiProperty()
+  was_exceeded: boolean;
+
+  @ApiProperty()
+  last_notified_at: Date;
+
   constructor(partial: Partial<NotificationEntity>) {
     Object.assign(this, partial);
   }
