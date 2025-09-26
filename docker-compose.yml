@@ -20,6 +20,7 @@ services:
       - airgradient-map-prod
 
   mapapi:
+    image: "mapapi-mono:${IMAGE_TAG}"
     container_name: mapapi-mono
     build:
       context: apps/api
@@ -38,6 +39,7 @@ services:
       - NODE_ENV=production
 
   app:
+    image: "website-mono:${IMAGE_TAG}"
     container_name: website-mono
     build:
       context: apps/website
