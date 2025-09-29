@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { promisify } from 'util';
 import { exec } from 'child_process';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import * as https from 'https';
 
@@ -23,7 +24,7 @@ export class WindDataService {
     try {
       await fs.mkdir(this.dataDir, { recursive: true });
       await fs.mkdir(this.tempDir, { recursive: true });
-      
+
       const fileExists = await fs
         .access(this.windFile)
         .then(() => true)
@@ -62,7 +63,7 @@ export class WindDataService {
 
       // Try to download and process real GFS data
       const gribFile = await this.downloadGFSData();
-      
+
       if (!gribFile) {
         this.logger.warn('Failed to download GFS data, using fallback');
         await this.createFallbackData();
@@ -73,7 +74,7 @@ export class WindDataService {
 
       // Convert GRIB to JSON
       const success = await this.convertGribToJson(grib2jsonPath, gribFile);
-      
+
       // Clean up temp file
       try {
         await fs.unlink(gribFile);
@@ -117,30 +118,31 @@ export class WindDataService {
 
   private async downloadGFSData(): Promise<string | null> {
     const now = new Date();
-    
+
     // Try different forecast cycles (most recent first)
     const cycles = ['18', '12', '06', '00'];
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-    
+
     // Also try yesterday's data
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = yesterday.toISOString().slice(0, 10).replace(/-/g, '');
-    
+
     const dates = [dateStr, yesterdayStr];
 
     for (const date of dates) {
       for (const cycle of cycles) {
-        const url = `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?` +
+        const url =
+          `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?` +
           `dir=%2Fgfs.${date}%2F${cycle}%2Fatmos&` +
           `file=gfs.t${cycle}z.pgrb2.0p25.f000&` +
           `var_UGRD=on&var_VGRD=on&` +
           `lev_10_m_above_ground=on`;
 
         this.logger.log(`Trying to download: ${date} cycle ${cycle}z`);
-        
+
         const filePath = path.join(this.tempDir, `wind-${date}-${cycle}.grib2`);
-        
+
         try {
           const downloaded = await this.downloadFile(url, filePath);
           if (downloaded) {
@@ -164,37 +166,39 @@ export class WindDataService {
   }
 
   private downloadFile(url: string, dest: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const file = require('fs').createWriteStream(dest);
-      
-      https.get(url, { timeout: 30000 }, (response) => {
-        if (response.statusCode !== 200) {
-          this.logger.error(`HTTP ${response.statusCode} for ${url}`);
+    return new Promise(resolve => {
+      const file = fsSync.createWriteStream(dest);
+
+      https
+        .get(url, { timeout: 30000 }, response => {
+          if (response.statusCode !== 200) {
+            this.logger.error(`HTTP ${response.statusCode} for ${url}`);
+            file.close();
+            fs.unlink(dest).catch(() => {});
+            resolve(false);
+            return;
+          }
+
+          response.pipe(file);
+
+          file.on('finish', () => {
+            file.close();
+            resolve(true);
+          });
+
+          file.on('error', err => {
+            this.logger.error('File write error:', err);
+            file.close();
+            fs.unlink(dest).catch(() => {});
+            resolve(false);
+          });
+        })
+        .on('error', err => {
+          this.logger.error('Download error:', err);
           file.close();
           fs.unlink(dest).catch(() => {});
           resolve(false);
-          return;
-        }
-
-        response.pipe(file);
-
-        file.on('finish', () => {
-          file.close();
-          resolve(true);
         });
-
-        file.on('error', (err) => {
-          this.logger.error('File write error:', err);
-          file.close();
-          fs.unlink(dest).catch(() => {});
-          resolve(false);
-        });
-      }).on('error', (err) => {
-        this.logger.error('Download error:', err);
-        file.close();
-        fs.unlink(dest).catch(() => {});
-        resolve(false);
-      });
     });
   }
 
@@ -208,7 +212,7 @@ export class WindDataService {
       this.logger.log('Converting U component...');
       await execAsync(cmdU, { timeout: 60000 });
 
-      // Convert V component  
+      // Convert V component
       const cmdV = `${grib2jsonPath} --names --data --fp 3 --fs 103 --fv 10.0 --output ${outputV} ${gribFile}`;
       this.logger.log('Converting V component...');
       await execAsync(cmdV, { timeout: 60000 });
@@ -235,7 +239,7 @@ export class WindDataService {
 
   private async createFallbackData() {
     this.logger.log('Creating fallback wind data');
-    
+
     const fallback = [
       {
         header: {

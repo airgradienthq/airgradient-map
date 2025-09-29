@@ -167,17 +167,17 @@
     try {
       const url = `${props.windDataUrl}?t=${Date.now()}`;
       console.log('Loading wind data from:', url);
-      
+
       const res = await fetch(url);
-      
+
       if (!res.ok) {
         console.error('Wind data fetch failed:', res.status, res.statusText);
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
-      
+
       const raw = await res.json();
       console.log('Wind data loaded successfully');
-      
+
       if (Array.isArray(raw) && raw[0]?.header && raw[1]?.data) {
         windData = { header: [raw[0].header], data: [raw[0].data, raw[1].data] };
       } else if (raw?.header?.[0]) {
