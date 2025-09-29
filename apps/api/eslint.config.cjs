@@ -20,6 +20,12 @@ module.exports = [
         module: 'readonly',
         require: 'readonly',
         exports: 'readonly',
+        console: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        global: 'readonly',
       },
     },
 
