@@ -20,6 +20,7 @@ services:
       - airgradient-map-staging
 
   mapapi:
+    image: "mapapi-mono:${IMAGE_TAG}"
     container_name: mapapi-mono
     build:
       context: apps/api
@@ -37,6 +38,7 @@ services:
       - NODE_ENV=staging
 
   app:
+    image: "website-mono:${IMAGE_TAG}"
     container_name: website-mono
     build:
       context: apps/website
