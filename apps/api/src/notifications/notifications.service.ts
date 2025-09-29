@@ -96,13 +96,13 @@ export class NotificationsService {
 
     // Prevent changes between scheduled and threshold alarm types
     // Check if trying to update fields that don't belong to the current alarm type
-    if (notification.alarm_type === 'scheduled') {
+    if (notification.alarm_type === NotificationType.SCHEDULED) {
       if (updateDto.threshold_ug_m3 !== undefined || updateDto.threshold_cycle !== undefined) {
         throw new BadRequestException(
           'Cannot set threshold fields on a scheduled notification. Create a new notification instead.',
         );
       }
-    } else if (notification.alarm_type === 'threshold') {
+    } else if (notification.alarm_type === NotificationType.THRESHOLD) {
       if (
         updateDto.scheduled_days !== undefined ||
         updateDto.scheduled_time !== undefined ||
@@ -148,7 +148,7 @@ export class NotificationsService {
   /**
    * Process all notifications (scheduled and threshold) - unified processor
    */
-  async processScheduledNotifications(): Promise<BatchResult> {
+  async processAllNotifications(): Promise<BatchResult> {
     const startTime = Date.now();
     this.logger.debug('Processing all notifications...');
 
