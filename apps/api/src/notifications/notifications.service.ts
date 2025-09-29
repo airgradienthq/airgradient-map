@@ -33,7 +33,11 @@ export class NotificationsService {
     try {
       await this.locationRepository.retrieveLocationById(notification.location_id);
     } catch (error) {
-      console.log(error);
+      this.logger.warn('Location lookup failed during notification creation', {
+        locationId: notification.location_id,
+        playerId: notification.player_id,
+        error: error.message,
+      });
       throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
     }
 
@@ -90,12 +94,37 @@ export class NotificationsService {
       throw new BadRequestException('Player ID does not match notification registration');
     }
 
+    // Prevent changes between scheduled and threshold alarm types
+    // Check if trying to update fields that don't belong to the current alarm type
+    if (notification.alarm_type === NotificationType.SCHEDULED) {
+      if (updateDto.threshold_ug_m3 !== undefined || updateDto.threshold_cycle !== undefined) {
+        throw new BadRequestException(
+          'Cannot set threshold fields on a scheduled notification. Create a new notification instead.',
+        );
+      }
+    } else if (notification.alarm_type === NotificationType.THRESHOLD) {
+      if (
+        updateDto.scheduled_days !== undefined ||
+        updateDto.scheduled_time !== undefined ||
+        updateDto.scheduled_timezone !== undefined
+      ) {
+        throw new BadRequestException(
+          'Cannot set scheduled fields on a threshold notification. Create a new notification instead.',
+        );
+      }
+    }
+
     // Validate timezone if provided
     if (updateDto.scheduled_timezone) {
       try {
         new Intl.DateTimeFormat('en-US', { timeZone: updateDto.scheduled_timezone });
       } catch (error) {
         console.log(error);
+        this.logger.warn('Invalid timezone provided in update', {
+          timezone: updateDto.scheduled_timezone,
+          playerId,
+          notificationId: id,
+        });
         throw new BadRequestException(
           `Invalid timezone '${updateDto.scheduled_timezone}'. Please provide a valid IANA timezone (e.g., America/New_York, Europe/London)`,
         );
@@ -117,27 +146,36 @@ export class NotificationsService {
   }
 
   /**
-   * Process scheduled notifications with batch processing
+   * Process all notifications (scheduled and threshold) - unified processor
    */
-  async processScheduledNotifications(): Promise<BatchResult> {
-    this.logger.debug('Checking for scheduled notifications due now...');
-    const notifications = await this.notificationRepository.getScheduledNotificationsForNow();
+  async processAllNotifications(): Promise<BatchResult> {
+    const startTime = Date.now();
+    this.logger.debug('Processing all notifications...');
 
-    if (notifications.length === 0) {
-      this.logger.debug('No scheduled notifications due at this time');
+    // Get both types of notifications in parallel
+    const [scheduledNotifications, thresholdNotifications] = await Promise.all([
+      this.notificationRepository.getScheduledNotificationsForNow(),
+      this.notificationRepository.getActiveThresholdNotifications(),
+    ]);
+
+    const allNotifications = [...scheduledNotifications, ...thresholdNotifications];
+
+    if (allNotifications.length === 0) {
+      this.logger.debug('No notifications to process');
       return { successful: [], failed: [], totalTime: 0 };
     }
 
-    this.logger.log(`Found ${notifications.length} scheduled notifications to process`);
-
-    const locationIds = [...new Set(notifications.map(n => n.location_id))];
-    this.logger.debug(
-      `Fetching measurements for ${locationIds.length} unique locations: ${locationIds.join(', ')}`,
+    this.logger.log(
+      `Found ${scheduledNotifications.length} scheduled and ${thresholdNotifications.length} threshold notifications`,
     );
+
+    // Fetch measurements for all unique locations at once
+    const locationIds = [...new Set(allNotifications.map(n => n.location_id))];
+    this.logger.debug(`Fetching measurements for ${locationIds.length} unique locations`);
 
     const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
 
-    // Convert to Map for easy lookup
+    // Convert to Map for efficient lookup
     const measurementMap = new Map<number, { pm25: number; locationName: string }>();
     measurements.forEach((m: any) => {
       measurementMap.set(m.locationId, {
@@ -146,16 +184,16 @@ export class NotificationsService {
       });
     });
 
-    this.logger.debug(`Retrieved measurements for ${measurements.length} locations`);
-
+    // Process all notifications and collect jobs
     const jobs: NotificationJob[] = [];
+    const now = new Date();
 
-    for (const notification of notifications) {
+    for (const notification of allNotifications) {
       const measurement = measurementMap.get(notification.location_id);
 
       if (!measurement) {
         this.logger.warn(
-          `No measurement found for location ${notification.location_id} - skipping notification for player ${notification.player_id}`,
+          `No measurement for location ${notification.location_id} - skipping notification`,
         );
         continue;
       }
@@ -165,20 +203,124 @@ export class NotificationsService {
           ? measurement.pm25
           : convertPmToUsAqi(measurement.pm25);
 
-      const job = {
-        playerId: notification.player_id,
-        locationName: measurement.locationName,
-        value: pmValue,
-        unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
-        unit: notification.unit as NotificationPMUnit,
-        imageUrl: this.getImageUrlForAQI(measurement.pm25),
-      };
+      // For scheduled notifications, always send
+      if (notification.alarm_type === NotificationType.SCHEDULED) {
+        jobs.push({
+          playerId: notification.player_id,
+          locationName: measurement.locationName,
+          value: pmValue,
+          unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
+          unit: notification.unit as NotificationPMUnit,
+          imageUrl: this.getImageUrlForAQI(measurement.pm25),
+        });
+        continue;
+      }
 
-      jobs.push(job);
+      // For threshold notifications, check conditions
+      if (notification.alarm_type === NotificationType.THRESHOLD) {
+        const shouldSend = await this.shouldSendThresholdNotification(notification, pmValue, now);
+
+        if (shouldSend) {
+          jobs.push({
+            playerId: notification.player_id,
+            locationName: measurement.locationName,
+            value: pmValue,
+            unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
+            unit: notification.unit as NotificationPMUnit,
+            imageUrl: this.getImageUrlForAQI(measurement.pm25),
+          });
+        } else {
+          this.logger.debug('Threshold notification skipped', {
+            notificationId: notification.id,
+            reason:
+              pmValue <= notification.threshold_ug_m3 ? 'below_threshold' : 'conditions_not_met',
+          });
+        }
+      }
     }
 
-    this.logger.log(`Sending ${jobs.length} notifications...`);
+    if (jobs.length === 0) {
+      this.logger.debug('No notifications need to be sent');
+      return { successful: [], failed: [], totalTime: 0 };
+    }
+
+    const processingTime = Date.now() - startTime;
+    this.logger.log(`Sending ${jobs.length} notifications in batch...`, {
+      processingTimeMs: processingTime,
+      scheduledCount: scheduledNotifications.length,
+      thresholdCount: thresholdNotifications.length,
+      totalNotificationsEvaluated: allNotifications.length,
+      notificationsToSend: jobs.length,
+    });
+
     return this.sendBatchNotifications(jobs);
+  }
+
+  /**
+   * Determine if a threshold notification should be sent and update state
+   */
+  private async shouldSendThresholdNotification(
+    notification: NotificationEntity,
+    currentValue: number,
+    now: Date,
+  ): Promise<boolean> {
+    const thresholdValue = notification.threshold_ug_m3;
+
+    // Handle "once" notifications
+    if (notification.threshold_cycle === 'once') {
+      if (currentValue > thresholdValue && !notification.was_exceeded) {
+        await this.notificationRepository.updateNotificationState(notification.id, {
+          was_exceeded: true,
+        });
+        this.logger.debug(`Threshold exceeded for once notification ${notification.id}`);
+        return true;
+      } else if (currentValue <= thresholdValue && notification.was_exceeded) {
+        await this.notificationRepository.updateNotificationState(notification.id, {
+          was_exceeded: false,
+        });
+        this.logger.debug(`Threshold reset for once notification ${notification.id}`);
+      }
+      return false;
+    }
+
+    // Handle cycle-based notifications
+    if (notification.threshold_cycle && currentValue > thresholdValue) {
+      const cycleHours = this.parseCycleHours(notification.threshold_cycle);
+      if (!cycleHours) {
+        this.logger.warn(`Invalid cycle format: ${notification.threshold_cycle}`);
+        return false;
+      }
+
+      // Check if enough time has passed
+      if (!notification.last_notified_at) {
+        // Never notified before
+        await this.notificationRepository.updateNotificationState(notification.id, {
+          last_notified_at: now,
+        });
+        return true;
+      }
+
+      const hoursSince =
+        (now.getTime() - new Date(notification.last_notified_at).getTime()) / (1000 * 60 * 60);
+
+      if (hoursSince >= cycleHours) {
+        await this.notificationRepository.updateNotificationState(notification.id, {
+          last_notified_at: now,
+        });
+        this.logger.debug(`Cycle threshold met for notification ${notification.id}`);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Parse cycle string to hours (e.g., "6h" -> 6)
+   */
+  private parseCycleHours(cycle: string): number | null {
+    const match = cycle.match(/^(\d+)h$/);
+    return match ? parseInt(match[1], 10) : null;
   }
 
   async sendBatchNotifications(jobs: NotificationJob[]): Promise<BatchResult> {
@@ -206,12 +348,26 @@ export class NotificationsService {
       if (!data.threshold_ug_m3) {
         throw new BadRequestException('Threshold notifications require threshold_ug_m3');
       }
+
+      // Prevent scheduled fields on threshold notifications
+      if (data.scheduled_days || data.scheduled_time || data.scheduled_timezone) {
+        throw new BadRequestException(
+          'Cannot set scheduled fields on a threshold notification. Use alarm_type: "scheduled" instead.',
+        );
+      }
     }
 
     if (data.alarm_type === NotificationType.SCHEDULED) {
       if (!data.scheduled_time || !data.scheduled_timezone) {
         throw new BadRequestException(
           'Scheduled notifications require scheduled_time and scheduled_timezone',
+        );
+      }
+
+      // Prevent threshold fields on scheduled notifications
+      if (data.threshold_ug_m3 !== undefined || data.threshold_cycle !== undefined) {
+        throw new BadRequestException(
+          'Cannot set threshold fields on a scheduled notification. Use alarm_type: "threshold" instead.',
         );
       }
 
