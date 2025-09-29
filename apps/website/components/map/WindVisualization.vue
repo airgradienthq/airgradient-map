@@ -41,7 +41,7 @@
     maxParticleAge: 100,
     frameRate: 40,
     velocityScale: 0.8,
-    windDataUrl: `http://localhost:3001/wind-data/file?t=${Date.now()}`,
+    windDataUrl: 'http://localhost:3001/map/api/v1/wind-data/file',
     showTooltip: true,
     isMoving: false,
     zoom: 3
@@ -165,22 +165,35 @@
 
   async function loadWind() {
     try {
-      const url = `${props.windDataUrl.split('?')[0]}?t=${Date.now()}`;
+      const url = `${props.windDataUrl}?t=${Date.now()}`;
+      console.log('Loading wind data from:', url);
+      
       const res = await fetch(url);
+      
+      if (!res.ok) {
+        console.error('Wind data fetch failed:', res.status, res.statusText);
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const raw = await res.json();
+      console.log('Wind data loaded successfully');
+      
       if (Array.isArray(raw) && raw[0]?.header && raw[1]?.data) {
         windData = { header: [raw[0].header], data: [raw[0].data, raw[1].data] };
       } else if (raw?.header?.[0]) {
         windData = raw;
       } else {
+        console.warn('Unknown wind data format, using mock data');
         createMockData();
       }
-    } catch {
+    } catch (error) {
+      console.error('Failed to load wind data:', error);
       createMockData();
     }
   }
 
   function createMockData() {
+    console.log('Creating mock wind data');
     const nx = 360,
       ny = 181;
     const u = [],
@@ -212,14 +225,14 @@
 
   function initColors() {
     colorStyles = [
-      'rgba(100, 200, 255, 0.9)', // Light blue - calm winds
-      'rgba(50, 150, 255, 0.9)', // Blue - light breeze
-      'rgba(0, 255, 100, 0.9)', // Green - gentle breeze
-      'rgba(255, 255, 0, 0.95)', // Yellow - moderate breeze
-      'rgba(255, 150, 0, 0.95)', // Orange - fresh breeze
-      'rgba(255, 100, 0, 0.95)', // Red-orange - strong breeze
-      'rgba(255, 50, 50, 0.95)', // Red - near gale
-      'rgba(255, 0, 150, 0.95)' // Magenta - gale
+      'rgba(100, 200, 255, 0.9)',
+      'rgba(50, 150, 255, 0.9)',
+      'rgba(0, 255, 100, 0.9)',
+      'rgba(255, 255, 0, 0.95)',
+      'rgba(255, 150, 0, 0.95)',
+      'rgba(255, 100, 0, 0.95)',
+      'rgba(255, 50, 50, 0.95)',
+      'rgba(255, 0, 150, 0.95)'
     ];
     buckets = Array.from({ length: colorStyles.length }, () => []);
   }

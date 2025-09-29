@@ -1,4 +1,3 @@
-# API
 services:
   postgrex:
     container_name: postgrex-mono
@@ -31,6 +30,8 @@ services:
     volumes:
       - ./apps/api/src:/app/src
       - ./apps/api/.env.development:/app/.env.development
+      - wind-data:/app/public/data/wind  # Persistent volume for wind data
+      - temp-data:/app/temp  # Persistent volume for temp files
     command: npm run start:dev
     depends_on:
       - postgrex
@@ -51,6 +52,8 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=development
+    depends_on:
+      - mapapi
 
 networks:
   dev:
@@ -58,4 +61,5 @@ networks:
 
 volumes:
   pgdata:
-
+  wind-data:  
+  temp-data:  
