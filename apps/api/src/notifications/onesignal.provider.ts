@@ -75,12 +75,13 @@ export class OneSignalProvider {
     pmValue: number,
     imageUrl?: string,
     unitLabel?: string,
+    title?: { en: string; de: string },
   ): Promise<any> {
     const notification: OneSignalNotification = {
       include_player_ids: playerIds,
       headings: {
-        en: locationName,
-        de: locationName,
+        en: title?.en || locationName,
+        de: title?.de || locationName,
       },
       contents: {
         en: `Air Quality is now ${pmValue} ${unitLabel}`,

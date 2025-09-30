@@ -211,4 +211,28 @@ export class NotificationsRepository {
       throw error;
     }
   }
+
+  async getThresholdNotificationByPlayerAndLocation(
+    playerId: string,
+    locationId: number,
+  ): Promise<NotificationEntity | null> {
+    try {
+      const result = await this.databaseService.runQuery(
+        `SELECT * FROM notifications
+         WHERE player_id = $1
+           AND location_id = $2
+           AND alarm_type = 'threshold'
+         LIMIT 1`,
+        [playerId, locationId],
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      this.logger.error('Failed to check for existing threshold notification', {
+        playerId,
+        locationId,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
 }

@@ -40,7 +40,10 @@ export class NotificationsController {
     description: 'Notification created successfully',
   })
   @ApiBody({ type: CreateNotificationDto })
-  @ApiBadRequestResponse({ description: 'Bad request' })
+  @ApiBadRequestResponse({
+    description:
+      'Bad request - validation failed, location not found, or a threshold notification already exists for this player and location combination',
+  })
   async createNotification(
     @Body() notification: CreateNotificationDto,
   ): Promise<NotificationEntity> {

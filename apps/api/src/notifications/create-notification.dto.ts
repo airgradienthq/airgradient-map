@@ -119,7 +119,7 @@ export class CreateNotificationDto {
 
   @ApiProperty({
     description:
-      'Type of notification - threshold-based or time-scheduled. Options: "threshold" or "scheduled"',
+      'Type of notification - threshold-based or time-scheduled. Options: "threshold" or "scheduled". Note: Only one threshold notification per player per location is allowed.',
     enum: NotificationType,
     enumName: 'AlarmType',
     example: NotificationType.THRESHOLD,

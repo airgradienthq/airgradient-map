@@ -15,6 +15,7 @@ export interface NotificationJob {
   unit: NotificationPMUnit;
   unitLabel: string;
   imageUrl?: string;
+  title?: { en: string; de: string };
   retries?: number;
   lastError?: string;
 }
