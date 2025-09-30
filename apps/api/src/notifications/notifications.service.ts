@@ -45,10 +45,11 @@ export class NotificationsService {
 
     // Check for existing threshold notification for this player and location
     if (notification.alarm_type === NotificationType.THRESHOLD) {
-      const existing = await this.notificationRepository.getThresholdNotificationByPlayerAndLocation(
-        notification.player_id,
-        notification.location_id,
-      );
+      const existing =
+        await this.notificationRepository.getThresholdNotificationByPlayerAndLocation(
+          notification.player_id,
+          notification.location_id,
+        );
 
       if (existing) {
         throw new BadRequestException(
