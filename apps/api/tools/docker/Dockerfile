@@ -26,7 +26,7 @@ RUN apk add --no-cache \
     openjdk11-jre \
     dumb-init
 
-# CRITICAL FIX: Create symlink so grib2json script can find Java
+# Create symlink so grib2json script can find Java
 RUN ln -sf /usr/bin/java /bin/java
 
 # Create non-root user
@@ -35,7 +35,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 WORKDIR /app
 
-# Install grib2json globally as root BEFORE switching to non-root user
+# Install grib2json globally as root switching to non-root user
 RUN npm install -g weacast-grib2json && \
     ln -sf /usr/local/lib/node_modules/weacast-grib2json/bin/grib2json /usr/local/bin/grib2json && \
     ln -sf /usr/local/lib/node_modules/weacast-grib2json/bin/grib2json.jar /usr/local/bin/grib2json.jar && \
