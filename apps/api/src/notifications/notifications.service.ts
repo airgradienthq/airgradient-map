@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateNotificationDto } from './create-notification.dto';
 import { NotificationEntity } from './notification.entity';
 import {
@@ -52,7 +58,7 @@ export class NotificationsService {
         );
 
       if (existing) {
-        throw new BadRequestException(
+        throw new ConflictException(
           `A threshold notification already exists for this location. Please update the existing notification (ID: ${existing.id}) or delete it first.`,
         );
       }
