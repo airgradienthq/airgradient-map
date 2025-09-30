@@ -17,6 +17,7 @@ import { NotificationsService } from './notifications.service';
 import {
   ApiBadRequestResponse,
   ApiBody,
+  ApiConflictResponse,
   ApiNoContentResponse,
   ApiOkResponse,
   ApiParam,
@@ -40,7 +41,13 @@ export class NotificationsController {
     description: 'Notification created successfully',
   })
   @ApiBody({ type: CreateNotificationDto })
-  @ApiBadRequestResponse({ description: 'Bad request' })
+  @ApiConflictResponse({
+    description:
+      'Conflict - a threshold notification already exists for this player and location combination',
+  })
+  @ApiBadRequestResponse({
+    description: 'Bad request - validation failed or location not found',
+  })
   async createNotification(
     @Body() notification: CreateNotificationDto,
   ): Promise<NotificationEntity> {

@@ -1,4 +1,10 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { CreateNotificationDto } from './create-notification.dto';
 import { NotificationEntity } from './notification.entity';
 import {
@@ -12,6 +18,8 @@ import { NotificationsRepository } from './notifications.repository';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import LocationRepository from 'src/location/location.repository';
 import { convertPmToUsAqi } from 'src/utils/convert_pm_us_aqi';
+import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 
 @Injectable()
@@ -39,6 +47,21 @@ export class NotificationsService {
         error: error.message,
       });
       throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
+    }
+
+    // Check for existing threshold notification for this player and location
+    if (notification.alarm_type === NotificationType.THRESHOLD) {
+      const existing =
+        await this.notificationRepository.getThresholdNotificationByPlayerAndLocation(
+          notification.player_id,
+          notification.location_id,
+        );
+
+      if (existing) {
+        throw new ConflictException(
+          `A threshold notification already exists for this location. Please update the existing notification (ID: ${existing.id}) or delete it first.`,
+        );
+      }
     }
 
     const newNotification = new NotificationEntity({
@@ -158,7 +181,7 @@ export class NotificationsService {
       this.notificationRepository.getActiveThresholdNotifications(),
     ]);
 
-    const allNotifications = [...scheduledNotifications, ...thresholdNotifications];
+    const allNotifications = scheduledNotifications.concat(thresholdNotifications);
 
     if (allNotifications.length === 0) {
       this.logger.debug('No notifications to process');
@@ -175,7 +198,13 @@ export class NotificationsService {
 
     const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
 
-    // Convert to Map for efficient lookup
+    // Apply EPA correction for AirGradient sensors to ensure consistency with display values
+    measurements.forEach((measurement: any) => {
+      if (measurement.dataSource === DataSource.AIRGRADIENT) {
+        measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
+      }
+    });
+
     const measurementMap = new Map<number, { pm25: number; locationName: string }>();
     measurements.forEach((m: any) => {
       measurementMap.set(m.locationId, {
@@ -184,7 +213,6 @@ export class NotificationsService {
       });
     });
 
-    // Process all notifications and collect jobs
     const jobs: NotificationJob[] = [];
     const now = new Date();
 
@@ -212,6 +240,10 @@ export class NotificationsService {
           unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
           unit: notification.unit as NotificationPMUnit,
           imageUrl: this.getImageUrlForAQI(measurement.pm25),
+          title: {
+            en: 'Scheduled Notification: ' + measurement.locationName,
+            de: 'Geplante Benachrichtigung: ' + measurement.locationName,
+          },
         });
         continue;
       }

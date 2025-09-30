@@ -106,6 +106,7 @@ export class NotificationBatchProcessor {
           notification.value,
           notification.imageUrl,
           notification.unitLabel,
+          notification.title,
         ),
         timeoutHelper(this.REQUEST_TIMEOUT),
       ]);
