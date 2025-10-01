@@ -6,7 +6,7 @@
       :width="canvasWidth"
       :height="canvasHeight"
       @mousemove="onMouseMove"
-      @mouseleave="hideWindInfo"
+      @mouseleave="windInfo = null"
     />
     <div v-if="windInfo && showTooltip" class="wind-tooltip" :style="tooltipStyle">
       <div class="wind-speed">{{ windInfo.speed.toFixed(1) }} m/s</div>
@@ -26,7 +26,6 @@
     particleCount?: number;
     maxParticleAge?: number;
     frameRate?: number;
-    velocityScale?: number;
     windDataUrl?: string;
     showTooltip?: boolean;
     isMoving?: boolean;
@@ -40,7 +39,6 @@
     particleCount: 2000,
     maxParticleAge: 100,
     frameRate: 40,
-    velocityScale: 0.8,
     windDataUrl: 'http://localhost:3001/map/api/v1/wind-data/file',
     showTooltip: true,
     isMoving: false,
@@ -52,41 +50,13 @@
   const tooltipPosition = ref({ x: 0, y: 0 });
   const canvasWidth = ref(props.width);
   const canvasHeight = ref(props.height);
+  
   const tooltipStyle = computed(() => ({
     left: `${tooltipPosition.value.x + 10}px`,
     top: `${tooltipPosition.value.y - 10}px`
   }));
 
-  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
-    loadWind,
-    6 * 60 * 60 * 1000
-  );
-
-  watch([() => props.width, () => props.height, () => props.bounds], () => {
-    canvasWidth.value = props.width;
-    canvasHeight.value = props.height;
-    initParticles();
-  });
-
-  watch(
-    () => props.zoom,
-    (newZoom, oldZoom) => {
-      if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
-        particles.forEach(p => (p.age = MAX_AGE));
-      }
-    }
-  );
-
-  watch(
-    () => props.isMoving,
-    moving => {
-      if (moving) {
-        stopAnimation();
-      } else {
-        animate();
-      }
-    }
-  );
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(loadWind, 6 * 60 * 60 * 1000);
 
   const PARTICLE_LINE_WIDTH = 1.0;
   const MAX_AGE = props.maxParticleAge;
@@ -99,10 +69,25 @@
   let colorStyles: string[] = [];
   let buckets: any[][] = [];
 
+  watch([() => props.width, () => props.height, () => props.bounds], () => {
+    canvasWidth.value = props.width;
+    canvasHeight.value = props.height;
+    initParticles();
+  });
+
+  watch(() => props.zoom, (newZoom, oldZoom) => {
+    if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
+      particles.forEach(p => (p.age = MAX_AGE));
+    }
+  });
+
+  watch(() => props.isMoving, moving => {
+    moving ? stopAnimation() : animate();
+  });
+
   function latToMercatorY(lat: number): number {
     const clampedLat = Math.max(-85.0511, Math.min(85.0511, lat));
-    const rad = (clampedLat * Math.PI) / 180;
-    return Math.log(Math.tan(Math.PI / 4 + rad / 2));
+    return Math.log(Math.tan(Math.PI / 4 + (clampedLat * Math.PI) / 360));
   }
 
   function mercatorYToLat(y: number): number {
@@ -120,9 +105,8 @@
     const northMercator = latToMercatorY(props.bounds.north);
     const southMercator = latToMercatorY(props.bounds.south);
     const mercatorY = northMercator - (y / canvasHeight.value) * (northMercator - southMercator);
-    const lat = mercatorYToLat(mercatorY);
-
-    return { lat, lng };
+    
+    return { lat: mercatorYToLat(mercatorY), lng };
   }
 
   onMounted(async () => {
@@ -146,79 +130,58 @@
     if (!props.showTooltip) return;
     const rect = windCanvas.value?.getBoundingClientRect();
     if (!rect) return;
+    
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     tooltipPosition.value = { x, y };
+    
     const { lat, lng } = pixelToLatLng(x, y);
     const wind = getWind(lat, lng);
-    if (wind && wind.magnitude) {
-      const direction = ((Math.atan2(-wind.v, wind.u) * 180) / Math.PI + 360) % 360;
-      windInfo.value = { speed: wind.magnitude, direction };
+    
+    if (wind?.magnitude) {
+      windInfo.value = {
+        speed: wind.magnitude,
+        direction: ((Math.atan2(-wind.v, wind.u) * 180) / Math.PI + 360) % 360
+      };
     } else {
       windInfo.value = null;
     }
   }
 
-  function hideWindInfo() {
-    windInfo.value = null;
-  }
-
   async function loadWind() {
     try {
-      const url = `${props.windDataUrl}?t=${Date.now()}`;
-      console.log('Loading wind data from:', url);
-
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        console.error('Wind data fetch failed:', res.status, res.statusText);
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
+      const res = await fetch(`${props.windDataUrl}?t=${Date.now()}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      
       const raw = await res.json();
-      console.log('Wind data loaded successfully');
-
+      
       if (Array.isArray(raw) && raw[0]?.header && raw[1]?.data) {
         windData = { header: [raw[0].header], data: [raw[0].data, raw[1].data] };
       } else if (raw?.header?.[0]) {
         windData = raw;
       } else {
-        console.warn('Unknown wind data format, using mock data');
         createMockData();
       }
     } catch (error) {
-      console.error('Failed to load wind data:', error);
+      console.error('Wind data load failed:', error);
       createMockData();
     }
   }
 
   function createMockData() {
-    console.log('Creating mock wind data');
-    const nx = 360,
-      ny = 181;
-    const u = [],
-      v = [];
+    const nx = 360, ny = 181;
+    const u = [], v = [];
+    
     for (let j = 0; j < ny; j++) {
       for (let i = 0; i < nx; i++) {
-        const lat = 90 - j,
-          lon = i;
+        const lat = 90 - j, lon = i;
         u.push(Math.sin((lon * Math.PI) / 180) * Math.cos((lat * Math.PI) / 180) * 10);
         v.push(Math.cos((lon * Math.PI) / 180) * Math.sin((lat * Math.PI) / 180) * 5);
       }
     }
+    
     windData = {
-      header: [
-        {
-          nx,
-          ny,
-          lo1: 0,
-          la1: 90,
-          dx: 1,
-          dy: 1,
-          refTime: new Date().toISOString(),
-          parameterUnit: 'm/s'
-        }
-      ],
+      header: [{ nx, ny, lo1: 0, la1: 90, dx: 1, dy: 1, refTime: new Date().toISOString(), parameterUnit: 'm/s' }],
       data: [u, v]
     };
   }
@@ -238,8 +201,7 @@
   }
 
   function initParticles() {
-    const zoom = props.zoom || 3;
-    const zoomMultiplier = Math.max(0.5, Math.min(3.0, (10 - zoom) * 0.3));
+    const zoomMultiplier = Math.max(0.5, Math.min(3.0, (10 - (props.zoom || 3)) * 0.3));
     const baseCount = Math.round(((canvasWidth.value * canvasHeight.value) / 10000) * 7);
     const count = Math.min(Math.round(baseCount * zoomMultiplier), props.particleCount * 2);
 
@@ -253,13 +215,9 @@
 
   function animate() {
     if (props.isMoving) return;
-    try {
-      evolve();
-      draw();
-      animationId = setTimeout(animate, FRAME);
-    } catch {
-      stopAnimation();
-    }
+    evolve();
+    draw();
+    animationId = setTimeout(animate, FRAME);
   }
 
   function stopAnimation() {
@@ -267,30 +225,27 @@
       clearTimeout(animationId);
       animationId = null;
     }
-
     if (ctx) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'source-over';
       ctx.clearRect(0, 0, canvasWidth.value, canvasHeight.value);
-      ctx.restore();
     }
-
     particles = [];
     buckets.forEach(b => (b.length = 0));
   }
 
   function getWind(lat: number, lng: number) {
     if (!windData || windData.data.length < 2) return null;
+    
     const h = windData.header[0];
-    let lon = lng < 0 ? lng + 360 : lng;
+    const lon = lng < 0 ? lng + 360 : lng;
     const i = Math.floor((lon - h.lo1) / h.dx);
     const j = Math.floor((h.la1 - lat) / h.dy);
     const fi = (lon - h.lo1) / h.dx - i;
     const fj = (h.la1 - lat) / h.dy - j;
+    
     const u = bilinear(windData.data[0], i, j, fi, fj, h.nx);
     const v = bilinear(windData.data[1], i, j, fi, fj, h.nx);
-    if (u === null || v === null) return null;
-    return { u, v, magnitude: Math.sqrt(u * u + v * v) };
+    
+    return (u !== null && v !== null) ? { u, v, magnitude: Math.sqrt(u * u + v * v) } : null;
   }
 
   function bilinear(data: number[], i: number, j: number, fi: number, fj: number, nx: number) {
@@ -299,6 +254,7 @@
     const v10 = data[idx(i + 1, j)] ?? 0;
     const v01 = data[idx(i, j + 1)] ?? 0;
     const v11 = data[idx(i + 1, j + 1)] ?? 0;
+    
     return [v00, v10, v01, v11].every(Number.isFinite)
       ? (v00 * (1 - fi) + v10 * fi) * (1 - fj) + (v01 * (1 - fi) + v11 * fi) * fj
       : null;
@@ -306,24 +262,24 @@
 
   function evolve() {
     buckets.forEach(b => (b.length = 0));
+    
     particles.forEach(p => {
       if (p.age > MAX_AGE) Object.assign(p, randomizeParticle());
+      
       const { lat, lng } = pixelToLatLng(p.x, p.y);
       const wind = getWind(lat, lng);
-      if (!wind || !wind.magnitude) {
+      
+      if (!wind?.magnitude) {
         p.age = MAX_AGE;
       } else {
-        const zoomScale = Math.max(0.3, Math.min(3.0, (props.zoom || 3) * 0.3));
-        const scale = zoomScale * 0.5;
+        const scale = Math.max(0.3, Math.min(3.0, (props.zoom || 3) * 0.3)) * 0.5;
         const xt = p.x + wind.u * scale;
         const yt = p.y - wind.v * scale;
+        
         if (xt >= 0 && xt < canvasWidth.value && yt >= 0 && yt < canvasHeight.value) {
           p.xt = xt;
           p.yt = yt;
-          const idx = Math.min(
-            Math.floor((wind.magnitude / 30) * (colorStyles.length - 1)),
-            colorStyles.length - 1
-          );
+          const idx = Math.min(Math.floor((wind.magnitude / 30) * (colorStyles.length - 1)), colorStyles.length - 1);
           buckets[idx].push(p);
         } else {
           p.age = MAX_AGE;
@@ -347,22 +303,19 @@
 
     const prev = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = 'destination-in';
-    const zoom = props.zoom || 3;
-    const fadeAlpha = zoom > 8 ? 0.92 : Math.max(0.96, Math.min(0.99, 0.96 + (zoom - 3) * 0.01));
+    const fadeAlpha = (props.zoom || 3) > 8 ? 0.92 : Math.max(0.96, Math.min(0.99, 0.96 + ((props.zoom || 3) - 3) * 0.01));
     ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
     ctx.fillRect(0, 0, canvasWidth.value, canvasHeight.value);
     ctx.globalCompositeOperation = prev;
 
-    const lineWidth = zoom > 8 ? 1.5 : PARTICLE_LINE_WIDTH;
+    const lineWidth = (props.zoom || 3) > 8 ? 1.5 : PARTICLE_LINE_WIDTH;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
 
     buckets.forEach((bucket, i) => {
       if (!bucket.length) return;
       ctx.beginPath();
-      const baseColor = colorStyles[i];
-      const alpha = zoom > 8 ? '1.0' : baseColor.match(/[\d.]+\)$/)?.[0] || '0.9)';
-      ctx.strokeStyle = baseColor.replace(/[\d.]+\)$/, alpha);
+      ctx.strokeStyle = colorStyles[i];
       bucket.forEach(p => {
         if (p.xt !== undefined && p.yt !== undefined) {
           ctx.moveTo(p.x, p.y);
