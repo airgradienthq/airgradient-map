@@ -226,7 +226,7 @@ export class NotificationsService {
         continue;
       }
 
-      const pmValue =
+      const pmValueConvertedForUnit =
         notification.unit === NotificationPMUnit.UG
           ? measurement.pm25
           : convertPmToUsAqi(measurement.pm25);
@@ -236,7 +236,7 @@ export class NotificationsService {
         jobs.push({
           playerId: notification.player_id,
           locationName: measurement.locationName,
-          value: pmValue,
+          value: pmValueConvertedForUnit,
           unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
           unit: notification.unit as NotificationPMUnit,
           imageUrl: this.getImageUrlForAQI(measurement.pm25),
@@ -250,13 +250,17 @@ export class NotificationsService {
 
       // For threshold notifications, check conditions
       if (notification.alarm_type === NotificationType.THRESHOLD) {
-        const shouldSend = await this.shouldSendThresholdNotification(notification, pmValue, now);
+        const shouldSend = await this.shouldSendThresholdNotification(
+          notification,
+          measurement.pm25,
+          now,
+        );
 
         if (shouldSend) {
           jobs.push({
             playerId: notification.player_id,
             locationName: measurement.locationName,
-            value: pmValue,
+            value: pmValueConvertedForUnit,
             unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
             unit: notification.unit as NotificationPMUnit,
             imageUrl: this.getImageUrlForAQI(measurement.pm25),
@@ -265,7 +269,9 @@ export class NotificationsService {
           this.logger.debug('Threshold notification skipped', {
             notificationId: notification.id,
             reason:
-              pmValue <= notification.threshold_ug_m3 ? 'below_threshold' : 'conditions_not_met',
+              pmValueConvertedForUnit <= notification.threshold_ug_m3
+                ? 'below_threshold'
+                : 'conditions_not_met',
           });
         }
       }
