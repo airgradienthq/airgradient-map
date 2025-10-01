@@ -232,19 +232,6 @@
     return marker;
   }
 
-  async function updateMap(): Promise<void> {
-    if (loading.value || locationHistoryDialog.value?.isOpen) {
-      return;
-    }
-
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-    updateMapDebounced();
-  }
-
   async function updateMapData(): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
