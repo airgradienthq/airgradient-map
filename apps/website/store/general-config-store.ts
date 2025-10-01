@@ -10,6 +10,9 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     selectedMeasure: MeasureNames.PM25,
     selectedHistoryPeriod: HISTORY_PERIODS[0],
     selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone.LOCAL,
+    clusterMinPoints: 2,
+    clusterRadius: 80,
+    clusterMaxZoom: 8,
     headless: false
   }),
   actions: {
@@ -21,6 +24,15 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     },
     setSelectedHistoricalDataTimeZoneConfig(timezone: HistoricalDataTimeZone) {
       this.selectedHistoricalDataTimeZoneConfig = timezone;
+    },
+    setClusterMinPoints(minPoints: number) {
+      this.clusterMinPoints = minPoints;
+    },
+    setClusterRadius(radius: number) {
+      this.clusterRadius = radius;
+    },
+    setClusterMaxZoom(maxZoom: number) {
+      this.clusterMaxZoom = maxZoom;
     },
     setHeadless(headless: boolean) {
       this.headless = headless;

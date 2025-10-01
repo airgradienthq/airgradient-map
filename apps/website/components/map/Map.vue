@@ -143,7 +143,7 @@
       const attributionContent = `
       <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
       <a target="_blank" href="https://leafletjs.com/">Leaflet</a> |
-            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> | 
+            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> |
              © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
              `;
 
@@ -205,7 +205,7 @@
     const markerSize = isSensor ? 24 : 36;
 
     const icon: DivIcon = L.divIcon({
-      html: `<div class="ag-marker${!isSensor ? ' is-cluster' : ''}${isReference ? ' is-reference' : ''} ${colorConfig?.textColorClass}" 
+      html: `<div class="ag-marker${!isSensor ? ' is-cluster' : ''}${isReference ? ' is-reference' : ''} ${colorConfig?.textColorClass}"
              style="background-color: ${colorConfig?.bgColor}">
              <span>${Math.round(displayValue)}</span>
            </div>`,
@@ -248,6 +248,9 @@
           xmax: bounds.getEast(),
           ymax: bounds.getNorth(),
           zoom: mapInstance.getZoom(),
+          minPoints: generalConfigStore.clusterMinPoints,
+          radius: generalConfigStore.clusterRadius,
+          maxZoom: generalConfigStore.clusterMaxZoom,
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
               ? MeasureNames.PM25
