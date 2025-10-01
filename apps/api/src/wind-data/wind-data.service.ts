@@ -26,7 +26,10 @@ export class WindDataService {
       await fs.mkdir(this.dataDir, { recursive: true });
       await fs.mkdir(this.tempDir, { recursive: true });
 
-      const exists = await fs.access(this.windFile).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(this.windFile)
+        .then(() => true)
+        .catch(() => false);
       if (!exists) await this.createFallbackData();
     } catch (error) {
       this.logger.error('Directory initialization failed', error);
@@ -70,11 +73,17 @@ export class WindDataService {
   }
 
   private async findGrib2Json(): Promise<string | null> {
-    for (const cmd of ['/usr/local/bin/grib2json', 'grib2json', '/usr/local/lib/node_modules/weacast-grib2json/bin/grib2json']) {
+    for (const cmd of [
+      '/usr/local/bin/grib2json',
+      'grib2json',
+      '/usr/local/lib/node_modules/weacast-grib2json/bin/grib2json',
+    ]) {
       try {
         await execAsync(`${cmd} --help 2>&1`);
         return cmd;
-      } catch {}
+      } catch {
+        // Intentionally ignore errors for this command
+      }
     }
     return null;
   }
@@ -86,9 +95,10 @@ export class WindDataService {
 
     for (const date of [today, yesterday]) {
       const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-      
+
       for (const cycle of ['18', '12', '06', '00']) {
-        const url = `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?` +
+        const url =
+          `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?` +
           `dir=%2Fgfs.${dateStr}%2F${cycle}%2Fatmos&file=gfs.t${cycle}z.pgrb2.0p25.f000&` +
           `var_UGRD=on&var_VGRD=on&lev_10_m_above_ground=on`;
 
@@ -111,28 +121,49 @@ export class WindDataService {
     return new Promise(resolve => {
       const file = fsSync.createWriteStream(dest);
 
-      https.get(url, { timeout: 30000 }, response => {
-        if (response.statusCode !== 200) {
+      https
+        .get(url, { timeout: 30000 }, response => {
+          if (response.statusCode !== 200) {
+            file.close();
+            resolve(false);
+            return;
+          }
+
+          response.pipe(file);
+          file.on('finish', () => {
+            file.close();
+            resolve(true);
+          });
+          file.on('error', () => {
+            file.close();
+            resolve(false);
+          });
+        })
+        .on('error', () => {
           file.close();
           resolve(false);
-          return;
-        }
-
-        response.pipe(file);
-        file.on('finish', () => { file.close(); resolve(true); });
-        file.on('error', () => { file.close(); resolve(false); });
-      }).on('error', () => { file.close(); resolve(false); });
+        });
     });
   }
 
   private async convertGribToJson(grib2jsonPath: string, gribFile: string): Promise<boolean> {
     try {
-      const [outputU, outputV] = ['wind-u.json', 'wind-v.json'].map(f => path.join(this.tempDir, f));
+      const [outputU, outputV] = ['wind-u.json', 'wind-v.json'].map(f =>
+        path.join(this.tempDir, f),
+      );
 
-      await execAsync(`${grib2jsonPath} --names --data --fp 2 --fs 103 --fv 10.0 -o ${outputU} ${gribFile}`, { timeout: 60000 });
-      await execAsync(`${grib2jsonPath} --names --data --fp 3 --fs 103 --fv 10.0 -o ${outputV} ${gribFile}`, { timeout: 60000 });
+      await execAsync(
+        `${grib2jsonPath} --names --data --fp 2 --fs 103 --fv 10.0 -o ${outputU} ${gribFile}`,
+        { timeout: 60000 },
+      );
+      await execAsync(
+        `${grib2jsonPath} --names --data --fp 3 --fs 103 --fv 10.0 -o ${outputV} ${gribFile}`,
+        { timeout: 60000 },
+      );
 
-      const [uData, vData] = await Promise.all([outputU, outputV].map(f => fs.readFile(f, 'utf8').then(JSON.parse)));
+      const [uData, vData] = await Promise.all(
+        [outputU, outputV].map(f => fs.readFile(f, 'utf8').then(JSON.parse)),
+      );
       await fs.writeFile(this.windFile, JSON.stringify([uData[0], vData[0]]));
       await Promise.all([outputU, outputV].map(f => fs.unlink(f).catch(() => {})));
 
@@ -160,22 +191,25 @@ export class WindDataService {
         lo2: 359,
         la2: -90,
         dx: 1,
-        dy: 1
+        dy: 1,
       },
-      data: Array(65160).fill(0)
+      data: Array(65160).fill(0),
     });
 
-    await fs.writeFile(this.windFile, JSON.stringify([
-      createComponent(2, 'U-component_of_wind'),
-      createComponent(3, 'V-component_of_wind')
-    ]));
+    await fs.writeFile(
+      this.windFile,
+      JSON.stringify([
+        createComponent(2, 'U-component_of_wind'),
+        createComponent(3, 'V-component_of_wind'),
+      ]),
+    );
   }
 
   async getWindDataInfo() {
     try {
       const [stats, data] = await Promise.all([
         fs.stat(this.windFile),
-        fs.readFile(this.windFile, 'utf8').then(JSON.parse)
+        fs.readFile(this.windFile, 'utf8').then(JSON.parse),
       ]);
 
       return {
@@ -185,7 +219,7 @@ export class WindDataService {
         refTime: data[0]?.header?.refTime,
         recordCount: data.length,
         dataPoints: data[0]?.data?.length || 0,
-        source: data[0]?.header?.centerName
+        source: data[0]?.header?.centerName,
       };
     } catch (error) {
       return { fileExists: false, error: error.message };

@@ -50,13 +50,16 @@
   const tooltipPosition = ref({ x: 0, y: 0 });
   const canvasWidth = ref(props.width);
   const canvasHeight = ref(props.height);
-  
+
   const tooltipStyle = computed(() => ({
     left: `${tooltipPosition.value.x + 10}px`,
     top: `${tooltipPosition.value.y - 10}px`
   }));
 
-  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(loadWind, 6 * 60 * 60 * 1000);
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
+    loadWind,
+    6 * 60 * 60 * 1000
+  );
 
   const PARTICLE_LINE_WIDTH = 1.0;
   const MAX_AGE = props.maxParticleAge;
@@ -75,15 +78,21 @@
     initParticles();
   });
 
-  watch(() => props.zoom, (newZoom, oldZoom) => {
-    if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
-      particles.forEach(p => (p.age = MAX_AGE));
+  watch(
+    () => props.zoom,
+    (newZoom, oldZoom) => {
+      if (Math.abs((newZoom || 3) - (oldZoom || 3)) > 0.5) {
+        particles.forEach(p => (p.age = MAX_AGE));
+      }
     }
-  });
+  );
 
-  watch(() => props.isMoving, moving => {
-    moving ? stopAnimation() : animate();
-  });
+  watch(
+    () => props.isMoving,
+    moving => {
+      moving ? stopAnimation() : animate();
+    }
+  );
 
   function latToMercatorY(lat: number): number {
     const clampedLat = Math.max(-85.0511, Math.min(85.0511, lat));
@@ -105,7 +114,7 @@
     const northMercator = latToMercatorY(props.bounds.north);
     const southMercator = latToMercatorY(props.bounds.south);
     const mercatorY = northMercator - (y / canvasHeight.value) * (northMercator - southMercator);
-    
+
     return { lat: mercatorYToLat(mercatorY), lng };
   }
 
@@ -130,14 +139,14 @@
     if (!props.showTooltip) return;
     const rect = windCanvas.value?.getBoundingClientRect();
     if (!rect) return;
-    
+
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     tooltipPosition.value = { x, y };
-    
+
     const { lat, lng } = pixelToLatLng(x, y);
     const wind = getWind(lat, lng);
-    
+
     if (wind?.magnitude) {
       windInfo.value = {
         speed: wind.magnitude,
@@ -152,9 +161,9 @@
     try {
       const res = await fetch(`${props.windDataUrl}?t=${Date.now()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      
+
       const raw = await res.json();
-      
+
       if (Array.isArray(raw) && raw[0]?.header && raw[1]?.data) {
         windData = { header: [raw[0].header], data: [raw[0].data, raw[1].data] };
       } else if (raw?.header?.[0]) {
@@ -169,19 +178,33 @@
   }
 
   function createMockData() {
-    const nx = 360, ny = 181;
-    const u = [], v = [];
-    
+    const nx = 360,
+      ny = 181;
+    const u = [],
+      v = [];
+
     for (let j = 0; j < ny; j++) {
       for (let i = 0; i < nx; i++) {
-        const lat = 90 - j, lon = i;
+        const lat = 90 - j,
+          lon = i;
         u.push(Math.sin((lon * Math.PI) / 180) * Math.cos((lat * Math.PI) / 180) * 10);
         v.push(Math.cos((lon * Math.PI) / 180) * Math.sin((lat * Math.PI) / 180) * 5);
       }
     }
-    
+
     windData = {
-      header: [{ nx, ny, lo1: 0, la1: 90, dx: 1, dy: 1, refTime: new Date().toISOString(), parameterUnit: 'm/s' }],
+      header: [
+        {
+          nx,
+          ny,
+          lo1: 0,
+          la1: 90,
+          dx: 1,
+          dy: 1,
+          refTime: new Date().toISOString(),
+          parameterUnit: 'm/s'
+        }
+      ],
       data: [u, v]
     };
   }
@@ -234,18 +257,18 @@
 
   function getWind(lat: number, lng: number) {
     if (!windData || windData.data.length < 2) return null;
-    
+
     const h = windData.header[0];
     const lon = lng < 0 ? lng + 360 : lng;
     const i = Math.floor((lon - h.lo1) / h.dx);
     const j = Math.floor((h.la1 - lat) / h.dy);
     const fi = (lon - h.lo1) / h.dx - i;
     const fj = (h.la1 - lat) / h.dy - j;
-    
+
     const u = bilinear(windData.data[0], i, j, fi, fj, h.nx);
     const v = bilinear(windData.data[1], i, j, fi, fj, h.nx);
-    
-    return (u !== null && v !== null) ? { u, v, magnitude: Math.sqrt(u * u + v * v) } : null;
+
+    return u !== null && v !== null ? { u, v, magnitude: Math.sqrt(u * u + v * v) } : null;
   }
 
   function bilinear(data: number[], i: number, j: number, fi: number, fj: number, nx: number) {
@@ -254,7 +277,7 @@
     const v10 = data[idx(i + 1, j)] ?? 0;
     const v01 = data[idx(i, j + 1)] ?? 0;
     const v11 = data[idx(i + 1, j + 1)] ?? 0;
-    
+
     return [v00, v10, v01, v11].every(Number.isFinite)
       ? (v00 * (1 - fi) + v10 * fi) * (1 - fj) + (v01 * (1 - fi) + v11 * fi) * fj
       : null;
@@ -262,24 +285,27 @@
 
   function evolve() {
     buckets.forEach(b => (b.length = 0));
-    
+
     particles.forEach(p => {
       if (p.age > MAX_AGE) Object.assign(p, randomizeParticle());
-      
+
       const { lat, lng } = pixelToLatLng(p.x, p.y);
       const wind = getWind(lat, lng);
-      
+
       if (!wind?.magnitude) {
         p.age = MAX_AGE;
       } else {
         const scale = Math.max(0.3, Math.min(3.0, (props.zoom || 3) * 0.3)) * 0.5;
         const xt = p.x + wind.u * scale;
         const yt = p.y - wind.v * scale;
-        
+
         if (xt >= 0 && xt < canvasWidth.value && yt >= 0 && yt < canvasHeight.value) {
           p.xt = xt;
           p.yt = yt;
-          const idx = Math.min(Math.floor((wind.magnitude / 30) * (colorStyles.length - 1)), colorStyles.length - 1);
+          const idx = Math.min(
+            Math.floor((wind.magnitude / 30) * (colorStyles.length - 1)),
+            colorStyles.length - 1
+          );
           buckets[idx].push(p);
         } else {
           p.age = MAX_AGE;
@@ -303,7 +329,10 @@
 
     const prev = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = 'destination-in';
-    const fadeAlpha = (props.zoom || 3) > 8 ? 0.92 : Math.max(0.96, Math.min(0.99, 0.96 + ((props.zoom || 3) - 3) * 0.01));
+    const fadeAlpha =
+      (props.zoom || 3) > 8
+        ? 0.92
+        : Math.max(0.96, Math.min(0.99, 0.96 + ((props.zoom || 3) - 3) * 0.01));
     ctx.fillStyle = `rgba(0, 0, 0, ${fadeAlpha})`;
     ctx.fillRect(0, 0, canvasWidth.value, canvasHeight.value);
     ctx.globalCompositeOperation = prev;
