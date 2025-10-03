@@ -1,8 +1,8 @@
 import {
-  CHART_COLORS_CSS_VARS,
-  CHART_COLORS_DARK_CSS_VARS,
-  CHART_COLORS_LIGHT_CSS_VARS,
-  CHART_COLORS_MEDIUM_CSS_VARS
+  CHART_COLORS_500_CSS_VARS,
+  CHART_COLORS_700_CSS_VARS,
+  CHART_COLORS_100_CSS_VARS,
+  CHART_COLORS_300_CSS_VARS
 } from '~/constants/shared/colors';
 import { ChartColorsType, MeasureNames, MeasurementLevels } from '~/types';
 import { getMeasurementLevel } from './get-measure-level';
@@ -40,33 +40,21 @@ export function getPM25Color(
 
   return {
     bgColor: getAQColorByShade(result, shade),
-    textColorClass: getTextColorClassForBG(result, shade === 700)
+    textColorClass: 'text-light'
   };
 }
 
 function getAQColorByShade(color: ChartColorsType, shade: 500 | 700 | 300 | 100 = 500): string {
   switch (shade) {
     case 700:
-      return CHART_COLORS_DARK_CSS_VARS[color];
+      return CHART_COLORS_700_CSS_VARS[color];
     case 300:
-      return CHART_COLORS_MEDIUM_CSS_VARS[color];
+      return CHART_COLORS_700_CSS_VARS[color];
     case 100:
-      return CHART_COLORS_LIGHT_CSS_VARS[color];
+      return CHART_COLORS_100_CSS_VARS[color];
     default:
-      return CHART_COLORS_CSS_VARS[color];
+      return CHART_COLORS_500_CSS_VARS[color];
   }
-}
-
-/**
- * Determines the appropriate text color for a given background color type.
- *
- * @param {ChartColorsType} bgColor - The background color type from ChartColorsType enum
- * @param {boolean} [isBGDark=false] - Whether the background is using dark mode colors
- * @returns {string} CSS class for text that ensures readable contrast
- * @private
- */
-function getTextColorClassForBG(bgColor: ChartColorsType, isBGDark: boolean = false): string {
-  return [ChartColorsType.YELLOW].includes(bgColor) && !isBGDark ? 'text-dark' : 'text-light';
 }
 
 /**
@@ -98,7 +86,7 @@ export function getCO2Color(
 
   return {
     bgColor: getAQColorByShade(color, shade),
-    textColorClass: getTextColorClassForBG(color, shade === 700)
+    textColorClass: 'text-light'
   };
 }
 
@@ -133,7 +121,7 @@ export function getAQIColor(
 
   return {
     bgColor: getAQColorByShade(color, shade),
-    textColorClass: getTextColorClassForBG(color, shade === 700)
+    textColorClass: 'text-light'
   };
 }
 
