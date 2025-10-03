@@ -4,7 +4,7 @@ import { LogLevel, Logger } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createSwaggerConfig } from './config/swagger.config';
 
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   // Setup logger
   const logger = new Logger('Bootstrap');
   const isProduction = process.env.NODE_ENV === 'production';
@@ -35,7 +35,7 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('map/api/v1/docs', app, documentFactory);
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3001);
   logger.log('Application Started');
 }
 bootstrap();

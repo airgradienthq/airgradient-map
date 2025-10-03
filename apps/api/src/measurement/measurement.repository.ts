@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { MeasurementEntity } from './measurement.entity';
-import { MeasureType } from 'src/utils/measureTypeQuery';
+import { MeasureType } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
 @Injectable()
@@ -10,7 +10,7 @@ class MeasurementRepository {
   private readonly logger = new Logger(MeasurementRepository.name);
 
   private buildMeasureQuery(
-    measure?: string,
+    measure?: MeasureType,
     paramsCount: number = 0,
   ): {
     selectQuery: string;
@@ -21,7 +21,7 @@ class MeasurementRepository {
   } {
     const query = {
       selectQuery: `m.pm25, m.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2`,
-      whereQuery: '',
+      whereQuery: '1=1',
       hasValidation: false,
       minVal: null,
       maxVal: null,
@@ -38,12 +38,12 @@ class MeasurementRepository {
         validationQuery = `AND m.${measure} BETWEEN $${paramsCount + 1} AND $${paramsCount + 2}`;
       }
 
-      if (measure === 'pm25') {
+      if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
-        query.whereQuery = `WHERE m.pm25 IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `m.pm25 IS NOT NULL ${validationQuery}`;
       } else {
         query.selectQuery = `m.${measure}`;
-        query.whereQuery = `WHERE m.${measure} IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `m.${measure} IS NOT NULL ${validationQuery}`;
       }
     }
     return query;
@@ -52,7 +52,7 @@ class MeasurementRepository {
   async retrieveLatest(
     offset: number = 0,
     limit: number = 100,
-    measure?: string,
+    measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [offset, limit];
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
@@ -89,7 +89,8 @@ class MeasurementRepository {
                 measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
             JOIN 
                 location l ON m.location_id = l.id
-            ${whereQuery}
+            WHERE
+              ${whereQuery}
             ORDER BY 
                 lm.location_id 
             OFFSET $1 LIMIT $2; 
@@ -117,7 +118,7 @@ class MeasurementRepository {
     yMin: number,
     xMax: number,
     yMax: number,
-    measure?: string,
+    measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
 
@@ -146,7 +147,11 @@ class MeasurementRepository {
                         ST_MakeEnvelope($1, $2, $3, $4, 3857)
                     )
                 AND
+                  ${whereQuery}
+                AND
                     m.measured_at  >= NOW() - INTERVAL '6 hours'
+                AND
+                    m.measured_at <= NOW()
                 GROUP BY 
                     l.id
             )
@@ -162,10 +167,12 @@ class MeasurementRepository {
             FROM 
                 latest_measurements lm
             JOIN 
-                measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
+                measurement m ON
+                    lm.location_id = m.location_id
+                    AND lm.last_measured_at = m.measured_at
+                    AND m.measured_at >= NOW() - INTERVAL '6 hours'
             JOIN 
-                location l ON m.location_id = l.id
-                ${whereQuery};
+                location l ON m.location_id = l.id;
         `;
 
     try {

@@ -4,7 +4,7 @@ export function getMeasurementLevel(measure: MeasureNames, value: number): Measu
   switch (measure) {
     case MeasureNames.PM25:
       return getPM25Level(value);
-    case MeasureNames.CO2:
+    case MeasureNames.RCO2:
       return getCO2Level(value);
     default:
       return getAQILevel(value);

@@ -84,7 +84,7 @@ export function getCO2Color(
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
 
-  const level = getMeasurementLevel(MeasureNames.CO2, rco2Value);
+  const level = getMeasurementLevel(MeasureNames.RCO2, rco2Value);
 
   if (level === MeasurementLevels.GOOD) {
     color = ChartColorsType.GREEN;
@@ -155,7 +155,7 @@ export function getColorForMeasure(
   switch (measure) {
     case MeasureNames.PM25:
       return getPM25Color(value, shade);
-    case MeasureNames.CO2:
+    case MeasureNames.RCO2:
       return getCO2Color(value, shade);
     case MeasureNames.PM_AQI:
       return getAQIColor(value, shade);

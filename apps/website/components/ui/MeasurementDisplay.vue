@@ -22,10 +22,10 @@
     <div class="measurement-index-container" :style="{ backgroundColor: colorConfig.bgColor }">
       <h3 :class="colorConfig.textColorClass">
         <span>{{ props.value }}</span>
-        {{ selectedMeasure !== MeasureNames.CO2 ? 'U.S. AQI' : 'ppm' }}
+        {{ selectedMeasure !== MeasureNames.RCO2 ? 'U.S. AQI' : 'ppm' }}
       </h3>
       <h5 :class="colorConfig.textColorClass">
-        {{ selectedMeasure !== MeasureNames.CO2 ? 'Air Quality Index' : 'Carbon Dioxide' }}
+        {{ selectedMeasure !== MeasureNames.RCO2 ? 'Air Quality Index' : 'Carbon Dioxide' }}
       </h5>
     </div>
   </div>

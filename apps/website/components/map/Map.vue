@@ -5,7 +5,7 @@
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-information-outline"
-        :style="'map'"
+        :style="'light'"
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
@@ -35,6 +35,7 @@
         :max-zoom="DEFAULT_MAP_VIEW_CONFIG.maxZoom"
         :min-zoom="DEFAULT_MAP_VIEW_CONFIG.minZoom"
         :center="[Number(urlState.lat), Number(urlState.long)]"
+        :attributionControl="true"
         @ready="onMapReady"
       >
       </LMap>
@@ -48,7 +49,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -79,15 +80,14 @@
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import { useStorage } from '@vueuse/core';
-  import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
-  const { handleApiError } = useApiErrorHandler();
-  const { startRefreshInterval, stopRefreshInterval, isRefreshIntervalActive } = useIntervalRefresh(
+
+  const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
     updateMapData,
     CURRENT_DATA_REFRESH_INTERVAL,
     {
@@ -113,12 +113,13 @@
       value: MeasureNames.PM_AQI
     },
     {
-      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.CO2],
-      value: MeasureNames.CO2
+      label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2],
+      value: MeasureNames.RCO2
     }
   ];
 
-  const updateMapDebounced = createVueDebounce(updateMap, 300);
+  // SINGLE debouncing flow - no complex interaction logic
+  const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map;
@@ -136,6 +137,28 @@
 
     mapInstance = map.value.leafletObject;
 
+    disableScrollWheelZoomForHeadless();
+
+    try {
+      const attributionContent = `
+      <span style="font-size: 10px; margin-right: 4px;">🇺🇦</span>
+      <a target="_blank" href="https://leafletjs.com/">Leaflet</a> |
+            © <a target="_blank" href="https://www.airgradient.com/">AirGradient</a> | 
+             © <a target="_blank" href="https://openaq.org/">OpenAQ</a>
+             `;
+
+      if (mapInstance.attributionControl) {
+        mapInstance.attributionControl.setPrefix(attributionContent);
+      } else {
+        const attributionControl = L.control.attribution({
+          prefix: attributionContent
+        });
+        attributionControl.addTo(mapInstance);
+      }
+    } catch (error) {
+      console.warn('Failed to set custom attribution:', error);
+    }
+
     L.maplibreGL({
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: [Number(urlState.lat), Number(urlState.long)],
@@ -146,8 +169,20 @@
       pointToLayer: createMarker
     }).addTo(mapInstance);
 
-    mapInstance.on('moveend', updateMap);
-    mapInstance.whenReady(updateMap);
+    mapInstance.on('moveend', () => {
+      setUrlState({
+        zoom: mapInstance.getZoom(),
+        lat: mapInstance.getCenter().lat.toFixed(2),
+        long: mapInstance.getCenter().lng.toFixed(2)
+      });
+
+      updateMapDebounced();
+    });
+
+    startRefreshInterval();
+    mapInstance.whenReady(() => {
+      updateMapData();
+    });
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -197,36 +232,21 @@
     return marker;
   }
 
-  async function updateMap(): Promise<void> {
+  async function updateMapData(): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
+
     loading.value = true;
 
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-
-    if (isRefreshIntervalActive.value) {
-      stopRefreshInterval();
-    } else {
-      startRefreshInterval();
-    }
-
-    await updateMapData();
-  }
-
-  async function updateMapData(): Promise<void> {
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getSouth(),
-          ymin: bounds.getWest(),
-          xmax: bounds.getNorth(),
-          ymax: bounds.getEast(),
+          xmin: bounds.getWest(),
+          ymin: bounds.getSouth(),
+          xmax: bounds.getEast(),
+          ymax: bounds.getNorth(),
           zoom: mapInstance.getZoom(),
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
@@ -238,13 +258,13 @@
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
-      markers.clearLayers();
-      markers.addData(geoJsonData);
+
+      requestAnimationFrame(() => {
+        markers.clearLayers();
+        markers.addData(geoJsonData);
+      });
     } catch (error) {
       console.error('Failed to fetch map data:', error);
-
-      // Show user-friendly error message
-      handleApiError(error, 'Failed to load map data. Please try again.');
     } finally {
       loading.value = false;
     }
@@ -257,7 +277,8 @@
       provider,
       style: 'bar',
       autoClose: true,
-      keepResult: true
+      keepResult: true,
+      searchLabel: 'Search'
     });
 
     mapInstance.addControl(searchControl);
@@ -281,9 +302,12 @@
     }
   }
 
-  /**
-   * Handle successful geolocation
-   */
+  function disableScrollWheelZoomForHeadless(): void {
+    if (generalConfigStore.headless) {
+      mapInstance.scrollWheelZoom.disable();
+    }
+  }
+
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, {
@@ -293,15 +317,12 @@
     }
   }
 
-  /**
-   * Handle geolocation error
-   */
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
-    // Could show a toast notification here if available
   }
 
   onMounted(() => {
+    generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
       setUrlState({
         meas: MeasureNames.PM25
@@ -313,6 +334,10 @@
     }
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
   });
+
+  onUnmounted(() => {
+    stopRefreshInterval();
+  });
 </script>
 
 <style lang="scss">
@@ -321,18 +346,22 @@
   }
 
   #map {
-    height: calc(100vh - 130px);
+    height: calc(100svh - 130px);
   }
-
   @include desktop {
     #map {
-      height: calc(100vh - 117px);
+      height: calc(100svh - 117px);
+    }
+  }
+  .headless {
+    #map {
+      height: calc(100svh - 5px);
     }
   }
 
   .headless {
     #map {
-      height: calc(100vh - 5px);
+      height: calc(100svh - 5px) !important;
     }
   }
 
@@ -453,18 +482,72 @@
   }
 
   .leaflet-geosearch-bar form {
-    padding-left: 0;
     background-image: none;
+    border-radius: 100px;
+    border: 2px solid var(--grayColor400) !important;
+    height: 40px;
+    padding: 0;
+    overflow: hidden;
   }
 
   .leaflet-geosearch-bar form input {
-    padding-left: 30px !important;
-    background-image: url('/assets/images/icons/search.svg');
-    background-position: 5px center;
-    background-size: 20px;
+    background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
+    background-position: left 5px top 1px;
+    background-size: 16px;
     background-repeat: no-repeat;
-    height: 36px !important;
-    font-size: 16px !important;
+    font-size: var(--font-size-base) !important;
+    font-weight: var(--font-weight-medium);
+    font-family: var(--primary-font);
+    padding-left: 25px !important;
+    height: 22px !important;
+    height: 19px !important;
+    padding-right: 50px;
+    text-overflow: ellipsis;
+    margin: 9px 8px 10px 8px;
+    min-width: auto;
+    width: calc(100% - 16px);
+  }
+
+  .leaflet-geosearch-bar form.open {
+    border-radius: 20px;
+    height: auto;
+    padding-bottom: 0px;
+  }
+
+  .leaflet-geosearch-bar form.open .results {
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    padding: 0;
+    overflow: hidden;
+
+    div {
+      font-family: var(--primary-font);
+      border: none;
+      padding: 5px 12px;
+      text-align: left;
+    }
+
+    div:hover {
+      background-color: var(--primaryColor500);
+      color: var(--main-white-color);
+    }
+  }
+
+  .leaflet-geosearch-bar form input::placeholder {
+    color: var(--grayColor400);
+    font-family: var(--primary-font);
+  }
+
+  .leaflet-geosearch-bar .reset {
+    margin-right: 10px;
+    margin-top: 2px;
+    font-size: 18px;
+    background-color: transparent !important;
+  }
+
+  .leaflet-geosearch-bar form input:placeholder-shown + .reset {
+    height: 40px !important;
+    display: none;
   }
 
   .map-controls {
@@ -475,54 +558,13 @@
     width: 300px;
   }
 
-  .display-type-selector {
-    width: 100%;
-    height: 36px;
-    padding: 0 12px;
-    font-family: var(--secondary-font);
-    font-size: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    background: var(--main-white-color);
-    color: var(--main-text-color);
-    cursor: pointer;
-    outline: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 8px center;
-    background-size: 16px;
-    padding-right: 32px;
-
-    &:hover {
-      border-color: rgba(0, 0, 0, 0.3);
-    }
-
-    &:focus {
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(var(--primary-color), 0.1);
-    }
-  }
-
   .leaflet-geosearch-bar {
     margin-bottom: 8px !important;
   }
 
-  .display-type-selector:-moz-focusring {
-    color: transparent;
-    text-shadow: 0 0 0 #000;
-  }
-
-  .display-type-selector::-ms-expand {
-    display: none;
-  }
-
   .legend-box {
     position: absolute;
-    bottom: 30px;
+    bottom: 35px;
     left: 50%;
     z-index: 400;
     width: 900px;
@@ -537,15 +579,112 @@
 
   .map-info-btn-box {
     position: absolute;
-    top: 90px;
+    top: 110px;
     left: 10px;
     z-index: 999;
   }
 
   .map-geolocation-btn-box {
     position: absolute;
-    top: 134px;
+    top: 154px;
     left: 10px;
     z-index: 999;
+  }
+
+  @media (max-width: 779px) {
+    .leaflet-control-geosearch {
+      display: flex;
+    }
+
+    .leaflet-geosearch-bar form {
+      width: 323px !important;
+    }
+
+    .leaflet-geosearch-bar form input {
+      background-position: left 5px center;
+      padding-left: 14px;
+    }
+
+    .legend-box {
+      bottom: 45px;
+    }
+  }
+
+  .leaflet-control-zoom {
+    border: 2px solid var(--grayColor400) !important;
+    border-radius: 100px !important;
+    background-color: var(--main-white-color) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    padding: 8px 0 !important;
+    width: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--main-text-color) !important;
+    gap: 10px;
+  }
+
+  .leaflet-control-zoom a {
+    background-color: transparent !important;
+    border: none !important;
+    width: 100% !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-disabled {
+    color: var(--grayColor500) !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-in:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -8px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -5px !important;
+    background-color: var(--grayColor200) !important;
+    border-radius: 100px 100px 0 0 !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled) {
+    color: var(--main-text-color) !important;
+    position: relative !important;
+  }
+
+  .leaflet-control-zoom a.leaflet-control-zoom-out:hover:not(.leaflet-disabled)::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -5px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: -8px !important;
+    background-color: var(--grayColor200) !important;
+    border-radius: 0 0 100px 100px !important;
+    z-index: -1 !important;
+  }
+
+  .leaflet-control-zoom::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 1px;
+    background-color: var(--grayColor400);
+    z-index: 1;
+  }
+
+  .leaflet-control-attribution {
+    background-color: var(--main-white-color);
+    border-radius: 4px !important;
+    padding: 4px 8px !important;
+    text-align: center;
+    word-wrap: break-word !important;
   }
 </style>

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { LocationEntity } from './location.entity';
-import { MeasureType } from 'src/utils/measureTypeQuery';
+import { MeasureType, PM25Period, PM25PeriodConfig, MeasurementAveragesResult } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 
 @Injectable()
@@ -23,8 +23,6 @@ class LocationRepository {
                 ST_Y(l.coordinate) AS latitude,
                 o.id AS "ownerId",
                 o.owner_name AS "ownerName",
-                o.owner_name_display AS "ownerNameDisplay",
-                o.description,
                 o.url,
                 l.sensor_type AS "sensorType",
                 l.licenses,
@@ -65,8 +63,6 @@ class LocationRepository {
                 ST_Y(l.coordinate) AS latitude,
                 o.id AS "ownerId",
                 o.owner_name AS "ownerName",
-                o.owner_name_display AS "ownerNameDisplay",
-                o.description,
                 o.url,
                 l.sensor_type AS "sensorType",
                 l.licenses,
@@ -105,6 +101,32 @@ class LocationRepository {
         code: 'LOC_003',
       });
     }
+  }
+
+  async retrieveLastPM25ByLocationsList(locationIds: number[]) {
+    if (locationIds.length === 0) {
+      return [];
+    }
+    const query = `
+        SELECT DISTINCT ON (m.location_id)
+                m.location_id AS "locationId",
+                m.pm25,
+                m.rhum,
+                m.measured_at AS "measuredAt",
+                l.location_name AS "locationName",
+                l.sensor_type AS "sensorType",
+                l.data_source AS "dataSource"
+        FROM measurement m
+        JOIN location l ON m.location_id = l.id
+        WHERE m.location_id = ANY($1::int[])
+          AND (
+            (l.data_source = 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '30 minutes')
+            OR (l.data_source <> 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '90 minutes')
+          )
+        ORDER BY m.location_id, m.measured_at DESC;
+    `;
+    const results = await this.databaseService.runQuery(query, [locationIds]);
+    return results.rows;
   }
 
   async retrieveLastMeasuresByLocationId(id: number) {
@@ -171,7 +193,7 @@ class LocationRepository {
 
         let sum = 0;
         for (const row of rows) {
-          sum += parseFloat(row.value);
+          sum += parseFloat(row.pm25);
         }
         const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
         cigaretteData[timeframe.label] = cigaretteNumber;
@@ -202,17 +224,17 @@ class LocationRepository {
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AS timebucket,
+                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
-                l.sensor_type AS sensorType,
-                l.data_source AS dataSource
+                l.sensor_type AS "sensorType",
+                l.data_source AS "dataSource"
             FROM measurement m
             JOIN location l on m.location_id = l.id
             WHERE 
                 m.location_id = $1 AND 
                 m.measured_at BETWEEN $2 AND $3 
                 ${validationQuery}
-            GROUP BY timebucket, sensorType, dataSource
+            GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
         `;
 
@@ -222,7 +244,6 @@ class LocationRepository {
 
     try {
       const results = await this.databaseService.runQuery(query, params);
-
       return results.rows;
     } catch (error) {
       this.logger.error(error);
@@ -232,6 +253,141 @@ class LocationRepository {
         parameters: { id, start, end, bucketSize, measure },
         error: error.message,
         code: 'LOC_006',
+      });
+    }
+  }
+
+  private convertPeriodToInterval(period: string): string {
+    const match = period.match(/^(\d+)([mhdw])$/);
+    if (!match) {
+      throw new Error(`Invalid period format: ${period}`);
+    }
+
+    const [, number, unit] = match;
+    const unitMap = {
+      m: 'minutes',
+      h: 'hours',
+      d: 'days',
+      w: 'weeks',
+    };
+
+    return `${number} ${unitMap[unit as keyof typeof unitMap]}`;
+  }
+
+  private findLongestInterval(periods: string[]): string {
+    // Convert periods to minutes for comparison
+    const periodInMinutes = periods.map(period => {
+      const match = period.match(/^(\d+)([mhdw])$/);
+      if (!match) return 0;
+
+      const [, number, unit] = match;
+      const num = parseInt(number);
+
+      switch (unit) {
+        case 'm':
+          return num;
+        case 'h':
+          return num * 60;
+        case 'd':
+          return num * 60 * 24;
+        case 'w':
+          return num * 60 * 24 * 7;
+        default:
+          return 0;
+      }
+    });
+
+    // Find the index of the longest period
+    const longestIndex = periodInMinutes.indexOf(Math.max(...periodInMinutes));
+
+    // Return the PostgreSQL interval for the longest period
+    return this.convertPeriodToInterval(periods[longestIndex]);
+  }
+
+  private buildAveragesQuery(measure: MeasureType, periods?: string[]): string {
+    // Use default predefined periods if none specified
+    const defaultPeriods = Object.values(PM25Period);
+    const requestedPeriods = periods || defaultPeriods;
+
+    const periodCases = requestedPeriods
+      .map(period => {
+        const interval = periods
+          ? this.convertPeriodToInterval(period)
+          : PM25PeriodConfig[period as PM25Period].interval;
+        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measure} END) as "${period}"`;
+      })
+      .join(',\n      ');
+
+    // Find the longest interval to optimize the query
+    let longestInterval: string;
+    if (periods) {
+      // For custom periods, find the numerically longest interval
+      longestInterval = this.findLongestInterval(periods);
+    } else {
+      longestInterval = PM25PeriodConfig[PM25Period.DAYS_90].interval;
+    }
+
+    return `
+      SELECT 
+        $1::integer as location_id,
+        ${periodCases}
+      FROM measurement
+      WHERE location_id = $1
+        AND ${measure} IS NOT NULL
+        AND ${measure} BETWEEN 0 AND 500
+        AND measured_at >= NOW() - INTERVAL '${longestInterval}'
+      GROUP BY location_id
+    `;
+  }
+
+  async retrieveAveragesByLocationId(
+    id: number,
+    measure: MeasureType,
+    periods?: string[],
+  ): Promise<MeasurementAveragesResult> {
+    const query = this.buildAveragesQuery(measure, periods);
+
+    // Debug logging
+    this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);
+
+    try {
+      const result = await this.databaseService.runQuery(query, [id]);
+
+      if (result.rows.length === 0) {
+        throw new NotFoundException({
+          message: 'LOC_007: No data found for location',
+          operation: 'retrieveAveragesByLocationId',
+          parameters: { id },
+          code: 'LOC_007',
+        });
+      }
+
+      const row = result.rows[0];
+      const averages: Record<string, number | null> = {};
+
+      // Use requested periods or default predefined periods if none specified
+      const defaultPeriods = Object.values(PM25Period);
+      const requestedPeriods = periods || defaultPeriods;
+
+      requestedPeriods.forEach(period => {
+        averages[period] = row[period] !== null ? Math.round(row[period] * 10) / 10 : null;
+      });
+
+      return {
+        locationId: id,
+        averages: averages,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_008: Failed to retrieve averages',
+        operation: 'retrieveAveragesByLocationId',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_008',
       });
     }
   }

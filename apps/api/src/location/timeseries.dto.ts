@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 class Timeseries {
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Timestamp of respective value in ISO 8601 format with timezone UTC',
+  })
   timebucket: Date;
 
   @ApiProperty({

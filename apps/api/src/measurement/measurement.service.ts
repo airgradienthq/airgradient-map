@@ -1,16 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import MeasurementRepository from './measurement.repository';
 import Supercluster from 'supercluster';
 import MeasurementCluster from './measurementCluster.model';
 import { ConfigService } from '@nestjs/config';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { MeasurementEntity } from './measurement.entity';
+import {
+  MeasurementServiceResult,
+  MeasurementsByAreaResult,
+  MeasurementClusterResult,
+  MeasureType,
+} from '../types/measurement/measurement.types';
+import { MeasurementGeoJSONFeature } from '../types/shared/geojson.types';
+import { DataSource } from 'src/types/shared/data-source';
 
 @Injectable()
 export class MeasurementService {
   // Default constant values
+  private clusterMinPoints = 2;
   private clusterRadius = 80;
   private clusterMaxZoom = 8;
+  private readonly logger = new Logger(MeasurementService.name);
 
   constructor(
     private readonly measurementRepository: MeasurementRepository,
@@ -27,7 +37,11 @@ export class MeasurementService {
     }
   }
 
-  async getLastMeasurements(measure?: string, page = 1, pagesize = 100) {
+  async getLastMeasurements(
+    measure?: MeasureType,
+    page = 1,
+    pagesize = 100,
+  ): Promise<MeasurementServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
     const measurements = await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
 
@@ -39,8 +53,8 @@ export class MeasurementService {
     yMin: number,
     xMax: number,
     yMax: number,
-    measure?: string,
-  ): Promise<MeasurementEntity[]> {
+    measure?: MeasureType,
+  ): Promise<MeasurementsByAreaResult> {
     const measurements = await this.measurementRepository.retrieveLatestByArea(
       xMin,
       yMin,
@@ -58,10 +72,13 @@ export class MeasurementService {
     xMax: number,
     yMax: number,
     zoom: number,
-    measure?: string,
-  ): Promise<MeasurementCluster[]> {
+    measure?: MeasureType,
+    minPoints?: number,
+    radius?: number,
+    maxZoom?: number,
+  ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
-    measure = measure || 'pm25';
+    measure = measure || MeasureType.PM25;
 
     // Query locations by certain area with measurementType as the value
     const locations = await this.measurementRepository.retrieveLatestByArea(
@@ -71,23 +88,32 @@ export class MeasurementService {
       yMax,
       measure,
     );
+
     if (locations.length === 0) {
       // Directly return if query result empty
       return new Array<MeasurementCluster>();
     }
 
+    const clusterMinPoints = minPoints ?? this.clusterMinPoints;
+    const clusterRadius = radius ?? this.clusterRadius;
+    const clusterMaxZoom = maxZoom ?? this.clusterMaxZoom;
+
+    this.logger.debug(`minPoints ${clusterMinPoints}`);
+    this.logger.debug(`radius ${clusterRadius}`);
+    this.logger.debug(`maxZoom ${clusterMaxZoom}`);
+
     // converting to .geojson features array
-    let geojson = new Array<any>();
+    let geojson = new Array<MeasurementGeoJSONFeature>();
     locations.map(point => {
       const value =
-        measure === 'pm25' && point.dataSource === 'AirGradient'
+        measure === MeasureType.PM25 && point.dataSource === DataSource.AIRGRADIENT
           ? getEPACorrectedPM(point.pm25, point.rhum)
           : point[measure];
       geojson.push({
         type: 'Feature',
         geometry: {
           type: 'Point',
-          coordinates: [point.latitude, point.longitude],
+          coordinates: [point.longitude, point.latitude],
         },
         properties: {
           locationId: point.locationId,
@@ -100,12 +126,13 @@ export class MeasurementService {
     });
 
     // Cluster data points and return cluster calculation results only if zoom level below clusterMaxZoom
-    var clusters: any;
-    if (zoom > this.clusterMaxZoom) {
+    let clusters: any;
+    if (zoom > clusterMaxZoom) {
       clusters = geojson;
     } else {
       const clustersIndexes = new Supercluster({
-        radius: this.clusterRadius,
+        radius: clusterRadius,
+        minPoints: clusterMinPoints,
         map: props => ({
           sum: props.value,
         }),
@@ -114,7 +141,7 @@ export class MeasurementService {
         },
       });
       clustersIndexes.load(geojson);
-      clusters = clustersIndexes.getClusters([yMin, xMin, yMax, xMax], zoom);
+      clusters = clustersIndexes.getClusters([xMin, yMin, xMax, yMax], zoom);
     }
 
     // Map to to array of MeasurementClusterModel
@@ -127,7 +154,7 @@ export class MeasurementService {
 
   private setEPACorrectedPM(measurements: MeasurementEntity[]) {
     return measurements.map(point => {
-      if (point.dataSource === 'AirGradient' && (point.pm25 || point.pm25 === 0)) {
+      if (point.dataSource === DataSource.AIRGRADIENT && (point.pm25 || point.pm25 === 0)) {
         point.pm25 = getEPACorrectedPM(point.pm25, point.rhum);
       }
       return point;

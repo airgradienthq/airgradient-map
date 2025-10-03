@@ -23,13 +23,15 @@ services:
     build:
       context: apps/api
       dockerfile: tools/docker/Dockerfile
-    command: npm run start:dev
+    restart: unless-stopped
     ports:
       - 3001:3001
+    networks:
+      - dev 
     volumes:
       - ./apps/api/src:/app/src
-    networks:
-      - dev
+      - ./apps/api/.env.development:/app/.env.development
+    command: npm run start:dev
     depends_on:
       - postgrex
 

@@ -2,7 +2,7 @@
   <!-- Internal company Header component - commented out for open source version -->
   <Header v-if="!headless" />
 
-  <div class="main-content" :class="{ headless: headless }">
+  <div class="main-content">
     <slot />
   </div>
 
@@ -19,6 +19,7 @@
     if (process.client) {
       if (window.location.href.includes('headless=true')) {
         headless.value = true;
+        document.documentElement.classList.add('headless');
       }
     }
   });
