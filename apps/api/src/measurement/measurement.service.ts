@@ -13,28 +13,34 @@ import {
 } from '../types/measurement/measurement.types';
 import { MeasurementGeoJSONFeature } from '../types/shared/geojson.types';
 import { DataSource } from 'src/types/shared/data-source';
+import { MEASUREMENT_CLUSTER_CONFIG } from 'src/constants/measurement-cluster.constants';
 
 @Injectable()
 export class MeasurementService {
-  // Default constant values
-  private clusterMinPoints = 2;
-  private clusterRadius = 80;
-  private clusterMaxZoom = 8;
   private readonly logger = new Logger(MeasurementService.name);
+
+  // Configuration from constants or environment
+  private readonly CLUSTER_MIN_POINTS: number;
+  private readonly CLUSTER_RADIUS: number;
+  private readonly CLUSTER_MAX_ZOOM: number;
 
   constructor(
     private readonly measurementRepository: MeasurementRepository,
     private readonly configService: ConfigService,
   ) {
-    const clusterRadius = this.configService.get<number>('MAP_CLUSTER_RADIUS');
-    if (clusterRadius) {
-      this.clusterRadius = clusterRadius;
-    }
-
-    const clusterMaxZoom = this.configService.get<number>('MAP_CLUSTER_MAX_ZOOM');
-    if (clusterMaxZoom) {
-      this.clusterMaxZoom = clusterMaxZoom;
-    }
+    // Allow environment overrides
+    this.CLUSTER_MIN_POINTS = this.configService.get<number>(
+      'MAP_CLUSTER_MIN_POINTS',
+      MEASUREMENT_CLUSTER_CONFIG.MIN_POINTS,
+    );
+    this.CLUSTER_RADIUS = this.configService.get<number>(
+      'MAP_CLUSTER_RADIUS',
+      MEASUREMENT_CLUSTER_CONFIG.RADIUS,
+    );
+    this.CLUSTER_MAX_ZOOM = this.configService.get<number>(
+      'MAP_CLUSTER_MAX_ZOOM',
+      MEASUREMENT_CLUSTER_CONFIG.MAX_ZOOM,
+    );
   }
 
   async getLastMeasurements(
@@ -94,13 +100,13 @@ export class MeasurementService {
       return new Array<MeasurementCluster>();
     }
 
-    const clusterMinPoints = minPoints ?? this.clusterMinPoints;
-    const clusterRadius = radius ?? this.clusterRadius;
-    const clusterMaxZoom = maxZoom ?? this.clusterMaxZoom;
+    const clusterMinPoints = minPoints ?? this.CLUSTER_MIN_POINTS;
+    const clusterRadius = radius ?? this.CLUSTER_RADIUS;
+    const clusterMaxZoom = maxZoom ?? this.CLUSTER_MAX_ZOOM;
 
-    this.logger.debug(`minPoints ${clusterMinPoints}`);
-    this.logger.debug(`radius ${clusterRadius}`);
-    this.logger.debug(`maxZoom ${clusterMaxZoom}`);
+    this.logger.debug(`clusterMinPoints ${clusterMinPoints}`);
+    this.logger.debug(`clusterRadius ${clusterRadius}`);
+    this.logger.debug(`clusterMaxZoom ${clusterMaxZoom}`);
 
     // converting to .geojson features array
     let geojson = new Array<MeasurementGeoJSONFeature>();
