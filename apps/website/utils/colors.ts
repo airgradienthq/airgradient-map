@@ -2,7 +2,6 @@ import {
   CHART_COLORS_500_CSS_VARS,
   CHART_COLORS_700_CSS_VARS,
   CHART_COLORS_100_CSS_VARS,
-  CHART_COLORS_300_CSS_VARS
 } from '~/constants/shared/colors';
 import { ChartColorsType, MeasureNames, MeasurementLevels } from '~/types';
 import { getMeasurementLevel } from './get-measure-level';
