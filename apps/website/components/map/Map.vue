@@ -248,6 +248,7 @@
 
   function toggleWindLayer(): void {
     windLayerEnabled.value = !windLayerEnabled.value;
+    setUrlState({ wind_layer: windLayerEnabled.value.toString() });
     if (windLayerEnabled.value) {
       nextTick(() => updateMapDimensions());
     }
