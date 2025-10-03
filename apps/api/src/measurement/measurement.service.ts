@@ -17,9 +17,9 @@ import { DataSource } from 'src/types/shared/data-source';
 @Injectable()
 export class MeasurementService {
   // Default constant values
+  private clusterMinPoints = 2;
   private clusterRadius = 80;
   private clusterMaxZoom = 8;
-  private clusterMinPoints = 2;
   private readonly logger = new Logger(MeasurementService.name);
 
   constructor(
@@ -88,17 +88,19 @@ export class MeasurementService {
       yMax,
       measure,
     );
+
     if (locations.length === 0) {
       // Directly return if query result empty
       return new Array<MeasurementCluster>();
     }
 
-    this.clusterMinPoints = minPoints ?? this.clusterMinPoints;
-    this.clusterRadius = radius ?? this.clusterRadius;
-    this.clusterMaxZoom = maxZoom ?? this.clusterMaxZoom;
-    this.logger.debug(`minPoints ${this.clusterMinPoints}`);
-    this.logger.debug(`radius ${this.clusterRadius}`);
-    this.logger.debug(`maxZoom ${this.clusterMaxZoom}`);
+    const clusterMinPoints = minPoints ?? this.clusterMinPoints;
+    const clusterRadius = radius ?? this.clusterRadius;
+    const clusterMaxZoom = maxZoom ?? this.clusterMaxZoom;
+
+    this.logger.debug(`minPoints ${clusterMinPoints}`);
+    this.logger.debug(`radius ${clusterRadius}`);
+    this.logger.debug(`maxZoom ${clusterMaxZoom}`);
 
     // converting to .geojson features array
     let geojson = new Array<MeasurementGeoJSONFeature>();
@@ -125,12 +127,12 @@ export class MeasurementService {
 
     // Cluster data points and return cluster calculation results only if zoom level below clusterMaxZoom
     let clusters: any;
-    if (zoom > this.clusterMaxZoom) {
+    if (zoom > clusterMaxZoom) {
       clusters = geojson;
     } else {
       const clustersIndexes = new Supercluster({
-        radius: this.clusterRadius,
-        minPoints: this.clusterMinPoints,
+        radius: clusterRadius,
+        minPoints: clusterMinPoints,
         map: props => ({
           sum: props.value,
         }),
