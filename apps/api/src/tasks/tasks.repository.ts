@@ -201,18 +201,55 @@ export class TasksRepository {
     }
   }
 
+  private async isSameValueFor24Hours(
+    last24HoursPm25Measurements: { measured_at: Date; pm25: number }[],
+    newPm25: number,
+  ): Promise<boolean> {
+    return (
+      last24HoursPm25Measurements.length >= 3 &&
+      last24HoursPm25Measurements.every(m => m.pm25 === newPm25)
+    );
+  }
+
+  async calculateIsPm25Outlier(dataPoint: {
+    locationId: number;
+    pm25: number;
+    measuredAt: string;
+  }): Promise<boolean> {
+    const last24HoursPm25Measurements = await this.databaseService.runQuery(
+      `SELECT measured_at, pm25 
+      FROM public.measurement
+      WHERE location_id = '${dataPoint.locationId}' 
+      AND measured_at >= (TIMESTAMP '${dataPoint.measuredAt}' - INTERVAL '24 HOURS');`,
+    );
+
+    if (await this.isSameValueFor24Hours(last24HoursPm25Measurements.rows, dataPoint.pm25)) {
+      return true;
+    }
+
+    return false;
+  }
+
   async insertNewAirgradientLatest(data: AirgradientModel[]): Promise<void> {
     try {
-      const measurementValues = data
-        .map(
-          ({ locationId, pm02, pm10, atmp, rhum, rco2, timestamp }) =>
-            `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}')`,
+      const measurementValues = (
+        await Promise.all(
+          data.map(async dataPoint => {
+            const { locationId, pm02, pm10, atmp, rhum, rco2, timestamp } = dataPoint;
+            const isPm25Outlier = await this.calculateIsPm25Outlier({
+              locationId: locationId,
+              pm25: pm02,
+              measuredAt: timestamp,
+            });
+
+            return `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}', ${isPm25Outlier})`;
+          }),
         )
-        .join(', ');
+      ).join(', ');
 
       const query = `
           INSERT INTO public."measurement" (
-              location_id, pm25, pm10, atmp, rhum, rco2, measured_at
+              location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
           )
           SELECT
               loc.id AS location_id,
@@ -221,10 +258,11 @@ export class TasksRepository {
               m.atmp,
               m.rhum,
               m.rco2,
-              m.measured_at::timestamp
+              m.measured_at::timestamp,
+              m.is_pm25_outlier::boolean
           FROM (
             VALUES ${measurementValues}
-          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at)
+          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier)
           JOIN public."location" loc
               ON loc.data_source = '${DataSource.AIRGRADIENT}'
              AND loc.reference_id = m.reference_id
@@ -254,14 +292,17 @@ export class TasksRepository {
 
   async insertNewOpenAQLatest(latests: OpenAQLatestData[]): Promise<void> {
     try {
-      const latestValues = latests
-        .flatMap(({ locationId, pm25, measuredAt }) => {
-          return `(${locationId},${pm25},'${measuredAt}')`;
-        })
-        .join(',');
+      const latestValues = (
+        await Promise.all(
+          latests.map(async ({ locationId, pm25, measuredAt }) => {
+            const isPm25Outlier = await this.calculateIsPm25Outlier({ locationId, pm25, measuredAt });
+            return `(${locationId},${pm25},'${measuredAt}', ${isPm25Outlier})`;
+          }),
+        )
+      ).join(',');
 
       const query = `
-        INSERT INTO measurement (location_id, pm25, measured_at) 
+        INSERT INTO public.measurement (location_id, pm25, measured_at, is_pm25_outlier) 
             VALUES ${latestValues} 
         ON CONFLICT (location_id, measured_at)
         DO NOTHING;

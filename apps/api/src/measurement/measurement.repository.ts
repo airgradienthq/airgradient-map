@@ -20,8 +20,17 @@ class MeasurementRepository {
     maxVal: number | null;
   } {
     const query = {
-      selectQuery: `m.pm25, m.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2`,
-      whereQuery: '1=1',
+      selectQuery: `CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25, m.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2`,
+      whereQuery: `1=1 
+      AND (
+        (m.is_pm25_outlier = false AND m.pm25 IS NOT NULL)  -- pm25 must be present
+        OR m.pm10 IS NOT NULL
+        OR m.atmp IS NOT NULL
+        OR m.rhum IS NOT NULL
+        OR m.rco2 IS NOT NULL
+        OR m.o3 IS NOT NULL
+        OR m.no2 IS NOT NULL
+      )`,
       hasValidation: false,
       minVal: null,
       maxVal: null,
@@ -40,7 +49,7 @@ class MeasurementRepository {
 
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
-        query.whereQuery = `m.pm25 IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `m.pm25 IS NOT NULL AND m.is_pm25_outlier = false ${validationQuery}`;
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `m.${measure} IS NOT NULL ${validationQuery}`;
