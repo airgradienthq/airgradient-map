@@ -1,4 +1,4 @@
-import { AQILevels } from "src/types/shared/aq-levels.types";
+import { AQILevels } from 'src/types/shared/aq-levels.types';
 
 export const AQ_LEVELS_COLORS: Record<AQILevels, string> = {
   [AQILevels.GOOD]: '#33CC33',
