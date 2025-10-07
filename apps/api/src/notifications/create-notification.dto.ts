@@ -47,13 +47,18 @@ export class CreateNotificationDto {
   threshold_ug_m3?: number;
 
   @ApiProperty({
-    description: 'How often to check threshold conditions (not used for scheduled notifications)',
+    description:
+      'How often to check threshold conditions. Use "once" for single notification per exceedance, or "1h" to "24h" for hourly cycles',
     required: false,
-    enum: ['once', '1h', '6h', '24h'],
+    pattern: '^(once|([1-9]|1[0-9]|2[0-4])h)$',
     example: '6h',
   })
   @IsOptional()
-  @IsEnum(['once', '1h', '6h', '24h'])
+  @IsString()
+  @Matches(/^(once|([1-9]|1[0-9]|2[0-4])h)$/, {
+    message:
+      'threshold_cycle must be "once" or hour format "1h" to "24h" (e.g., "1h", "6h", "13h", "24h")',
+  })
   threshold_cycle?: string;
 
   @ApiProperty({
@@ -73,21 +78,25 @@ export class CreateNotificationDto {
     description: 'Time to send scheduled notifications (required for scheduled notifications)',
     example: '09:30',
     pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$',
+    required: false,
   })
+  @IsOptional()
   @IsString()
   @Matches(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/, {
     message: 'scheduled_time must be in HH:mm format (e.g., 09:30, 23:45)',
   })
-  scheduled_time: string;
+  scheduled_time?: string;
 
   @ApiProperty({
     description:
       'Timezone for scheduled notifications (required for scheduled notifications, IANA timezone format)',
     example: 'America/New_York',
+    required: false,
   })
+  @IsOptional()
   @IsString()
   @IsValidTimezone()
-  scheduled_timezone: string;
+  scheduled_timezone?: string;
 
   @ApiProperty({
     description: 'Whether the notification is active and should be processed',
@@ -110,7 +119,7 @@ export class CreateNotificationDto {
 
   @ApiProperty({
     description:
-      'Type of notification - threshold-based or time-scheduled. Options: "threshold" or "scheduled"',
+      'Type of notification - threshold-based or time-scheduled. Options: "threshold" or "scheduled". Note: Only one threshold notification per player per location is allowed.',
     enum: NotificationType,
     enumName: 'AlarmType',
     example: NotificationType.THRESHOLD,

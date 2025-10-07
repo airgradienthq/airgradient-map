@@ -82,7 +82,7 @@ export class TasksService {
     this.logger.log('Starting scheduled notification check...');
 
     try {
-      const result = await this.notificationsService.processScheduledNotifications();
+      const result = await this.notificationsService.processAllNotifications();
       const duration = Date.now() - startTime;
 
       this.logger.log(`Notification job completed in ${duration}ms:`, {

@@ -119,6 +119,10 @@ class LocationRepository {
         FROM measurement m
         JOIN location l ON m.location_id = l.id
         WHERE m.location_id = ANY($1::int[])
+          AND (
+            (l.data_source = 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '30 minutes')
+            OR (l.data_source <> 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '90 minutes')
+          )
         ORDER BY m.location_id, m.measured_at DESC;
     `;
     const results = await this.databaseService.runQuery(query, [locationIds]);
