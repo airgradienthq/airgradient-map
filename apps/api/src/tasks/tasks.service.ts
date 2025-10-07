@@ -11,6 +11,7 @@ import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input'
 import { SensorType } from 'src/types/shared/sensor-type';
 import { AG_DEFAULT_LICENSE } from 'src/constants/ag-default-license';
 import { OLD_AG_BASE_API_URL } from 'src/constants/old-ag-base-api-url';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class TasksService {
@@ -21,6 +22,7 @@ export class TasksService {
     private readonly tasksRepository: TasksRepository,
     private readonly http: TasksHttp,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {
     const apiKey = this.configService.get<string>('API_KEY_OPENAQ');
     if (apiKey) {
@@ -72,6 +74,29 @@ export class TasksService {
 
     // NOTE: do optimization needed to insert in chunks?
     await this.tasksRepository.insertNewAirgradientLatest(data);
+  }
+
+  @Cron('* * * * *')
+  async sendNotifications() {
+    const startTime = Date.now();
+    this.logger.log('Starting scheduled notification check...');
+
+    try {
+      const result = await this.notificationsService.processAllNotifications();
+      const duration = Date.now() - startTime;
+
+      this.logger.log(`Notification job completed in ${duration}ms:`, {
+        successful: result.successful.length,
+        failed: result.failed.length,
+        totalTime: result.totalTime,
+      });
+
+      if (result.failed.length > 0) {
+        this.logger.warn('Notifications failed:', result.failed);
+      }
+    } catch (error) {
+      this.logger.error('Notification job failed:', error);
+    }
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)

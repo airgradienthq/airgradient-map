@@ -2,7 +2,7 @@
 
 AirGradient Map is a web application for visualizing and analyzing air quality data.
 
-🌍 Explore it live: [map-int.airgradient.com](https://map-int.airgradient.com/)
+🌍 Explore it live: [map.airgradient.com](https://map.airgradient.com/)
 
 <p align="center">
   <a href="https://github.com/user-attachments/assets/04455b37-6fe3-4584-b750-f49679d260fa">
@@ -65,7 +65,7 @@ docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml do
 
 #### Fresh Setup
 
-- Download database dump from [here](https://drive.google.com/drive/folders/1ABAu1JSs4lJRyD22ssN9bLrJzMCUVI7x?usp=sharing)
+- Download database dump from [here](https://drive.google.com/drive/folders/1U4NijemzSUOA2aXpJy3uK-uFXz8xFZct?usp=share_link)
 - Copy db dump to the db container
 
 ```bash
