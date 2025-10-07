@@ -17,10 +17,12 @@ import { UpdateNotificationDto } from './update-notification.dto';
 import { NotificationsRepository } from './notifications.repository';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import LocationRepository from 'src/location/location.repository';
-import { convertPmToUsAqi } from 'src/utils/convert_pm_us_aqi';
+import { convertPmToUsAqi } from 'src/utils/convert-pm-us-aqi';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
+import { AQ_LEVELS_COLORS } from 'src/constants/aq-levels-colors';
+import { getAQIColor } from 'src/utils/get-aqi-color-by-value';
 
 @Injectable()
 export class NotificationsService {
@@ -231,6 +233,9 @@ export class NotificationsService {
           ? measurement.pm25
           : convertPmToUsAqi(measurement.pm25);
 
+      const androidAccentColor: string = AQ_LEVELS_COLORS[getAQIColor(measurement.pm25)];
+      androidAccentColor.replace('#', 'FF');
+
       // For scheduled notifications, always send
       if (notification.alarm_type === NotificationType.SCHEDULED) {
         jobs.push({
@@ -240,6 +245,7 @@ export class NotificationsService {
           unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
           unit: notification.unit as NotificationPMUnit,
           imageUrl: this.getImageUrlForAQI(measurement.pm25),
+          androidAccentColor,
           title: {
             en: 'Scheduled Notification: ' + measurement.locationName,
             de: 'Geplante Benachrichtigung: ' + measurement.locationName,
@@ -264,6 +270,7 @@ export class NotificationsService {
             unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
             unit: notification.unit as NotificationPMUnit,
             imageUrl: this.getImageUrlForAQI(measurement.pm25),
+            androidAccentColor,
           });
         } else {
           this.logger.debug('Threshold notification skipped', {

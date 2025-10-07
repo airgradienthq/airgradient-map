@@ -18,6 +18,7 @@ export interface NotificationJob {
   title?: { en: string; de: string };
   retries?: number;
   lastError?: string;
+  androidAccentColor?: string;
 }
 
 export interface BatchResult {
