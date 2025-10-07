@@ -3,7 +3,6 @@ WORKDIR /app
 
 # Install deps and copy project to container
 COPY . .
-RUN npm install knex
 RUN npm install -g @nestjs/cli
 RUN npm ci
 RUN npm cache clean --force

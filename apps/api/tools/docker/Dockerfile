@@ -9,7 +9,6 @@ COPY tsconfig*.json ./
 
 # Install dependencies
 RUN npm install -g @nestjs/cli
-RUN npm install knex
 RUN npm ci
 RUN npm cache clean --force
 
@@ -36,7 +35,7 @@ COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/tsconfig*.json ./
-COPY --chown=nestjs:nodejs migrations/ migrations/
+COPY --chown=nestjs:nodejs database/ database/
 COPY --chown=nestjs:nodejs knexfile.ts knexfile.ts
 
 # Switch to non-root user
