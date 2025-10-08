@@ -21,8 +21,8 @@
         :size="ButtonSize.NORMAL"
         icon="mdi-weather-windy"
         :style="'light'"
-        @click="toggleWindLayer"
         title="Toggle Wind Layer"
+        @click="toggleWindLayer"
       >
       </UiIconButton>
     </div>
@@ -143,7 +143,7 @@
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
-  const windDataUrl = computed(() => 'http://localhost:3001/map/api/v1/wind-data/file');
+  const windDataUrl = computed(() => `${apiUrl}/wind-data/file`);
   const windParticleCount = computed(() => {
     const area = mapSize.value.width * mapSize.value.height;
     return Math.min(Math.max(Math.floor(area / 5000), 500), 3000);
