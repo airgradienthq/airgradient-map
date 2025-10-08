@@ -56,16 +56,9 @@
       </LMap>
 
       <WindVisualization
-        v-if="windLayerEnabled && mapBounds"
-        :width="mapSize.width"
-        :height="mapSize.height"
-        :bounds="mapBounds"
-        :zoom="mapInstance?.getZoom() || 3"
+        :map="mapInstance"
+        :enabled="windLayerEnabled"
         :wind-data-url="windDataUrl"
-        :particle-count="windParticleCount"
-        :velocity-scale="0.8"
-        :is-moving="isMapMoving"
-        class="wind-overlay"
       />
 
       <div v-if="isLegendShown" class="legend-overlay">
@@ -81,7 +74,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -133,21 +126,12 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
-
   const windLayerEnabled = useStorage('windLayerEnabled', false);
-  const mapSize = ref({ width: 800, height: 600 });
-  const mapBounds = ref<{ north: number; south: number; east: number; west: number } | null>(null);
-  const isMapMoving = ref(false);
 
   const { urlState, setUrlState } = useUrlState();
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
-
   const windDataUrl = computed(() => `${apiUrl}/wind-data/file`);
-  const windParticleCount = computed(() => {
-    const area = mapSize.value.width * mapSize.value.height;
-    return Math.min(Math.max(Math.floor(area / 5000), 500), 3000);
-  });
 
   const measureSelectOptions: DropdownOption[] = [
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
@@ -158,13 +142,12 @@
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
   let geoJsonMapData: GeoJsonObject;
-  let mapInstance: L.Map;
+  let mapInstance: L.Map | null = null;
   let markers: GeoJSON;
 
   const onMapReady = () => {
     setUpMapInstance();
     addGeocodeControl();
-    updateMapDimensions();
   };
 
   function setUpMapInstance(): void {
@@ -199,24 +182,15 @@
 
     markers = L.geoJson(null, { pointToLayer: createMarker }).addTo(mapInstance);
 
-    mapInstance.on('movestart zoomstart', () => {
-      isMapMoving.value = true;
-    });
-    mapInstance.on('moveend zoomend', () => {
-      isMapMoving.value = false;
-    });
-
     mapInstance.on('moveend', () => {
       setUrlState({
-        zoom: mapInstance.getZoom(),
-        lat: mapInstance.getCenter().lat.toFixed(2),
-        long: mapInstance.getCenter().lng.toFixed(2)
+        zoom: mapInstance!.getZoom(),
+        lat: mapInstance!.getCenter().lat.toFixed(2),
+        long: mapInstance!.getCenter().lng.toFixed(2)
       });
 
       updateMapDebounced();
     });
-
-    mapInstance.on('resize', updateMapDimensions);
 
     startRefreshInterval();
     mapInstance.whenReady(() => {
@@ -224,34 +198,13 @@
     });
   }
 
-  function updateMapDimensions(): void {
-    if (!mapInstance) return;
-    const container = mapInstance.getContainer();
-    mapSize.value = { width: container.offsetWidth, height: container.offsetHeight };
-    updateMapBounds();
-  }
-
-  function updateMapBounds(): void {
-    if (!mapInstance) return;
-    const bounds = mapInstance.getBounds();
-    mapBounds.value = {
-      north: bounds.getNorth(),
-      south: bounds.getSouth(),
-      east: bounds.getEast(),
-      west: bounds.getWest()
-    };
-  }
-
   function onMapMove(): void {
-    updateMapBounds();
+    // Placeholder for additional map move logic if needed
   }
 
   function toggleWindLayer(): void {
     windLayerEnabled.value = !windLayerEnabled.value;
     setUrlState({ wind_layer: windLayerEnabled.value.toString() });
-    if (windLayerEnabled.value) {
-      nextTick(() => updateMapDimensions());
-    }
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -288,9 +241,9 @@
       if (isSensor && feature.properties) {
         dialogStore.open(locationHistoryDialogId, { location: feature.properties });
       } else if (!isSensor) {
-        const currentZoom = mapInstance.getZoom();
+        const currentZoom = mapInstance!.getZoom();
         const newZoom = Math.min(currentZoom + 2, DEFAULT_MAP_VIEW_CONFIG.maxZoom);
-        mapInstance.flyTo(latlng, newZoom, { animate: true, duration: 0.8 });
+        mapInstance!.flyTo(latlng, newZoom, { animate: true, duration: 0.8 });
       }
     });
 
@@ -298,7 +251,7 @@
   }
 
   async function updateMapData(): Promise<void> {
-    if (loading.value || locationHistoryDialog.value?.isOpen) {
+    if (loading.value || locationHistoryDialog.value?.isOpen || !mapInstance) {
       return;
     }
 
@@ -337,6 +290,8 @@
   }
 
   function addGeocodeControl(): void {
+    if (!mapInstance) return;
+
     const provider = new OpenStreetMapProvider();
 
     const searchControl = GeoSearchControl({
@@ -367,7 +322,7 @@
   }
 
   function disableScrollWheelZoomForHeadless(): void {
-    if (generalConfigStore.headless) {
+    if (generalConfigStore.headless && mapInstance) {
       mapInstance.scrollWheelZoom.disable();
     }
   }
@@ -394,6 +349,7 @@
 
   onUnmounted(() => {
     stopRefreshInterval();
+    mapInstance = null;
   });
 </script>
 
@@ -404,14 +360,6 @@
 
   #map {
     height: calc(100svh - 130px);
-  }
-
-  .wind-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    z-index: 200;
   }
 
   .legend-overlay {
