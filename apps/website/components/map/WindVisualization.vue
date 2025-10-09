@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch, onUnmounted, onMounted } from 'vue';
+  import { watch, onUnmounted, onMounted, nextTick } from 'vue';
   import L from 'leaflet';
 
   interface Props {
@@ -16,17 +16,17 @@
 
   let velocityLayer: any = null;
   let windData: any = null;
-  let loadingData = false;
-  let leafletVelocity: any = null;
+  let libraryLoaded = false;
 
   onMounted(async () => {
-    // Dynamic import for client-side only
     if (process.client) {
-      try {
-        await import('leaflet-velocity-ts');
-        leafletVelocity = (L as any).velocityLayer;
-      } catch (error) {
-        console.error('Failed to load leaflet-velocity-ts:', error);
+      await import('leaflet-velocity');
+      libraryLoaded = true;
+      
+      // If enabled on mount, load the layer
+      if (props.enabled && props.map) {
+        await nextTick();
+        await loadAndShowWindLayer();
       }
     }
   });
@@ -34,148 +34,107 @@
   watch(
     () => props.enabled,
     async enabled => {
-      if (enabled && props.map && leafletVelocity) {
+      if (!libraryLoaded) return; // Wait for library to load
+      
+      if (enabled && props.map) {
         await loadAndShowWindLayer();
       } else if (velocityLayer && props.map) {
         props.map.removeLayer(velocityLayer);
         velocityLayer = null;
       }
-    },
-    { immediate: true }
+    }
   );
 
   watch(
     () => props.map,
     async newMap => {
-      if (newMap && props.enabled && leafletVelocity) {
+      if (!libraryLoaded) return; // Wait for library to load
+      
+      if (newMap && props.enabled) {
         await loadAndShowWindLayer();
       }
     }
   );
 
   async function loadWindData() {
-    if (loadingData || windData) return;
+    if (windData) return;
 
-    loadingData = true;
     try {
       const res = await fetch(`${props.windDataUrl}?t=${Date.now()}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-      const raw = await res.json();
-
-      // Handle different data formats
-      if (Array.isArray(raw) && raw[0]?.header && raw[1]?.data) {
-        windData = [
-          { header: raw[0].header, data: raw[0].data },
-          { header: raw[1].header, data: raw[1].data }
-        ];
-      } else if (raw?.header?.[0]) {
-        windData = raw;
-      } else {
-        createMockData();
-      }
+      windData = await res.json();
+      console.log('Wind data loaded:', windData);
     } catch (error) {
       console.error('Wind data load failed:', error);
-      createMockData();
-    } finally {
-      loadingData = false;
+      throw error;
     }
-  }
-
-  function createMockData() {
-    const nx = 360,
-      ny = 181;
-    const u = [],
-      v = [];
-
-    for (let j = 0; j < ny; j++) {
-      for (let i = 0; i < nx; i++) {
-        const lat = 90 - j,
-          lon = i;
-        u.push(Math.sin((lon * Math.PI) / 180) * Math.cos((lat * Math.PI) / 180) * 10);
-        v.push(Math.cos((lon * Math.PI) / 180) * Math.sin((lat * Math.PI) / 180) * 5);
-      }
-    }
-
-    windData = [
-      {
-        header: {
-          nx,
-          ny,
-          lo1: 0,
-          la1: 90,
-          dx: 1,
-          dy: 1,
-          refTime: new Date().toISOString(),
-          parameterUnit: 'm/s',
-          parameterNumberName: 'U component of wind',
-          parameterNumber: 2
-        },
-        data: u
-      },
-      {
-        header: {
-          nx,
-          ny,
-          lo1: 0,
-          la1: 90,
-          dx: 1,
-          dy: 1,
-          refTime: new Date().toISOString(),
-          parameterUnit: 'm/s',
-          parameterNumberName: 'V component of wind',
-          parameterNumber: 3
-        },
-        data: v
-      }
-    ];
   }
 
   async function loadAndShowWindLayer() {
-    if (!props.map || !leafletVelocity) return;
+    if (!props.map || !libraryLoaded || !(L as any).velocityLayer) {
+      console.log('Not ready:', { map: !!props.map, libraryLoaded, velocityLayer: !!(L as any).velocityLayer });
+      return;
+    }
 
     // Remove existing layer
     if (velocityLayer) {
-      props.map.removeLayer(velocityLayer);
+      try {
+        props.map.removeLayer(velocityLayer);
+      } catch (e) {
+        console.warn('Error removing layer:', e);
+      }
       velocityLayer = null;
     }
 
-    // Load data if not already loaded
-    if (!windData) {
+    // Load data
+    try {
       await loadWindData();
+    } catch (error) {
+      console.error('Failed to load wind data');
+      return;
     }
 
-    if (!windData) return;
+    if (!windData) {
+      console.error('No wind data available');
+      return;
+    }
 
     // Create velocity layer
-    velocityLayer = leafletVelocity({
-      displayValues: true,
-      displayOptions: {
-        velocityType: 'Wind',
-        position: 'bottomleft',
-        emptyString: 'No wind data',
-        showCardinal: true,
-        speedUnit: 'm/s',
-        directionString: 'Direction',
-        speedString: 'Speed',
-        angleConvention: 'bearingCW'
-      },
-      data: windData,
-      minVelocity: 0,
-      maxVelocity: 15,
-      velocityScale: 0.005,
-      particleAge: 64,
-      particleMultiplier: 0.004,
-      frameRate: 15,
-      opacity: 0.97
-    });
+    try {
+      velocityLayer = (L as any).velocityLayer({
+        displayValues: true,
+        displayOptions: {
+          velocityType: 'Wind',
+          position: 'bottomleft',
+          emptyString: 'No wind data',
+          angleConvention: 'bearingCW',
+          showCardinal: true,
+          speedUnit: 'm/s',
+          directionString: 'Direction',
+          speedString: 'Speed'
+        },
+        data: windData,
+        minVelocity: 0,
+        maxVelocity: 15,
+        velocityScale: 0.005,
+        opacity: 0.97
+      });
 
-    velocityLayer.addTo(props.map);
+      velocityLayer.addTo(props.map);
+      console.log('Velocity layer added successfully');
+    } catch (error) {
+      console.error('Error creating velocity layer:', error);
+    }
   }
 
   onUnmounted(() => {
     if (velocityLayer && props.map) {
-      props.map.removeLayer(velocityLayer);
+      try {
+        props.map.removeLayer(velocityLayer);
+      } catch (e) {
+        console.warn('Error removing layer on unmount:', e);
+      }
       velocityLayer = null;
     }
   });

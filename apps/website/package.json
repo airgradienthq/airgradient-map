@@ -46,7 +46,7 @@
     "geojson": "^0.5.0",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.0",
-    "leaflet-velocity-ts": "^1.2.0",
+    "leaflet-velocity": "^2.1.4",
     "luxon": "^3.6.1",
     "maplibre-gl": "^4.7.1",
     "nuxt": "3.16.1",
