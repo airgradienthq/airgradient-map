@@ -1,4 +1,4 @@
-import { Knex } from 'knex';
+import type { Knex } from 'knex';
 
 const config: Knex.Config = {
   client: 'postgresql',
@@ -12,12 +12,12 @@ const config: Knex.Config = {
   migrations: {
     directory: './database/migrations',
     tableName: 'schema_migrations',
-    extension: 'ts'
+    extension: 'ts',
   },
   seeds: {
     directory: './database/seeds',
-    extension: 'ts'
-  }
+    extension: 'ts',
+  },
 };
 
 export default config;
