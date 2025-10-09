@@ -12,6 +12,9 @@
 
 <script setup lang="ts">
   import { onMounted, ref } from 'vue';
+  import { useI18n } from '#imports';
+
+  const { locale } = useI18n();
 
   const headless = ref(false);
 
@@ -20,6 +23,12 @@
       if (window.location.href.includes('headless=true')) {
         headless.value = true;
         document.documentElement.classList.add('headless');
+      }
+
+      if (locale.value === 'th') {
+        document.body.classList.add('th-layout');
+      } else {
+        document.body.classList.remove('th-layout');
       }
     }
   });

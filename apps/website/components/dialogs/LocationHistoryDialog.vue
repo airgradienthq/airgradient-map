@@ -12,7 +12,9 @@
           <h5 class="m-0 location-name">{{ mapLocationData?.locationName }}</h5>
           <v-chip>
             {{
-              mapLocationData?.sensorType === SensorType.reference ? 'Reference' : 'Small Sensor'
+              mapLocationData?.sensorType === SensorType.reference
+                ? $t('reference')
+                : $t('small_sensor')
             }}</v-chip
           >
         </div>
@@ -33,7 +35,9 @@
                   <span class="unit-label">{{ currentValueData.unit }}</span>
                 </h4>
                 <p :class="currentValueData.textColor" class="mb-0 current-label">
-                  <span> Current <UiHTMLSafelabel :label="currentValueData.labelHTML" /> </span>
+                  <span
+                    >{{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" />
+                  </span>
                 </p>
               </div>
             </div>
@@ -56,6 +60,7 @@
               class="period-control"
               :selected-value="generalConfigStore.selectedHistoryPeriod.value"
               :options="HISTORY_PERIODS"
+              :translate="true"
               :disabled="loading"
               @change="handleChartPeriodChange"
             >
@@ -82,11 +87,11 @@
         </div>
         <p style="min-height: 20px" class="mb-0 mt-2 mt-md-4">
           <small v-if="chartOptions">
-            Air quality data for this location is provided by
+            {{ $t('air_quality_data_for_this_location_is_provided_by') }}
             <span v-if="!locationDetails?.url">
               {{
                 !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                  ? ' an anonymous contributor '
+                  ? $i18n.t('anonymous_contributor')
                   : locationDetails?.ownerName
               }}
             </span>
@@ -115,7 +120,7 @@
               </a>
             </span>
 
-            under
+            {{ $t('under') }}
             {{ locationDetails?.licenses[0] }}
           </small>
         </p>
@@ -163,6 +168,7 @@
   import { AnnotationOptions } from 'chartjs-plugin-annotation';
   import { DateTime } from 'luxon';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
+  import { useNuxtApp } from '#imports';
 
   const props = defineProps<{
     dialog: DialogInstance<{ location: AGMapLocationData }>;
@@ -182,6 +188,8 @@
   const detailsLoading: Ref<boolean> = ref(false);
   const historyError: Ref<boolean> = ref(false);
   const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
+
+  const { $i18n } = useNuxtApp();
 
   const timezoneSelectShown: Ref<boolean> = computed(() => {
     const userOffset = DateTime.now().toFormat('ZZ');
@@ -369,7 +377,8 @@
       chartData.value = data;
 
       const annotations = useChartJsAnnotations({
-        data: chartValues
+        data: chartValues,
+        translate: $i18n.t
       });
 
       chartOptions.value = useChartjsOptions({

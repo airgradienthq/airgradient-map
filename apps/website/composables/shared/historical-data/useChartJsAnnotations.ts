@@ -10,11 +10,13 @@ import { pm25ToAQI } from '~/utils/aqi';
 export function useChartJsAnnotations({
   data,
   showWHO = true,
-  showAverage = true
+  showAverage = true,
+  translate
 }: {
   data: number[];
   showWHO?: boolean;
   showAverage?: boolean;
+  translate: (key: string) => string;
 }): Record<string, AnnotationOptions> {
   const { width } = useWindowSize();
 
@@ -26,11 +28,11 @@ export function useChartJsAnnotations({
   const annotations: Record<string, AnnotationOptions> = {};
 
   if (showWHO && (measure === MeasureNames.PM25 || measure === MeasureNames.PM_AQI)) {
-    annotations.who = createWHOAnnotation(measure, fontSize, WHOXAdjust, width.value);
+    annotations.who = createWHOAnnotation(measure, fontSize, WHOXAdjust, width.value, translate);
   }
 
   if (showAverage) {
-    const avgData = getAveragesData(data, measure, period);
+    const avgData = getAveragesData(data, measure, period, translate);
     if (avgData) {
       annotations.avgLine = createAverageAnnotation(avgData, fontSize, avgXAdjust, width.value);
     }
@@ -42,7 +44,8 @@ export function useChartJsAnnotations({
 function getAveragesData(
   data: number[],
   measure: string,
-  period: HistoryPeriodConfig
+  period: HistoryPeriodConfig,
+  translate: (key: string) => string
 ): {
   avgValue: number;
   avgColor: string;
@@ -71,9 +74,9 @@ function getAveragesData(
     avgValue = pm25ToAQI(avgValue);
   }
 
-  let avgPeriodLabel = '';
+  let avgPeriodLabel = translate('average');
   if (window.innerWidth > 450) {
-    avgPeriodLabel = period.label.replace('Last', '').trim();
+    avgPeriodLabel = translate(period.label + '_average');
   }
 
   return {
@@ -104,11 +107,16 @@ function createWHOAnnotation(
   measure: string,
   fontSize: number,
   xAdjust: number,
-  width: number
+  width: number,
+  translate: (key: string) => string
 ): AnnotationOptions {
   const isAQI = measure === MeasureNames.PM_AQI;
+
   const yValue = isAQI ? 21 : 5;
-  const label = width < 450 ? 'WHO Annual AQ Guideline' : 'WHO Annual Air Quality Guideline';
+  const label =
+    width < 450
+      ? translate('who_annual_aq_guideline')
+      : translate('who_annual_air_quality_guideline');
 
   return {
     display: true,
@@ -160,7 +168,7 @@ function createAverageAnnotation(
       color: avgColor,
       font: { family: '"Cabin", sans-serif', size: fontSize },
       xAdjust,
-      content: `${avgPeriodLabel} Average: ${avgValue}${avgLabel}`
+      content: `${avgPeriodLabel}: ${avgValue}${avgLabel}`
     }
   };
 }
