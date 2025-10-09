@@ -167,6 +167,16 @@ If you'd like to work on an issue:
 If you're working on an issue or it's ready for review, and the **project board** doesn't reflect that:
 - Leave a comment in the issue. We'll move the card to the correct status.
 
+### New Database Schema
+
+Since this project maintain database migrations using [Knexjs](https://knexjs.org/), run below command to create new migration file:
+
+```bash
+npx knex migrate:make <MIGRATION_NAME> --knexfile knexfile.ts
+```
+
+Please see Knexjs [migration documentation](https://knexjs.org/guide/migrations.html) for more information.
+
 ---
 
 Thanks for contributing to AirGradient Map! 🚀
