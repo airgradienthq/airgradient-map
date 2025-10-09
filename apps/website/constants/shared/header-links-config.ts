@@ -93,7 +93,7 @@ export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
     openBlank: false,
     children: [
       {
-        label: 'support_forum',
+        label: 'support_form',
         path: 'https://www.airgradient.com/support/',
         openBlank: false
       },
