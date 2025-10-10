@@ -1,0 +1,11 @@
+FROM node:22
+WORKDIR /app
+
+# Install deps and copy project to container
+COPY . .
+RUN npm install -g @nestjs/cli
+RUN npm ci
+RUN npm cache clean --force
+
+# First build and run with dev tag
+RUN npm run build

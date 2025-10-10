@@ -35,6 +35,8 @@ COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/package*.json ./
 COPY --from=builder --chown=nestjs:nodejs /app/tsconfig*.json ./
+COPY --chown=nestjs:nodejs database/migrations database/migrations
+COPY --chown=nestjs:nodejs knexfile.ts knexfile.ts
 
 # Switch to non-root user
 USER nestjs
