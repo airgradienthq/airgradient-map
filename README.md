@@ -84,7 +84,7 @@ docker exec -it mapapi-mono npx knex migrate:latest --knexfile knexfile.ts
 Populate tables with sample/initial data:
 
 ```bash
-$ docker exec -it mapapi-mono npx knex seed:run --knexfile knexfile.ts
+docker exec -it mapapi-mono npx knex seed:run --knexfile knexfile.ts
 ```
 
 Example Output:

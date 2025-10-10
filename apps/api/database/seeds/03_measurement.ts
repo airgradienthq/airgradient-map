@@ -40,13 +40,13 @@ export async function seed(knex: Knex): Promise<void> {
     
     return {
       location_id: row.location_id,
-      pm25: row.pm25 || null,
-      pm10: row.pm10 || null,
-      atmp: row.atmp || null,
-      rhum: row.rhum || null,
-      rco2: row.rco2 || null,
-      o3: row.o3 || null,
-      no2: row.no2 || null,
+      pm25: row.pm25 ?? null,
+      pm10: row.pm10 ?? null,
+      atmp: row.atmp ?? null,
+      rhum: row.rhum ?? null,
+      rco2: row.rco2 ?? null,
+      o3: row.o3 ?? null,
+      no2: row.no2 ?? null,
       measured_at: new Date(adjustedTime),
     };
   });
