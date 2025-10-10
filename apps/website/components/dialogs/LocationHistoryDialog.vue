@@ -87,7 +87,7 @@
         </div>
         <p style="min-height: 20px" class="mb-0 mt-2 mt-md-4">
           <small v-if="chartOptions">
-            {{ $t('air_quality_data_for_this_location_is_provided_by') }}
+            {{ $t('aq_provided_by') }}
             <span v-if="!locationDetails?.url">
               {{
                 !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'

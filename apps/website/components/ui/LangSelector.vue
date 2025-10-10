@@ -5,11 +5,15 @@
       {{ locales.find(l => l.code === locale)?.name }}
     </button>
     <div class="dropdown-menu lang-dropdown-menu" :class="{ show: activeLanguageDropdown }">
-      <button v-for="locale in locales" class="dropdown-item btn-small button-white text-left">
-        <NuxtLink :key="locale.code" @click="setLocale(locale.code)">
-          <img :src="`images/icons/${locale.code}.svg`" class="flag-icon" />
-          {{ locale.name }}
-        </NuxtLink>
+      <button
+        v-for="localeOption in locales"
+        :key="localeOption.code"
+        type="button"
+        class="dropdown-item btn-small button-white text-left"
+        @click="setLocale(localeOption.code)"
+      >
+        <img :src="`images/icons/${localeOption.code}.svg`" class="flag-icon" />
+        {{ localeOption.name }}
       </button>
     </div>
   </div>
@@ -28,9 +32,9 @@
     activeLanguageDropdown.value = !activeLanguageDropdown.value;
   };
 
-  const setLocale = (locale: string) => {
-    $i18n.setLocale(locale);
-    if (locale === 'th') {
+  const setLocale = (localeCode: string) => {
+    $i18n.setLocale(localeCode);
+    if (localeCode === 'th') {
       document.body.classList.add('th-layout');
     } else {
       document.body.classList.remove('th-layout');

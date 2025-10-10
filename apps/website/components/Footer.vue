@@ -56,7 +56,11 @@
                   <img src="/assets/images/icons/youtube.svg" alt="YouTube Icon" />
                 </a>
                 <a
-                  href="https://www.airgradient.com/newsletter-signup"
+                  :href="
+                    isEnglish
+                      ? 'https://www.airgradient.com/newsletter-signup'
+                      : 'https://www.airgradient.com/th/newsletter-signup'
+                  "
                   target="_blank"
                   class="btn-small button-white mr-1"
                   >{{ $t('join_newsletter') }}</a
@@ -106,7 +110,7 @@
   import { FooterLinkGroup } from '~/types';
 
   const { locale } = useI18n();
-  const isEnglish = locale.value === 'en';
+  const isEnglish = computed(() => locale.value === 'en');
 
   const FOOTER_LINKS_CONFIG = computed<FooterLinkGroup[]>(() => {
     if (locale.value === 'th') {
