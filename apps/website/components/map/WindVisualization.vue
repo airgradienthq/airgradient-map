@@ -3,8 +3,9 @@
 </template>
 
 <script setup lang="ts">
-  import { watch, onUnmounted, onMounted, nextTick } from 'vue';
+  import { watch, onUnmounted, onMounted } from 'vue';
   import L from 'leaflet';
+  import { VELOCITY_COLOR_SCALE } from '~/constants/map/wind-layer';
 
   interface Props {
     map: L.Map | null;
@@ -22,10 +23,8 @@
     if (process.client) {
       await import('leaflet-velocity');
       libraryLoaded = true;
-      
-      // If enabled on mount, load the layer
+
       if (props.enabled && props.map) {
-        await nextTick();
         await loadAndShowWindLayer();
       }
     }
@@ -34,8 +33,8 @@
   watch(
     () => props.enabled,
     async enabled => {
-      if (!libraryLoaded) return; // Wait for library to load
-      
+      if (!libraryLoaded) return;
+
       if (enabled && props.map) {
         await loadAndShowWindLayer();
       } else if (velocityLayer && props.map) {
@@ -48,8 +47,8 @@
   watch(
     () => props.map,
     async newMap => {
-      if (!libraryLoaded) return; // Wait for library to load
-      
+      if (!libraryLoaded) return;
+
       if (newMap && props.enabled) {
         await loadAndShowWindLayer();
       }
@@ -73,11 +72,14 @@
 
   async function loadAndShowWindLayer() {
     if (!props.map || !libraryLoaded || !(L as any).velocityLayer) {
-      console.log('Not ready:', { map: !!props.map, libraryLoaded, velocityLayer: !!(L as any).velocityLayer });
+      console.log('Not ready:', {
+        map: !!props.map,
+        libraryLoaded,
+        velocityLayer: !!(L as any).velocityLayer
+      });
       return;
     }
 
-    // Remove existing layer
     if (velocityLayer) {
       try {
         props.map.removeLayer(velocityLayer);
@@ -87,7 +89,6 @@
       velocityLayer = null;
     }
 
-    // Load data
     try {
       await loadWindData();
     } catch (error) {
@@ -100,7 +101,6 @@
       return;
     }
 
-    // Create velocity layer
     try {
       velocityLayer = (L as any).velocityLayer({
         displayValues: true,
@@ -108,17 +108,18 @@
           velocityType: 'Wind',
           position: 'bottomleft',
           emptyString: 'No wind data',
-          angleConvention: 'bearingCW',
           showCardinal: true,
           speedUnit: 'm/s',
           directionString: 'Direction',
-          speedString: 'Speed'
+          speedString: 'Speed',
+          angleConvention: 'bearingCW'
         },
         data: windData,
         minVelocity: 0,
         maxVelocity: 15,
-        velocityScale: 0.005,
-        opacity: 0.97
+        velocityScale: 0.015,
+        opacity: 0.97,
+        colorScale: VELOCITY_COLOR_SCALE
       });
 
       velocityLayer.addTo(props.map);

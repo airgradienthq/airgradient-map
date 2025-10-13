@@ -74,7 +74,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -126,12 +126,20 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
-  const windLayerEnabled = useStorage('windLayerEnabled', false);
 
   const { urlState, setUrlState } = useUrlState();
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
-  const windDataUrl = computed(() => `${apiUrl}/wind-data/file`);
+
+  const windLayerEnabled = computed(() => urlState.wind_layer === 'true');
+
+  const config = useRuntimeConfig();
+  const windDataUrl = computed(() => {
+    return (
+      (config.public.windDataUrl as string) ||
+      'https://airgradient-wind-data.s3.eu-north-1.amazonaws.com/wind/current-wind-surface-level-gfs-1.0.json'
+    );
+  });
 
   const measureSelectOptions: DropdownOption[] = [
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
@@ -144,6 +152,8 @@
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map | null = null;
   let markers: GeoJSON;
+  let mapLibreLayer: any = null;
+  let currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
 
   const onMapReady = () => {
     setUpMapInstance();
@@ -174,11 +184,17 @@
       console.warn('Attribution init failed:', e);
     }
 
-    L.maplibreGL({
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+    currentMapStyle = windLayerEnabled.value
+      ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
+      : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
+
+    mapLibreLayer = L.maplibreGL({
+      style: currentMapStyle,
       center: [Number(urlState.lat), Number(urlState.long)],
       zoom: Number(urlState.zoom)
-    }).addTo(mapInstance);
+    });
+
+    mapLibreLayer.addTo(mapInstance);
 
     markers = L.geoJson(null, { pointToLayer: createMarker }).addTo(mapInstance);
 
@@ -194,6 +210,7 @@
 
     startRefreshInterval();
     mapInstance.whenReady(() => {
+      updateBaseMapStyle();
       updateMapData();
     });
   }
@@ -203,8 +220,9 @@
   }
 
   function toggleWindLayer(): void {
-    windLayerEnabled.value = !windLayerEnabled.value;
-    setUrlState({ wind_layer: windLayerEnabled.value.toString() });
+    const newValue = !windLayerEnabled.value;
+    setUrlState({ wind_layer: String(newValue) });
+    updateBaseMapStyle();
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -321,6 +339,30 @@
     }
   }
 
+  function updateBaseMapStyle(): void {
+    if (!mapLibreLayer) return;
+
+    const targetStyle = windLayerEnabled.value
+      ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
+      : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
+
+    if (currentMapStyle === targetStyle) return;
+
+    const maplibreMap =
+      typeof mapLibreLayer.getMaplibreMap === 'function'
+        ? mapLibreLayer.getMaplibreMap()
+        : mapLibreLayer._glMap;
+
+    if (maplibreMap && typeof maplibreMap.setStyle === 'function') {
+      try {
+        maplibreMap.setStyle(targetStyle);
+        currentMapStyle = targetStyle;
+      } catch (error) {
+        console.error('Failed to update base map style:', error);
+      }
+    }
+  }
+
   function disableScrollWheelZoomForHeadless(): void {
     if (generalConfigStore.headless && mapInstance) {
       mapInstance.scrollWheelZoom.disable();
@@ -347,8 +389,17 @@
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
   });
 
+  watch(
+    () => windLayerEnabled.value,
+    () => {
+      updateBaseMapStyle();
+    }
+  );
+
   onUnmounted(() => {
     stopRefreshInterval();
+    mapLibreLayer = null;
+    currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
     mapInstance = null;
   });
 </script>

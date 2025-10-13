@@ -8,7 +8,9 @@ export default defineNuxtConfig({
           ? 'https://map-data.airgradient.com/map/api/v1'
           : process.env.APP_ENV === 'staging'
             ? 'https://map-data-int.airgradient.com/map/api/v1'
-            : 'http://localhost:3001/map/api/v1'
+            : 'http://localhost:3001/map/api/v1',
+      windDataUrl:
+        'https://airgradient-wind-data.s3.eu-north-1.amazonaws.com/wind/current-wind-surface-level-gfs-1.0.json'
     }
   },
   css: [

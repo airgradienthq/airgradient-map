@@ -6,6 +6,7 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import * as https from 'https';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const execAsync = promisify(exec);
 
@@ -15,8 +16,20 @@ export class WindDataService {
   private readonly dataDir = path.join(process.cwd(), 'public', 'data', 'wind');
   private readonly tempDir = path.join(process.cwd(), 'temp');
   private readonly windFile = path.join(this.dataDir, 'current-wind-surface-level-gfs-1.0.json');
+  
+  private readonly s3Client: S3Client;
+  private readonly s3Bucket = process.env.S3_BUCKET_NAME || 'airgradient-wind-data';
+  private readonly s3Key = 'wind/current-wind-surface-level-gfs-1.0.json';
 
   constructor() {
+    this.s3Client = new S3Client({
+      region: process.env.AWS_REGION || 'eu-north-1',
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+
     this.initializeDirectories();
     this.updateWindData().catch(err => this.logger.error('Initial update failed:', err));
   }
@@ -60,7 +73,7 @@ export class WindDataService {
 
       if (success) {
         this.logger.log('Wind data updated with real GFS data');
-        return { success: true, message: 'Wind data updated with REAL GFS data from NOAA NOMADS' };
+        return { success: true, message: 'Wind data updated with REAL GFS data from NOAA NOMADS and uploaded to S3' };
       }
 
       await this.createFallbackData();
@@ -69,6 +82,34 @@ export class WindDataService {
       this.logger.error('Wind data update failed:', error);
       await this.createFallbackData();
       return { success: false, message: `Error: ${error.message}` };
+    }
+  }
+
+  private async uploadToS3(windData: any): Promise<void> {
+    try {
+      this.logger.log('Uploading wind data to S3...');
+      
+      const jsonString = JSON.stringify(windData);
+      
+      await this.s3Client.send(
+        new PutObjectCommand({
+          Bucket: this.s3Bucket,
+          Key: this.s3Key,
+          Body: jsonString,
+          ContentType: 'application/json',
+          CacheControl: 'no-cache, must-revalidate',
+          ACL: 'public-read',
+          Metadata: {
+            'last-updated': new Date().toISOString(),
+          },
+        })
+      );
+
+      const publicUrl = `https://${this.s3Bucket}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com/${this.s3Key}`;
+      this.logger.log(`Wind data uploaded to S3: ${publicUrl}`);
+    } catch (error) {
+      this.logger.error('S3 upload failed:', error);
+      throw error;
     }
   }
 
@@ -164,7 +205,12 @@ export class WindDataService {
       const [uData, vData] = await Promise.all(
         [outputU, outputV].map(f => fs.readFile(f, 'utf8').then(JSON.parse)),
       );
-      await fs.writeFile(this.windFile, JSON.stringify([uData[0], vData[0]]));
+      
+      const windData = [uData[0], vData[0]];
+      
+      await fs.writeFile(this.windFile, JSON.stringify(windData));
+      await this.uploadToS3(windData);
+      
       await Promise.all([outputU, outputV].map(f => fs.unlink(f).catch(() => {})));
 
       return true;
@@ -196,13 +242,13 @@ export class WindDataService {
       data: Array(65160).fill(0),
     });
 
-    await fs.writeFile(
-      this.windFile,
-      JSON.stringify([
-        createComponent(2, 'U-component_of_wind'),
-        createComponent(3, 'V-component_of_wind'),
-      ]),
-    );
+    const fallbackData = [
+      createComponent(2, 'U-component_of_wind'),
+      createComponent(3, 'V-component_of_wind'),
+    ];
+
+    await fs.writeFile(this.windFile, JSON.stringify(fallbackData));
+    await this.uploadToS3(fallbackData);
   }
 
   async getWindDataInfo() {
@@ -212,6 +258,8 @@ export class WindDataService {
         fs.readFile(this.windFile, 'utf8').then(JSON.parse),
       ]);
 
+      const s3Url = `https://${this.s3Bucket}.s3.${process.env.AWS_REGION || 'eu-north-1'}.amazonaws.com/${this.s3Key}`;
+
       return {
         fileExists: true,
         lastModified: stats.mtime,
@@ -220,6 +268,7 @@ export class WindDataService {
         recordCount: data.length,
         dataPoints: data[0]?.data?.length || 0,
         source: data[0]?.header?.centerName,
+        s3Url,
       };
     } catch (error) {
       return { fileExists: false, error: error.message };
