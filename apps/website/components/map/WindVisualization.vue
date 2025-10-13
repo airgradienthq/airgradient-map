@@ -5,6 +5,7 @@
 <script setup lang="ts">
   import { watch, onUnmounted, onMounted, nextTick } from 'vue';
   import L from 'leaflet';
+import { VELOCITY_COLOR_SCALE } from '~/constants/map/wind-layer';
 
   interface Props {
     map: L.Map | null;
@@ -49,7 +50,6 @@
     () => props.map,
     async newMap => {
       if (!libraryLoaded) return; // Wait for library to load
-      
       if (newMap && props.enabled) {
         await loadAndShowWindLayer();
       }
@@ -117,8 +117,9 @@
         data: windData,
         minVelocity: 0,
         maxVelocity: 15,
-        velocityScale: 0.005,
-        opacity: 0.97
+        velocityScale: 0.015,
+        opacity: 0.97,
+        colorScale: VELOCITY_COLOR_SCALE
       });
 
       velocityLayer.addTo(props.map);

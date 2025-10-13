@@ -74,7 +74,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -108,6 +108,8 @@
   import { useStorage } from '@vueuse/core';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
+
+
 
   const loading = ref<boolean>(false);
   const map = ref<typeof LMap>();
@@ -144,6 +146,8 @@
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map | null = null;
   let markers: GeoJSON;
+  let mapLibreLayer: any = null;
+  let currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
 
   const onMapReady = () => {
     setUpMapInstance();
@@ -174,11 +178,15 @@
       console.warn('Attribution init failed:', e);
     }
 
-    L.maplibreGL({
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+    currentMapStyle = windLayerEnabled.value ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
+
+    mapLibreLayer = L.maplibreGL({
+      style: currentMapStyle,
       center: [Number(urlState.lat), Number(urlState.long)],
       zoom: Number(urlState.zoom)
-    }).addTo(mapInstance);
+    });
+
+    mapLibreLayer.addTo(mapInstance);
 
     markers = L.geoJson(null, { pointToLayer: createMarker }).addTo(mapInstance);
 
@@ -194,6 +202,7 @@
 
     startRefreshInterval();
     mapInstance.whenReady(() => {
+      updateBaseMapStyle();
       updateMapData();
     });
   }
@@ -205,6 +214,7 @@
   function toggleWindLayer(): void {
     windLayerEnabled.value = !windLayerEnabled.value;
     setUrlState({ wind_layer: windLayerEnabled.value.toString() });
+    updateBaseMapStyle();
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -327,6 +337,27 @@
     }
   }
 
+  function updateBaseMapStyle(): void {
+    if (!mapLibreLayer) return;
+
+    const targetStyle = windLayerEnabled.value ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
+    if (currentMapStyle === targetStyle) return;
+
+    const maplibreMap =
+      typeof mapLibreLayer.getMaplibreMap === 'function'
+        ? mapLibreLayer.getMaplibreMap()
+        : mapLibreLayer._glMap;
+
+    if (maplibreMap && typeof maplibreMap.setStyle === 'function') {
+      try {
+        maplibreMap.setStyle(targetStyle);
+        currentMapStyle = targetStyle;
+      } catch (error) {
+        console.error('Failed to update base map style:', error);
+      }
+    }
+  }
+
   function handleLocationFound(lat: number, lng: number): void {
     if (mapInstance) {
       mapInstance.flyTo([lat, lng], 12, { animate: true, duration: 1.2 });
@@ -347,8 +378,17 @@
     useGeneralConfigStore().setSelectedMeasure(urlState.meas);
   });
 
+  watch(
+    () => windLayerEnabled.value,
+    () => {
+      updateBaseMapStyle();
+    }
+  );
+
   onUnmounted(() => {
     stopRefreshInterval();
+    mapLibreLayer = null;
+    currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
     mapInstance = null;
   });
 </script>
