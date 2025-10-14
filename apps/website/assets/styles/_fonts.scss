@@ -29,6 +29,14 @@
 }
 
 @font-face {
+  font-family: 'noto sans thai';
+  font-style: normal;
+  font-weight: 100 900;
+  src: local('noto sans thai'), local('noto sans thai'),
+  url('../../public/fonts/NotoSansThai-VariableFont_wdth,wght.ttf') format('truetype');
+}
+
+@font-face {
   font-family: 'labelprinter';
   font-style: normal;
   font-weight: 100;

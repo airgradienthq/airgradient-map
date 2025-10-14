@@ -30,7 +30,7 @@ export class TasksService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_HOUR)
   async runSyncAirgradientLocations() {
     // const start = Date.now();
 
