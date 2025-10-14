@@ -30,8 +30,6 @@ services:
     volumes:
       - ./apps/api/src:/app/src
       - ./apps/api/.env.development:/app/.env.development
-      - wind-data:/app/public/data/wind  # Persistent volume for wind data
-      - temp-data:/app/temp  # Persistent volume for temp files
     command: npm run start:dev
     depends_on:
       - postgrex
@@ -52,14 +50,22 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=development
-    depends_on:
-      - mapapi
-
+  wind-service:
+    container_name: wind-service-mono
+    build:
+      context: apps/wind-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - AWS_REGION=eu-north-1
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=airgradient-wind-data
+    networks:
+      - dev
 networks:
   dev:
     driver: bridge
 
 volumes:
-  pgdata:
-  wind-data:  
-  temp-data:  
+  pgdata: 
