@@ -8,8 +8,8 @@ COPY package*.json ./
 COPY tsconfig*.json ./
 
 # Install dependencies
-RUN npm install -g @nestjs/cli
 RUN npm ci
+RUN npm install -g @nestjs/cli
 RUN npm cache clean --force
 
 # Copy source code
