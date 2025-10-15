@@ -32,7 +32,7 @@ services:
       - ./apps/api/.env.development:/app/.env.development
       - ./apps/api/src:/app/src
       - ./apps/api/database:/app/database
-      - ./apps/api/knexfile.ts:/app/
+      - ./apps/api/knexfile.ts:/app/knexfile.ts
     command: npm run start:dev
     depends_on:
       - postgrex
