@@ -7,10 +7,14 @@ import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input'
 import { OpenAQLatestData } from '../types/tasks/openaq.types';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
 import { DataSource } from 'src/types/shared/data-source';
+import { OutlierService } from 'src/outlier/outlier.service';
 
 @Injectable()
 export class TasksRepository {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly outlierService: OutlierService,
+  ) {}
 
   private readonly logger = new Logger(TasksRepository.name);
 
@@ -203,16 +207,24 @@ export class TasksRepository {
 
   async insertNewAirgradientLatest(data: AirgradientModel[]): Promise<void> {
     try {
-      const measurementValues = data
-        .map(
-          ({ locationId, pm02, pm10, atmp, rhum, rco2, timestamp }) =>
-            `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}')`,
+      const measurementValues = (
+        await Promise.all(
+          data.map(async dataPoint => {
+            const { locationId, pm02, pm10, atmp, rhum, rco2, timestamp } = dataPoint;
+            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier({
+              locationId: locationId,
+              pm25: pm02,
+              measuredAt: timestamp,
+            });
+
+            return `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}', ${isPm25Outlier})`;
+          }),
         )
-        .join(', ');
+      ).join(', ');
 
       const query = `
           INSERT INTO public."measurement" (
-              location_id, pm25, pm10, atmp, rhum, rco2, measured_at
+              location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
           )
           SELECT
               loc.id AS location_id,
@@ -221,10 +233,11 @@ export class TasksRepository {
               m.atmp,
               m.rhum,
               m.rco2,
-              m.measured_at::timestamp
+              m.measured_at::timestamp,
+              m.is_pm25_outlier::boolean
           FROM (
             VALUES ${measurementValues}
-          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at)
+          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier)
           JOIN public."location" loc
               ON loc.data_source = '${DataSource.AIRGRADIENT}'
              AND loc.reference_id = m.reference_id
@@ -254,14 +267,21 @@ export class TasksRepository {
 
   async insertNewOpenAQLatest(latests: OpenAQLatestData[]): Promise<void> {
     try {
-      const latestValues = latests
-        .flatMap(({ locationId, pm25, measuredAt }) => {
-          return `(${locationId},${pm25},'${measuredAt}')`;
-        })
-        .join(',');
+      const latestValues = (
+        await Promise.all(
+          latests.map(async ({ locationId, pm25, measuredAt }) => {
+            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier({
+              locationId,
+              pm25,
+              measuredAt,
+            });
+            return `(${locationId},${pm25},'${measuredAt}', ${isPm25Outlier})`;
+          }),
+        )
+      ).join(',');
 
       const query = `
-        INSERT INTO measurement (location_id, pm25, measured_at) 
+        INSERT INTO public.measurement (location_id, pm25, measured_at, is_pm25_outlier) 
             VALUES ${latestValues} 
         ON CONFLICT (location_id, measured_at)
         DO NOTHING;

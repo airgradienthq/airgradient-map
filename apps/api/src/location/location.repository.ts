@@ -119,6 +119,7 @@ class LocationRepository {
         FROM measurement m
         JOIN location l ON m.location_id = l.id
         WHERE m.location_id = ANY($1::int[])
+          AND (m.is_pm25_outlier = false)
           AND (
             (l.data_source = 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '30 minutes')
             OR (l.data_source <> 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '90 minutes')
@@ -133,7 +134,7 @@ class LocationRepository {
     const query = `
             SELECT 
                 m.location_id AS "locationId",
-                m.pm25,
+                CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25,
                 m.pm10,
                 m.atmp,
                 m.rhum,
@@ -146,6 +147,15 @@ class LocationRepository {
             FROM measurement m
             JOIN location l ON m.location_id = l.id
             WHERE m.location_id = $1
+              AND (
+                (m.is_pm25_outlier = false AND m.pm25 IS NOT NULL)  -- pm25 must be present
+                OR m.pm10 IS NOT NULL
+                OR m.atmp IS NOT NULL
+                OR m.rhum IS NOT NULL
+                OR m.rco2 IS NOT NULL
+                OR m.o3 IS NOT NULL
+                OR m.no2 IS NOT NULL
+              )
             ORDER BY m.measured_at DESC 
             LIMIT 1;
         `;
@@ -222,6 +232,8 @@ class LocationRepository {
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
         : `round(avg(m.${measure})::NUMERIC , 2) AS value`;
 
+    const showQuery = measure === 'pm25' ? 'AND m.is_pm25_outlier = false' : '';
+
     const query = `
             SELECT
                 date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
@@ -232,7 +244,8 @@ class LocationRepository {
             JOIN location l on m.location_id = l.id
             WHERE 
                 m.location_id = $1 AND 
-                m.measured_at BETWEEN $2 AND $3 
+                m.measured_at BETWEEN $2 AND $3
+                ${showQuery}
                 ${validationQuery}
             GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
