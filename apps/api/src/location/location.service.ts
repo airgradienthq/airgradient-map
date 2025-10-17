@@ -55,7 +55,12 @@ export class LocationService {
     try {
       this.logger.debug(`Time range before processed: ${start} -- ${end}`);
       startTime = roundToBucket(start, bucketSize as BucketSize);
-      endTime = roundToBucket(end, bucketSize as BucketSize);
+      endTime = DateTime.fromISO(end, { setZone: true });
+
+      // Ensure the conversion was successful before proceeding.
+      if (!endTime.isValid) {
+        throw new Error('Invalid ISO end date string provided.');
+      }
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({
