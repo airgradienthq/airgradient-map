@@ -46,12 +46,25 @@ class WindService {
   }
 
   start(): void {
+    const runSafe = async () => {
+      try {
+        await this.processWindData();
+      } catch (error) {
+        console.error('Unhandled error in processWindData:', error);
+        try {
+          await this.uploader.uploadFallbackData();
+        } catch (uploaderErr) {
+          console.error('Failed to upload fallback data:', uploaderErr);
+        }
+      }
+    };
+
     // Run immediately on startup
-    this.processWindData();
+    runSafe();
 
     // Schedule every 6 hours
     cron.schedule('0 */6 * * *', () => {
-      this.processWindData();
+      runSafe();
     });
 
     console.log('Service started and running...\n');
