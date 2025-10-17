@@ -81,8 +81,6 @@ export class TasksService {
         Origin: 'https://airgradient.com',
       });
       this.logger.log(`Sync AirGradient latest measures total public data: ${data.length}`);
-
-      // NOTE: do optimization needed to insert in chunks?
       await this.tasksRepository.insertNewAirgradientLatest(data);
     } finally {
       this.isAirgradientLatestJobRunning = false;
