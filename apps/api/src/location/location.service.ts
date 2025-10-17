@@ -43,7 +43,7 @@ export class LocationService {
     id: number,
     start: string,
     end: string,
-    bucketSize: string,
+    bucketSize: BucketSize,
     measure?: MeasureType,
   ) {
     // Default set to pm25 if not provided
