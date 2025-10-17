@@ -17,6 +17,7 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 export class TasksService {
   private openAQApiKey = '';
   private readonly logger = new Logger(TasksService.name);
+  private isAirgradientLatestJobRunning = false;
 
   constructor(
     private readonly tasksRepository: TasksRepository,
@@ -60,23 +61,35 @@ export class TasksService {
     await this.tasksRepository.upsertLocationsAndOwners('AirGradient', locationOwnerInput);
   }
 
-  @Cron('*/15 * * * *')
+  @Cron(CronExpression.EVERY_MINUTE)
   async getAirgradientLatest() {
+    if (this.isAirgradientLatestJobRunning) {
+      this.logger.warn(
+        'AirGradient latest job skipped because a previous run is still in progress',
+      );
+      return;
+    }
+
+    this.isAirgradientLatestJobRunning = true;
     this.logger.log('Run job retrieve AirGradient latest value');
     // const start = Date.now();
 
-    // Fetch data from the airgradient external API
-    const url = OLD_AG_BASE_API_URL;
-    const data = await this.http.fetch<AirgradientModel[]>(url, {
-      Origin: 'https://airgradient.com',
-    });
-    this.logger.log(`Sync AirGradient latest measures total public data: ${data.length}`);
+    try {
+      // Fetch data from the airgradient external API
+      const url = OLD_AG_BASE_API_URL;
+      const data = await this.http.fetch<AirgradientModel[]>(url, {
+        Origin: 'https://airgradient.com',
+      });
+      this.logger.log(`Sync AirGradient latest measures total public data: ${data.length}`);
 
-    // NOTE: do optimization needed to insert in chunks?
-    await this.tasksRepository.insertNewAirgradientLatest(data);
+      // NOTE: do optimization needed to insert in chunks?
+      await this.tasksRepository.insertNewAirgradientLatest(data);
+    } finally {
+      this.isAirgradientLatestJobRunning = false;
+    }
   }
 
-  @Cron('* * * * *')
+  @Cron(CronExpression.EVERY_MINUTE)
   async sendNotifications() {
     const startTime = Date.now();
     this.logger.log('Starting scheduled notification check...');
