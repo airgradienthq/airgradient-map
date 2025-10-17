@@ -1,6 +1,7 @@
 import * as https from 'https';
 import * as fs from 'fs';
 import * as path from 'path';
+import { gfsLogger } from '../utils/logger';
 
 export class GFSDownloaderService {
   private readonly tempDir = path.join(process.cwd(), 'temp');
@@ -15,6 +16,11 @@ export class GFSDownloaderService {
     }
   }
 
+  /**
+   * Downloads GFS wind data from NOAA
+   * Tries latest available cycles in order: 18z, 12z, 06z, 00z
+   * GFS data is typically available 3-4 hours after model run time
+   */
   async downloadGFSData(): Promise<string | null> {
     const today = new Date();
     const yesterday = new Date(today);
@@ -31,20 +37,23 @@ export class GFSDownloaderService {
 
         const filePath = path.join(this.tempDir, `wind-${dateStr}-${cycle}.grib2`);
 
-        console.log(`[GFS] Trying ${dateStr} ${cycle}z...`);
-
         if (await this.downloadFile(url, filePath)) {
           const stats = fs.statSync(filePath);
           if (stats.size > 1000) {
-            console.log(`Downloaded ${stats.size} bytes from ${dateStr} ${cycle}z`);
+            gfsLogger.info('GFS download successful', {
+              date: dateStr,
+              cycle: `${cycle}z`,
+              fileSize: `${(stats.size / 1024).toFixed(1)} KB`
+            });
             return filePath;
+          } else {
+            fs.unlinkSync(filePath);
           }
-          fs.unlinkSync(filePath);
         }
       }
     }
 
-    console.log('All download attempts failed');
+    gfsLogger.error('All GFS download attempts failed');
     return null;
   }
 
@@ -66,13 +75,15 @@ export class GFSDownloaderService {
             file.close();
             resolve(true);
           });
-          file.on('error', () => {
+          file.on('error', (error) => {
+            gfsLogger.error('File write error', { error: error.message });
             file.close();
             if (fs.existsSync(dest)) fs.unlinkSync(dest);
             resolve(false);
           });
         })
-        .on('error', () => {
+        .on('error', (error) => {
+          gfsLogger.error('Network error during download', { error: error.message });
           file.close();
           if (fs.existsSync(dest)) fs.unlinkSync(dest);
           resolve(false);
