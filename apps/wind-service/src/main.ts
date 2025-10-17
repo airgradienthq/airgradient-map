@@ -2,7 +2,11 @@ import * as cron from 'node-cron';
 import { GFSDownloaderService } from './services/gfs-downloader.service';
 import { GribConverterService } from './services/grib-converter.service';
 import { S3UploaderService } from './services/s3-uploader.service';
-
+ /**
+   * Processes wind data from NOAA GFS
+   * Runs immediately on startup + every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+   * Aligns with GFS model update schedule
+   */
 class WindService {
   private downloader = new GFSDownloaderService();
   private converter = new GribConverterService();
