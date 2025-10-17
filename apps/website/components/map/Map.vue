@@ -15,13 +15,13 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
-    <UiProgressBar :show="loading"></UiProgressBar>
+    <UiProgressBar :show="loading && loaderShown"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl
           :selected-value="generalConfigStore.selectedMeasure"
           :options="measureSelectOptions"
-          :disabled="loading"
+          :disabled="loading && loaderShown"
           @change="handleMeasureChange"
         >
         </UiDropdownControl>
@@ -84,12 +84,13 @@
   import { useNuxtApp } from '#imports';
 
   const loading = ref<boolean>(false);
+  const loaderShown = ref<boolean>(true);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
 
   const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
-    updateMapData,
+    () => updateMapData(false),
     CURRENT_DATA_REFRESH_INTERVAL,
     {
       skipFirstRefresh: true,
@@ -235,12 +236,14 @@
     return marker;
   }
 
-  async function updateMapData(): Promise<void> {
+  async function updateMapData(showLoader = true): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen) {
       return;
     }
 
     loading.value = true;
+
+    loaderShown.value = showLoader;
 
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
@@ -273,7 +276,7 @@
     }
   }
 
-  var searchControl;
+  let searchControl;
 
   function addGeocodeControl(): void {
     const provider = new OpenStreetMapProvider();
