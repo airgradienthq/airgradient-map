@@ -5,6 +5,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
+import { ValkeyCacheModule } from './valkey-cache/valkey-cache.module';
 
 @Module({
   imports: [
@@ -27,6 +28,15 @@ import { LocationModule } from './location/location.module';
     }),
     MeasurementModule,
     LocationModule,
+    ValkeyCacheModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        host: configService.get('VALKEY_HOST'),
+        port: +configService.get<number>('VALKEY_PORT'),
+        dbId: +configService.get<number>('VALKEY_DB_ID') || 0,
+      }),
+    }),
   ],
   controllers: [],
   providers: [],

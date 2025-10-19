@@ -18,6 +18,16 @@ services:
     networks:
       - dev
 
+  valkey:
+    container_name: valkey-mono
+    image: valkey/valkey:8.1.4 
+    ports:
+      - 6379:6379
+    volumes:
+      - valkeydata:/data
+    networks:
+      - dev
+
   mapapi:
     container_name: mapapi-mono
     build:
@@ -36,6 +46,7 @@ services:
     command: npm run start:dev
     depends_on:
       - postgrex
+      - valkey
 
   app:
     container_name: website-mono
@@ -60,4 +71,5 @@ networks:
 
 volumes:
   pgdata:
+  valkeydata:
 
