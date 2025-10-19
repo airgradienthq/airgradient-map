@@ -237,6 +237,50 @@ export class TasksRepository {
     }
   }
 
+  /**
+   * Identifies locations (filtered by data_source) whose latest measurement within the past 2 minutes has an unusually large time gap from the previous measurement.
+   * It first selects the most recent measurement per location using the `last()` aggregate, then uses a LATERAL join to look up the immediately preceding measurement that occurred within the past 2 days.
+   * Finally, it returns only those locations where the gap between the two measurements exceeds 5 minutes, indicating a possible data delay or missing update.
+   */
+  async retrieveLocationMeasuresGap(dataSource: string) {
+    try {
+      //
+      const query = `
+        WITH latest AS (
+          SELECT 
+            location_id,
+            last(measured_at, measured_at) AS last_measured_at
+          FROM measurement m
+          JOIN location l ON l.id = m.location_id
+          WHERE
+              l.data_source = '${dataSource}' AND
+              measured_at >= NOW() - INTERVAL '2 minutes'
+          GROUP BY location_id
+        )
+        SELECT 
+            l.location_id,
+            l.last_measured_at,
+            prev.measured_at AS prev_measured_at
+        FROM latest l
+        LEFT JOIN LATERAL (
+          SELECT measured_at
+          FROM measurement m2
+          WHERE m2.location_id = l.location_id
+            AND m2.measured_at < l.last_measured_at
+            AND m2.measured_at >= NOW() - INTERVAL '2 days'
+          ORDER BY m2.measured_at DESC
+          LIMIT 1
+        ) AS prev ON true
+        WHERE prev.measured_at IS NOT NULL
+          AND (l.last_measured_at - prev.measured_at) > INTERVAL '10 minutes';
+      `;
+      const result = await this.databaseService.runQuery(query);
+      return result.rows;
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
   async retrieveOpenAQLocationId(): Promise<object | null> {
     try {
       const result = await this.databaseService.runQuery(
