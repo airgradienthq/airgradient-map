@@ -29,7 +29,7 @@
 
     <!-- Show loading indicator when either map data or wind data is loading -->
     <UiProgressBar :show="loading || windLoading"></UiProgressBar>
-    
+
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl
@@ -58,6 +58,7 @@
       </LMap>
 
       <WindVisualization
+        v-if="mapInstance && isMapFullyReady"
         :map="mapInstance"
         :enabled="windLayerEnabled"
         :wind-data-url="windDataUrl"
@@ -77,7 +78,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+  import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -113,7 +114,8 @@
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
-  const windLoading = ref<boolean>(false); // New reactive ref for wind loading state
+  const windLoading = ref<boolean>(false);
+  const isMapFullyReady = ref<boolean>(false);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
@@ -158,18 +160,19 @@
   let markers: GeoJSON;
   let mapLibreLayer: any = null;
   let currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
+  let styleUpdateInProgress = false;
 
   // Handle wind loading state changes
   function handleWindLoadingChange(isLoading: boolean): void {
     windLoading.value = isLoading;
   }
 
-  const onMapReady = () => {
-    setUpMapInstance();
+  const onMapReady = async () => {
+    await setUpMapInstance();
     addGeocodeControl();
   };
 
-  function setUpMapInstance(): void {
+  async function setUpMapInstance(): Promise<void> {
     if (!map.value) return;
 
     mapInstance = map.value.leafletObject;
@@ -218,9 +221,14 @@
     });
 
     startRefreshInterval();
-    mapInstance.whenReady(() => {
-      updateBaseMapStyle();
-      updateMapData();
+
+    mapInstance.whenReady(async () => {
+      await updateBaseMapStyle();
+      await updateMapData();
+
+      setTimeout(() => {
+        isMapFullyReady.value = true;
+      }, 200);
     });
   }
 
@@ -231,7 +239,6 @@
   function toggleWindLayer(): void {
     const newValue = !windLayerEnabled.value;
     setUrlState({ wind_layer: String(newValue) });
-    updateBaseMapStyle();
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -348,8 +355,8 @@
     }
   }
 
-  function updateBaseMapStyle(): void {
-    if (!mapLibreLayer) return;
+  async function updateBaseMapStyle(): Promise<void> {
+    if (!mapLibreLayer || styleUpdateInProgress) return;
 
     const targetStyle = windLayerEnabled.value
       ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
@@ -357,18 +364,30 @@
 
     if (currentMapStyle === targetStyle) return;
 
-    const maplibreMap =
-      typeof mapLibreLayer.getMaplibreMap === 'function'
-        ? mapLibreLayer.getMaplibreMap()
-        : mapLibreLayer._glMap;
+    styleUpdateInProgress = true;
 
-    if (maplibreMap && typeof maplibreMap.setStyle === 'function') {
-      try {
-        maplibreMap.setStyle(targetStyle);
+    try {
+      const maplibreMap =
+        typeof mapLibreLayer.getMaplibreMap === 'function'
+          ? mapLibreLayer.getMaplibreMap()
+          : mapLibreLayer._glMap;
+
+      if (maplibreMap && typeof maplibreMap.setStyle === 'function') {
+        await new Promise<void>(resolve => {
+          const onStyleLoad = () => {
+            maplibreMap.off('styledata', onStyleLoad);
+            resolve();
+          };
+          maplibreMap.on('styledata', onStyleLoad);
+          maplibreMap.setStyle(targetStyle);
+        });
+
         currentMapStyle = targetStyle;
-      } catch (error) {
-        console.error('Failed to update base map style:', error);
       }
+    } catch (error) {
+      console.error('Failed to update base map style:', error);
+    } finally {
+      styleUpdateInProgress = false;
     }
   }
 
@@ -400,8 +419,10 @@
 
   watch(
     () => windLayerEnabled.value,
-    () => {
-      updateBaseMapStyle();
+    async enabled => {
+      if (isMapFullyReady.value) {
+        await updateBaseMapStyle();
+      }
     }
   );
 
@@ -410,6 +431,8 @@
     mapLibreLayer = null;
     currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
     mapInstance = null;
+    isMapFullyReady.value = false;
+    styleUpdateInProgress = false;
   });
 </script>
 
