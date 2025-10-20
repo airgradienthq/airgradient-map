@@ -28,7 +28,7 @@
     </div>
 
     <UiProgressBar :show="(loading && loaderShown) || windLoading"></UiProgressBar>
-    
+
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl

@@ -14,7 +14,7 @@ async function bootstrap(): Promise<void> {
   logger.log(process.env.NODE_ENV);
 
   const app = await NestFactory.create(AppModule, {
-  logger: logLevels,
+    logger: logLevels,
   });
 
   // Define CORS
