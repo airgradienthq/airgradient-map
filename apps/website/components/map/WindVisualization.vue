@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-  import { watch, onUnmounted, onMounted } from 'vue';
+  import { watch, onUnmounted, onMounted, ref } from 'vue';
   import L from 'leaflet';
   import { VELOCITY_COLOR_SCALE } from '~/constants/map/wind-layer';
 
@@ -15,9 +15,14 @@
 
   const props = defineProps<Props>();
 
+  const emit = defineEmits<{
+    loadingChange: [loading: boolean];
+  }>();
+
   let velocityLayer: any = null;
   let windData: any = null;
   let libraryLoaded = false;
+  const isLoadingWindData = ref(false);
 
   onMounted(async () => {
     if (process.client) {
@@ -55,8 +60,14 @@
     }
   );
 
+  watch(isLoadingWindData, (loading) => {
+    emit('loadingChange', loading);
+  });
+
   async function loadWindData() {
     if (windData) return;
+
+    isLoadingWindData.value = true;
 
     try {
       const res = await fetch(`${props.windDataUrl}?t=${Date.now()}`);
@@ -67,6 +78,8 @@
     } catch (error) {
       console.error('Wind data load failed:', error);
       throw error;
+    } finally {
+      isLoadingWindData.value = false;
     }
   }
 

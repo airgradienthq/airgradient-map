@@ -27,7 +27,9 @@
       </UiIconButton>
     </div>
 
-    <UiProgressBar :show="loading"></UiProgressBar>
+    <!-- Show loading indicator when either map data or wind data is loading -->
+    <UiProgressBar :show="loading || windLoading"></UiProgressBar>
+    
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl
@@ -59,6 +61,7 @@
         :map="mapInstance"
         :enabled="windLayerEnabled"
         :wind-data-url="windDataUrl"
+        @loading-change="handleWindLoadingChange"
       />
 
       <div v-if="isLegendShown" class="legend-overlay">
@@ -110,6 +113,7 @@
   import { createVueDebounce } from '~/utils/debounce';
 
   const loading = ref<boolean>(false);
+  const windLoading = ref<boolean>(false); // New reactive ref for wind loading state
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
@@ -154,6 +158,11 @@
   let markers: GeoJSON;
   let mapLibreLayer: any = null;
   let currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
+
+  // Handle wind loading state changes
+  function handleWindLoadingChange(isLoading: boolean): void {
+    windLoading.value = isLoading;
+  }
 
   const onMapReady = () => {
     setUpMapInstance();
