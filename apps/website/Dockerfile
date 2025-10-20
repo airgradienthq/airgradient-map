@@ -14,6 +14,7 @@ RUN npm install --ignore-scripts \
 
 COPY . .
 
+
 RUN npm run build
 
 FROM node:22-alpine

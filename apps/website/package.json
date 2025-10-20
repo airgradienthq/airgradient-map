@@ -35,6 +35,7 @@
     "@capacitor/ios": "^7.2.0",
     "@maplibre/maplibre-gl-leaflet": "^0.1.0",
     "@mdi/font": "^7.4.47",
+    "@nuxtjs/i18n": "^10.0.3",
     "@pinia/nuxt": "^0.11.0",
     "@types/node": "^22.15.19",
     "@vueuse/core": "^13.2.0",

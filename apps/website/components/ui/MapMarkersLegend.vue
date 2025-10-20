@@ -7,7 +7,7 @@
         :class="['marker-item', marker.class + '-item']"
       >
         <div :class="['marker-preview', marker.class]">9</div>
-        <span class="marker-label">{{ marker.label }}</span>
+        <span class="marker-label">{{ $t(marker.label) }}</span>
       </div>
     </div>
   </div>
@@ -17,17 +17,17 @@
   const markers = [
     {
       type: 'cluster',
-      label: 'Cluster',
+      label: 'cluster',
       class: 'marker-cluster'
     },
     {
       type: 'reference',
-      label: 'Reference',
+      label: 'reference',
       class: 'marker-reference'
     },
     {
       type: 'simple',
-      label: 'Small Sensor',
+      label: 'small_sensor',
       class: 'marker-simple'
     }
   ];

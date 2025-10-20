@@ -21,15 +21,17 @@ services:
     container_name: mapapi-mono
     build:
       context: apps/api
-      dockerfile: tools/docker/Dockerfile
+      dockerfile: tools/docker/Dockerfile.dev
     restart: unless-stopped
     ports:
       - 3001:3001
     networks:
       - dev 
     volumes:
-      - ./apps/api/src:/app/src
       - ./apps/api/.env.development:/app/.env.development
+      - ./apps/api/src:/app/src
+      - ./apps/api/database:/app/database
+      - ./apps/api/knexfile.ts:/app/knexfile.ts
     command: npm run start:dev
     depends_on:
       - postgrex

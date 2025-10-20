@@ -35,18 +35,6 @@ export class LocationService {
     return results;
   }
 
-  async getLocationLastPM25ByLocationsList(
-    locationIds: number[],
-  ): Promise<LocationMeasuresResult[]> {
-    const results = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
-    for (const result of results) {
-      if (result.dataSource === DataSource.AIRGRADIENT) {
-        result.pm25 = getEPACorrectedPM(result.pm25, result.rhum);
-      }
-    }
-    return results;
-  }
-
   async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
     return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
   }
@@ -67,7 +55,12 @@ export class LocationService {
     try {
       this.logger.debug(`Time range before processed: ${start} -- ${end}`);
       startTime = roundToBucket(start, bucketSize as BucketSize);
-      endTime = roundToBucket(end, bucketSize as BucketSize);
+      endTime = DateTime.fromISO(end, { setZone: true });
+
+      // Ensure the conversion was successful before proceeding.
+      if (!endTime.isValid) {
+        throw new Error('Invalid ISO end date string provided.');
+      }
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({

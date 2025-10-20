@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { NotificationEntity } from './notification.entity';
 
 @Injectable()
 export class NotificationsRepository {
+  private readonly logger = new Logger(NotificationsRepository.name);
+
   constructor(private readonly databaseService: DatabaseService) {}
 
   async createNotification(notification: NotificationEntity): Promise<NotificationEntity> {
@@ -32,7 +34,7 @@ export class NotificationsRepository {
       );
       return result.rows[0];
     } catch (error) {
-      console.error('Failed to create notification:', error.message);
+      this.logger.error('Failed to create notification', { error: error.message });
       throw error;
     }
   }
@@ -62,7 +64,7 @@ export class NotificationsRepository {
       const result = await this.databaseService.runQuery(query, params);
       return result.rows;
     } catch (error) {
-      console.error('Failed to get notifications:', error.message);
+      this.logger.error('Failed to get notifications', { error: error.message });
       return [];
     }
   }
@@ -75,7 +77,10 @@ export class NotificationsRepository {
       );
       return result.rows[0];
     } catch (error) {
-      console.error('Failed to get notification by id:', error.message);
+      this.logger.error('Failed to get notification by id', {
+        notificationId: id,
+        error: error.message,
+      });
       return null;
     }
   }
@@ -101,7 +106,10 @@ export class NotificationsRepository {
       );
       return result.rows[0];
     } catch (error) {
-      console.error('Failed to update notification:', error.message);
+      this.logger.error('Failed to update notification', {
+        notificationId: notification.id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -110,7 +118,10 @@ export class NotificationsRepository {
     try {
       await this.databaseService.runQuery('DELETE FROM notifications WHERE id = $1', [id]);
     } catch (error) {
-      console.error('Failed to delete notification:', error.message);
+      this.logger.error('Failed to delete notification', {
+        notificationId: id,
+        error: error.message,
+      });
       throw error;
     }
   }
@@ -140,11 +151,88 @@ export class NotificationsRepository {
       const result = await this.databaseService.runQuery(query, []);
       return result.rows;
     } catch (error) {
-      console.error('Failed to fetch scheduled notifications due to database error:', {
+      this.logger.error('Failed to fetch scheduled notifications', {
         error: error.message,
       });
 
       return [];
+    }
+  }
+
+  async getActiveThresholdNotifications(): Promise<NotificationEntity[]> {
+    try {
+      const result = await this.databaseService.runQuery(
+        `SELECT * FROM notifications
+         WHERE active = true
+           AND alarm_type = 'threshold'
+         ORDER BY id`,
+        [],
+      );
+      return result.rows;
+    } catch (error) {
+      this.logger.error('Failed to get active threshold notifications', { error: error.message });
+      return [];
+    }
+  }
+
+  async updateNotificationState(
+    id: number,
+    updates: { was_exceeded?: boolean; last_notified_at?: Date },
+  ): Promise<void> {
+    try {
+      const setParts = [];
+      const values = [];
+      let paramIndex = 1;
+
+      if (updates.was_exceeded !== undefined) {
+        setParts.push(`was_exceeded = $${paramIndex++}`);
+        values.push(updates.was_exceeded);
+      }
+
+      if (updates.last_notified_at !== undefined) {
+        setParts.push(`last_notified_at = $${paramIndex++}`);
+        values.push(updates.last_notified_at);
+      }
+
+      if (setParts.length === 0) {
+        return;
+      }
+
+      values.push(id);
+      const query = `UPDATE notifications SET ${setParts.join(', ')} WHERE id = $${paramIndex}`;
+
+      await this.databaseService.runQuery(query, values);
+    } catch (error) {
+      this.logger.error('Failed to update notification state', {
+        notificationId: id,
+        updates,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  async getThresholdNotificationByPlayerAndLocation(
+    playerId: string,
+    locationId: number,
+  ): Promise<NotificationEntity | null> {
+    try {
+      const result = await this.databaseService.runQuery(
+        `SELECT * FROM notifications
+         WHERE player_id = $1
+           AND location_id = $2
+           AND alarm_type = 'threshold'
+         LIMIT 1`,
+        [playerId, locationId],
+      );
+      return result.rows[0] || null;
+    } catch (error) {
+      this.logger.error('Failed to check for existing threshold notification', {
+        playerId,
+        locationId,
+        error: error.message,
+      });
+      throw error;
     }
   }
 }

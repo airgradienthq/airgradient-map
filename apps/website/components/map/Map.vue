@@ -27,15 +27,14 @@
       </UiIconButton>
     </div>
 
-    <!-- Show loading indicator when either map data or wind data is loading -->
-    <UiProgressBar :show="loading || windLoading"></UiProgressBar>
-
+    <UiProgressBar :show="(loading && loaderShown) || windLoading"></UiProgressBar>
+    
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl
           :selected-value="generalConfigStore.selectedMeasure"
           :options="measureSelectOptions"
-          :disabled="loading"
+          :disabled="loading && loaderShown"
           @change="handleMeasureChange"
         >
         </UiDropdownControl>
@@ -78,7 +77,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue';
+  import { watch, computed, onMounted, ref, onUnmounted } from 'vue';
   import L, { DivIcon, GeoJSON, LatLngBounds, LatLngExpression } from 'leaflet';
   import 'leaflet/dist/leaflet.css';
   import '@maplibre/maplibre-gl-leaflet';
@@ -112,17 +111,19 @@
   import { useStorage } from '@vueuse/core';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
+  import { useNuxtApp } from '#imports';
 
   const loading = ref<boolean>(false);
   const windLoading = ref<boolean>(false);
   const isMapFullyReady = ref<boolean>(false);
+  const loaderShown = ref<boolean>(true);
   const map = ref<typeof LMap>();
   const apiUrl = useRuntimeConfig().public.apiUrl;
   const generalConfigStore = useGeneralConfigStore();
   const { handleApiError } = useApiErrorHandler();
 
   const { startRefreshInterval, stopRefreshInterval } = useIntervalRefresh(
-    updateMapData,
+    () => updateMapData(false),
     CURRENT_DATA_REFRESH_INTERVAL,
     {
       skipFirstRefresh: true,
@@ -161,8 +162,10 @@
   let mapLibreLayer: any = null;
   let currentMapStyle = DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
   let styleUpdateInProgress = false;
+  let searchControl: any;
 
-  // Handle wind loading state changes
+  const { $i18n } = useNuxtApp();
+
   function handleWindLoadingChange(isLoading: boolean): void {
     windLoading.value = isLoading;
   }
@@ -172,8 +175,10 @@
     addGeocodeControl();
   };
 
-  async function setUpMapInstance(): Promise<void> {
-    if (!map.value) return;
+  function setUpMapInstance(): void {
+    if (!map.value) {
+      return;
+    }
 
     mapInstance = map.value.leafletObject;
 
@@ -224,7 +229,7 @@
 
     mapInstance.whenReady(async () => {
       await updateBaseMapStyle();
-      await updateMapData();
+      await updateMapData(true);
 
       setTimeout(() => {
         isMapFullyReady.value = true;
@@ -284,12 +289,13 @@
     return marker;
   }
 
-  async function updateMapData(): Promise<void> {
+  async function updateMapData(showLoader = true): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen || !mapInstance) {
       return;
     }
 
     loading.value = true;
+    loaderShown.value = showLoader;
 
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
@@ -328,12 +334,12 @@
 
     const provider = new OpenStreetMapProvider();
 
-    const searchControl = GeoSearchControl({
+    searchControl = GeoSearchControl({
       provider,
       style: 'bar',
       autoClose: true,
       keepResult: true,
-      searchLabel: 'Search'
+      searchLabel: $i18n.t('search_placeholder')
     });
 
     mapInstance.addControl(searchControl);
@@ -425,6 +431,13 @@
       }
     }
   );
+
+  watch($i18n.locale, () => {
+    if (mapInstance && searchControl) {
+      mapInstance.removeControl(searchControl);
+      addGeocodeControl();
+    }
+  });
 
   onUnmounted(() => {
     stopRefreshInterval();

@@ -1,122 +1,184 @@
 import type { HeaderLink } from '~/types';
 
-export const HEADER_LINKS_CONFIG: HeaderLink[] = [
+export const HEADER_LINKS_CONFIG_EN: HeaderLink[] = [
   {
-    label: 'Indoor Monitor',
+    label: 'indoor_monitor',
     path: 'https://www.airgradient.com/indoor/',
     openBlank: false
   },
   {
-    label: 'Outdoor Monitor',
+    label: 'outdoor_monitor',
     path: '',
     openBlank: false,
     children: [
       {
-        label: 'Open Air',
+        label: 'open_air',
         path: 'https://www.airgradient.com/outdoor/',
         openBlank: false
       },
       {
-        label: 'Open Air Max',
+        label: 'open_air_max',
         path: 'https://www.airgradient.com/open-air-max/',
         openBlank: false
       }
     ]
   },
   {
-    label: 'Documentation',
+    label: 'documentation',
     path: '',
     openBlank: false,
     children: [
       {
-        label: 'Build Instructions',
+        label: 'build_instructions',
         path: 'https://www.airgradient.com/documentation/',
         openBlank: false
       },
       {
-        label: 'Homey',
+        label: 'homey',
         path: 'https://www.airgradient.com/homey/',
         openBlank: false
       },
       {
-        label: 'Home Assistant',
+        label: 'home_assistant',
         path: 'https://www.airgradient.com/home-assistant/',
         openBlank: false
       },
       {
-        label: 'Integrations',
+        label: 'integrations',
         path: 'https://www.airgradient.com/integrations/',
         openBlank: false
       },
       {
-        label: 'UNDP AQ Monitoring Toolkit',
+        label: 'undp_toolkit',
         path: 'https://www.airgradient.com/undp-air-quality-monitoring-toolkit/',
         openBlank: false
       }
     ]
   },
   {
-    label: 'Perspectives',
+    label: 'perspectives',
     path: '',
     openBlank: false,
     children: [
       {
-        label: 'Blog',
+        label: 'blog',
         path: 'https://www.airgradient.com/blog/',
         openBlank: false
       },
       {
-        label: 'Research',
+        label: 'research',
         path: 'https://www.airgradient.com/research/',
         openBlank: false
       },
       {
-        label: 'Air Quality Forum',
+        label: 'aq_forum',
         path: 'https://www.airgradient.com/forum/',
         openBlank: false
       },
       {
-        label: 'Open Source Initiative',
+        label: 'open_source_initiative',
         path: 'https://www.airgradient.com/open-source-initiative/',
         openBlank: false
       },
       {
-        label: 'About Us',
+        label: 'about_us',
         path: 'https://www.airgradient.com/join-us/',
         openBlank: false
       }
     ]
   },
   {
-    label: 'Support',
+    label: 'support',
     path: '',
     openBlank: false,
     children: [
       {
-        label: 'Support Forum',
+        label: 'support_form',
         path: 'https://www.airgradient.com/support/',
         openBlank: false
       },
       {
-        label: 'Community & NGO Program',
+        label: 'community_ngo',
         path: 'https://www.airgradient.com/community-ngo-program/',
         openBlank: false
       },
       {
-        label: 'Discussion Forum',
+        label: 'discussion_forum',
         path: 'https://forum.airgradient.com/',
         openBlank: false
       }
     ]
   },
   {
-    label: 'Map',
+    label: 'map',
     path: '/',
     openBlank: false
   },
   {
-    label: 'Shop',
+    label: 'shop',
     path: 'https://www.airgradient.com/shop/',
+    openBlank: false
+  }
+];
+
+export const HEADER_LINKS_CONFIG_TH: HeaderLink[] = [
+  {
+    label: 'indoor_monitor',
+    path: 'https://www.airgradient.com/th/indoor/',
+    openBlank: false
+  },
+  {
+    label: 'outdoor_monitor',
+    path: '',
+    openBlank: false,
+    children: [
+      {
+        label: 'open_air',
+        path: 'https://www.airgradient.com/th/outdoor/',
+        openBlank: false
+      },
+      {
+        label: 'open_air_max',
+        path: 'https://www.airgradient.com/th/open-air-max/',
+        openBlank: false
+      }
+    ]
+  },
+  {
+    label: 'documentation',
+    path: 'https://www.airgradient.com/th/documentation/',
+    openBlank: false
+  },
+  {
+    label: 'perspectives',
+    path: '',
+    openBlank: false,
+    children: [
+      {
+        label: 'research',
+        path: 'https://www.airgradient.com/th/research/',
+        openBlank: false
+      },
+      {
+        label: 'about_us',
+        path: 'https://www.airgradient.com/th/join-us/',
+        openBlank: false
+      }
+    ]
+  },
+  {
+    label: 'support',
+    path: 'https://www.airgradient.com/th/support/',
+    openBlank: false
+  },
+  {
+    label: 'map',
+    path: '/',
+    openBlank: false
+  },
+  {
+    label: 'shop',
+    path: 'https://www.airgradient.com/th/shop/',
     openBlank: false
   }
 ];

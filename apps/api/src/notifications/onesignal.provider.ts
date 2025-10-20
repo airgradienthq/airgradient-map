@@ -19,6 +19,8 @@ export interface OneSignalNotification {
   };
   mutable_content?: boolean;
   ios_sound?: string;
+  android_channel_id?: string;
+  android_accent_color?: string;
 }
 
 @Injectable()
@@ -27,6 +29,7 @@ export class OneSignalProvider {
   private readonly apiUrl = 'https://onesignal.com/api/v1/notifications';
   private readonly appId: string;
   private readonly apiKey: string;
+  private readonly androidChannelId: string;
 
   constructor(
     private readonly httpService: HttpService,
@@ -34,6 +37,7 @@ export class OneSignalProvider {
   ) {
     this.appId = this.configService.get<string>('ONESIGNAL_APP_ID');
     this.apiKey = this.configService.get<string>('ONESIGNAL_API_KEY');
+    this.androidChannelId = this.configService.get<string>('ONESIGNAL_ANDROID_CHANNEL_ID');
 
     if (!this.appId || !this.apiKey) {
       throw new Error(
@@ -75,12 +79,14 @@ export class OneSignalProvider {
     pmValue: number,
     imageUrl?: string,
     unitLabel?: string,
+    title?: { en: string; de: string },
+    androidAccentColor?: string,
   ): Promise<any> {
     const notification: OneSignalNotification = {
       include_player_ids: playerIds,
       headings: {
-        en: locationName,
-        de: locationName,
+        en: title?.en || locationName,
+        de: title?.de || locationName,
       },
       contents: {
         en: `Air Quality is now ${pmValue} ${unitLabel}`,
@@ -94,6 +100,8 @@ export class OneSignalProvider {
         : undefined,
       mutable_content: true,
       ios_sound: 'default',
+      android_channel_id: this.androidChannelId,
+      android_accent_color: androidAccentColor,
     };
 
     return this.sendNotification(notification);

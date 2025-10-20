@@ -17,9 +17,19 @@ export class UpdateNotificationDto {
   @IsNumber()
   threshold_ug_m3?: number;
 
-  @ApiProperty({ description: 'Threshold cycle', required: false })
+  @ApiProperty({
+    description:
+      'Threshold cycle - "once" for single notification or "1h" to "24h" for hourly cycles',
+    required: false,
+    pattern: '^(once|([1-9]|1[0-9]|2[0-4])h)$',
+    example: '6h',
+  })
   @IsOptional()
   @IsString()
+  @Matches(/^(once|([1-9]|1[0-9]|2[0-4])h)$/, {
+    message:
+      'threshold_cycle must be "once" or hour format "1h" to "24h" (e.g., "1h", "6h", "13h", "24h")',
+  })
   threshold_cycle?: string;
 
   @ApiProperty({
