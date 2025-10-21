@@ -237,10 +237,6 @@
     });
   }
 
-  function onMapMove(): void {
-    // Placeholder for additional map move logic if needed
-  }
-
   function toggleWindLayer(): void {
     const newValue = !windLayerEnabled.value;
     setUrlState({ wind_layer: String(newValue) });
