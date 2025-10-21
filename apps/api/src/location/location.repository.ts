@@ -8,6 +8,7 @@ import DatabaseService from 'src/database/database.service';
 import { LocationEntity } from './location.entity';
 import { MeasureType, PM25Period, PM25PeriodConfig, MeasurementAveragesResult } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
+import { LatestLocationMeasurementData } from 'src/notifications/notification.model';
 
 @Injectable()
 class LocationRepository {
@@ -103,27 +104,36 @@ class LocationRepository {
     }
   }
 
-  async retrieveLastPM25ByLocationsList(locationIds: number[]) {
+  async retrieveLastPM25ByLocationsList(
+    locationIds: number[],
+  ): Promise<LatestLocationMeasurementData[]> {
     if (locationIds.length === 0) {
       return [];
     }
     const query = `
-        SELECT DISTINCT ON (m.location_id)
-                m.location_id AS "locationId",
-                m.pm25,
-                m.rhum,
-                m.measured_at AS "measuredAt",
-                l.location_name AS "locationName",
-                l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
-        FROM measurement m
-        JOIN location l ON m.location_id = l.id
-        WHERE m.location_id = ANY($1::int[])
-          AND (
-            (l.data_source = 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '30 minutes')
-            OR (l.data_source <> 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '90 minutes')
-          )
-        ORDER BY m.location_id, m.measured_at DESC;
+        SELECT
+          l.id AS "locationId",
+          l.location_name AS "locationName",
+          l.sensor_type AS "sensorType",
+          l.data_source AS "dataSource",
+          m.pm25,
+          m.rhum,
+          m.measured_at AS "measuredAt"
+        FROM location l
+        LEFT JOIN LATERAL (
+          SELECT m.pm25, m.rhum, m.measured_at
+          FROM measurement m
+            WHERE m.location_id = l.id
+              AND m.measured_at >= NOW() - (
+                CASE WHEN l.data_source = 'AirGradient'
+                     THEN INTERVAL '30 minutes'
+                     ELSE INTERVAL '90 minutes'
+                END
+              )
+            ORDER BY m.measured_at DESC
+            LIMIT 1
+        ) m ON TRUE
+        ORDER BY l.id;
     `;
     const results = await this.databaseService.runQuery(query, [locationIds]);
     return results.rows;

@@ -12,6 +12,7 @@ import {
   NotificationType,
   NotificationJob,
   BatchResult,
+  LatestLocationMeasurementData,
 } from './notification.model';
 import { UpdateNotificationDto } from './update-notification.dto';
 import { NotificationsRepository } from './notifications.repository';
@@ -23,6 +24,7 @@ import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { AQ_LEVELS_COLORS } from 'src/constants/aq-levels-colors';
 import { getAQIColor } from 'src/utils/get-aqi-color-by-value';
+import { AQILevels } from 'src/types/shared/aq-levels.types';
 
 @Injectable()
 export class NotificationsService {
@@ -198,21 +200,22 @@ export class NotificationsService {
     const locationIds = [...new Set(allNotifications.map(n => n.location_id))];
     this.logger.debug(`Fetching measurements for ${locationIds.length} unique locations`);
 
-    const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
+    const measurements: LatestLocationMeasurementData[] =
+      await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
 
     // Apply EPA correction for AirGradient sensors to ensure consistency with display values
-    measurements.forEach((measurement: any) => {
-      if (measurement.dataSource === DataSource.AIRGRADIENT) {
-        measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
+    measurements.forEach((measurement: LatestLocationMeasurementData) => {
+      if (measurement.measuredAt && measurement.pm25) {
+        if (measurement.dataSource === DataSource.AIRGRADIENT) {
+          measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
+        }
       }
     });
 
-    const measurementMap = new Map<number, { pm25: number; locationName: string }>();
-    measurements.forEach((m: any) => {
-      measurementMap.set(m.locationId, {
-        pm25: m.pm25,
-        locationName: m.locationName || `Location ${m.locationId}`,
-      });
+    const measurementMap = new Map<number, LatestLocationMeasurementData>();
+
+    measurements.forEach((measurement: LatestLocationMeasurementData) => {  
+      measurementMap.set(measurement.locationId, measurement);   
     });
 
     const jobs: NotificationJob[] = [];
@@ -221,12 +224,57 @@ export class NotificationsService {
     for (const notification of allNotifications) {
       const measurement = measurementMap.get(notification.location_id);
 
-      if (!measurement) {
+      if (measurement?.measuredAt && measurement.pm25 !== null) {
+
+
+
+      } else if (measurement && !measurement?.measuredAt && notification.alarm_type === NotificationType.SCHEDULED) {
+        jobs.push({
+          playerId: notification.player_id,
+          locationName: measurement.locationName,
+          value: null,
+          unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
+          unit: notification.unit as NotificationPMUnit,
+          imageUrl: this.getImageUrlForAQI(measurement.pm25), // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          androidAccentColor: AQ_LEVELS_COLORS[AQILevels.NO_DATA],
+          isScheduledNotificationNoData: true,
+          title: {
+            en: 'Scheduled Notification: ' + measurement.locationName,
+            de: 'Geplante Benachrichtigung: ' + measurement.locationName,
+          },
+        });
+        continue;
+      } else {
         this.logger.warn(
           `No measurement for location ${notification.location_id} - skipping notification`,
         );
         continue;
       }
+
+      // if (measurement.pm25 === null && !measurement.measuredAt && notification.alarm_type === NotificationType.SCHEDULED) {
+      //   jobs.push({
+      //     playerId: notification.player_id,
+      //     locationName: measurement.locationName,
+      //     value: null,
+      //     unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
+      //     unit: notification.unit as NotificationPMUnit,
+      //     imageUrl: this.getImageUrlForAQI(measurement.pm25), // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      //     androidAccentColor: AQ_LEVELS_COLORS[AQILevels.NO_DATA],
+      //     isScheduledNotificationNoData: true,
+      //     title: {
+      //       en: 'Scheduled Notification: ' + measurement.locationName,
+      //       de: 'Geplante Benachrichtigung: ' + measurement.locationName,
+      //     },
+      //   });
+      //   continue;
+      // }
+
+      // if (!measurement && notification.alarm_type !== NotificationType.SCHEDULED) {
+      //   this.logger.warn(
+      //     `No measurement for location ${notification.location_id} - skipping notification`,
+      //   );
+      //   continue;
+      // }
 
       const pmValueConvertedForUnit =
         notification.unit === NotificationPMUnit.UG
