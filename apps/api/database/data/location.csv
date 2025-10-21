@@ -2958,7 +2958,7 @@
 5042108,1,157875,Small Sensor,Buraq integrated solutions,Asia/Tashkent,POINT (73.068119 33.643208),2025-05-06 08:30:01.956,,"{""CC BY-SA 4.0""}",AirGradient,AirGradient
 10626813,1,161952,Small Sensor,"Trường Đại học Khoa học Tự nhiên, ĐHQG-HCM, Cơ sở Linh Trung.",Asia/Bangkok,POINT (106.797617 10.876939),2025-06-15 04:00:01.719,,"{""CC BY-SA 4.0""}",AirGradient,AirGradient
 11167308,2,1282,Reference,Antofagasta,America/Santiago,POINT (-70.383315682411 -23.61354215815),2025-07-30 00:00:33.277,,{},OpenAQ,Chile - SINCA
-10742032,1,161967,Small Sensor,The Lake,America/Winnipeg,POINT (9553012 501635.1),2025-06-16 00:00:01.649,,"{""CC BY-SA 4.0""}",AirGradient,AirGradient
+10742032,1,161967,Small Sensor,The Lake,America/Winnipeg,POINT (85.81616688977198 4.501626219067588),2025-06-16 00:00:01.649,,"{""CC BY-SA 4.0""}",AirGradient,AirGradient
 8090713,1,81395,Small Sensor,Winn Road,Europe/Lisbon,POINT (-1.39883 50.9256),2025-05-28 14:30:01.752,,"{""CC BY-SA 4.0""}",AirGradient,AirGradient
 11167307,2,1330,Reference,Las Condes (Acreditada),America/Santiago,POINT (-70.523326784061 -33.37677352033),2025-07-30 00:00:33.277,,{},OpenAQ,Chile - SINCA
 68614,2,6888,Reference,Jackson - Clinton,America/Los_Angeles,POINT (-120.764426 38.342606),2025-03-29 00:00:12.425,,"{""US Public Domain""}",OpenAQ,AirNow

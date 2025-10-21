@@ -111,8 +111,9 @@ export class TasksRepository {
       // 1. batch_data: Uses unnest() to reconstruct rows from our columnar arrays
       // 2. insert_owner: Upserts owners first (locations need owner_id foreign key)
       // 3. location_data: Joins location data with newly created owner IDs
-      //    - ST_GeomFromText(coordinate, 3857): Converts "POINT(lng lat)" string to PostGIS geometry
-      //    - SRID 3857 (Web Mercator): Standard projection for web mapping, matches coordinate system
+      //    - ST_GeomFromText(coordinate, 4326): Converts "POINT(lng lat)" string to PostGIS geometry
+      //    - SRID 4326: (long, lat) (Unit: Degree)
+      //    - SRID 3857 (Web Mercator): Standard projection for web mapping, matches coordinate system (x, y) (Unit: Metre)
       //    - JSON licenses: Converts JSON strings back to PostgreSQL varchar[] arrays using jsonb functions
       //      WHY JSON: unnest() can't handle JavaScript arrays like ["item1","item2"] directly
       // 4. Final INSERT: Bulk insert locations with conflict resolution (ON CONFLICT DO UPDATE)
@@ -161,7 +162,7 @@ export class TasksRepository {
             ELSE ARRAY(SELECT jsonb_array_elements_text(b.licenses_json::jsonb))
           END AS licenses,
           b.timezone,
-          ST_GeomFromText(b.coordinate, 3857) AS coordinate,
+          ST_GeomFromText(b.coordinate, 4326) AS coordinate,
           b.data_source,
           b.provider
         FROM batch_data b
