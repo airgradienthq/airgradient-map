@@ -141,12 +141,7 @@
   const windLayerEnabled = computed(() => urlState.wind_layer === 'true');
 
   const config = useRuntimeConfig();
-  const windDataUrl = computed(() => {
-    return (
-      (config.public.windDataUrl as string) ||
-      'https://airgradient-wind-data.s3.eu-north-1.amazonaws.com/wind/current-wind-surface-level-gfs-1.0.json'
-    );
-  });
+  const windDataUrl = computed(() => config.public.windDataUrl as string);
 
   const measureSelectOptions: DropdownOption[] = [
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
