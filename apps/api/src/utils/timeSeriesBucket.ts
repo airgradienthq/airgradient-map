@@ -6,6 +6,8 @@ export enum BucketSize {
   EightHours = '8h',
   OneDay = '1d',
   OneWeek = '1w',
+  OneMonth = '1M',
+  OneYear = '1y',
 }
 
 export function roundToBucket(isoString: string, bucketSize: BucketSize): DateTime {
@@ -48,6 +50,12 @@ export function roundToBucket(isoString: string, bucketSize: BucketSize): DateTi
 
     case BucketSize.OneWeek:
       return dt.startOf('week'); // weeks always start on Mondays
+
+    case BucketSize.OneMonth:
+      return dt.startOf('month');
+
+    case BucketSize.OneYear:
+      return dt.startOf('year');
 
     default:
       return dt;

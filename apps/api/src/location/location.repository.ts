@@ -223,6 +223,21 @@ class LocationRepository {
     }
   }
 
+  private getBinClauseFromBucketSize(bucketSize: BucketSize): string {
+    switch (bucketSize) {
+      case BucketSize.OneMonth: {
+        return `date_trunc('month', m.measured_at)`;
+      }
+
+      case BucketSize.OneYear: {
+        return `date_trunc('year', m.measured_at)`;
+      }
+
+      default:
+        return `date_bin($4, m.measured_at, $2)`;
+    }
+  }
+
   async retrieveLocationMeasuresHistory(
     id: number,
     start: string,
@@ -239,13 +254,15 @@ class LocationRepository {
       measureType === MeasureType.PM25
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
         : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
+    const binClause = this.getBinClauseFromBucketSize(bucketSize);
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
+                ${binClause} AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
                 l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
+                l.data_source AS "dataSource",
+                $4::text AS unused_bucket_param -- Make sure that $4 always be used
             FROM measurement m
             JOIN location l on m.location_id = l.id
             WHERE 
