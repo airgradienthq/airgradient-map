@@ -15,16 +15,8 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
-    <div class="wind-toggle-btn-box">
-      <UiIconButton
-        :ripple="false"
-        :size="ButtonSize.NORMAL"
-        icon="mdi-weather-windy"
-        :style="'light'"
-        title="Toggle Wind Layer"
-        @click="toggleWindLayer"
-      >
-      </UiIconButton>
+    <div class="layer-selector-btn-box">
+      <UiLayerSelector :layers="mapLayers" @layer-toggle="handleLayerToggle" />
     </div>
 
     <UiProgressBar :show="(loading && loaderShown) || windLoading"></UiProgressBar>
@@ -112,7 +104,7 @@
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
   import { useNuxtApp } from '#imports';
-
+  import UiLayerSelector from '~/components/ui/LayerSelector.vue';
   const loading = ref<boolean>(false);
   const windLoading = ref<boolean>(false);
   const isMapFullyReady = ref<boolean>(false);
@@ -148,6 +140,16 @@
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM_AQI], value: MeasureNames.PM_AQI },
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2], value: MeasureNames.RCO2 }
   ];
+  const mapLayers = computed(() => [
+    {
+      id: 'wind',
+      name: 'Wind Layer',
+      description: 'Real-time wind speed and direction',
+      icon: 'mdi mdi-weather-windy',
+      enabled: windLayerEnabled.value,
+      loading: windLoading.value
+    }
+  ]);
 
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
@@ -232,9 +234,25 @@
     });
   }
 
-  function toggleWindLayer(): void {
-    const newValue = !windLayerEnabled.value;
-    setUrlState({ wind_layer: String(newValue) });
+  function handleLayerToggle(layerId: string, enabled: boolean): void {
+    switch (layerId) {
+      case 'wind':
+        setUrlState({ wind_layer: String(enabled) });
+        break;
+      default:
+        console.warn(`Unknown layer: ${layerId}`);
+    }
+  }
+  function onMapMove(): void {
+    if (!mapInstance) {
+      return;
+    }
+
+    setUrlState({
+      zoom: mapInstance.getZoom(),
+      lat: mapInstance.getCenter().lat.toFixed(2),
+      long: mapInstance.getCenter().lng.toFixed(2)
+    });
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -712,7 +730,7 @@
     z-index: 999;
   }
 
-  .wind-toggle-btn-box {
+  .layer-selector-btn-box {
     position: absolute;
     top: 198px;
     left: 10px;
