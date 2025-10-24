@@ -11,7 +11,7 @@ class WindService {
 
   /**
    * Processes wind data from NOAA GFS
-   * Runs immediately on startup + every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+   * Runs immediately on startup + every 6 hours (00:05, 06:05, 12:05, 18:05 UTC)
    * Aligns with GFS model update schedule
    */
   async processWindData(): Promise<void> {
@@ -89,12 +89,12 @@ class WindService {
       }
     };
 
-    schedulerLogger.info('Wind Service Starting - Every 6 hours at 00:00, 06:00, 12:00, 18:00 UTC');
+    schedulerLogger.info('Wind Service Starting - Every 6 hours at 00:05, 06:05, 12:05, 18:05 UTC');
 
     schedulerLogger.info('Running initial wind data fetch (startup trigger)');
     runSafe();
 
-    cron.schedule('0 */6 * * *', () => {
+    cron.schedule('5 */6 * * *', () => {
       schedulerLogger.info('Scheduled wind data fetch triggered');
       runSafe();
     });
