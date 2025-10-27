@@ -133,6 +133,7 @@ class LocationRepository {
             ORDER BY m.measured_at DESC
             LIMIT 1
         ) m ON TRUE
+        WHERE l.id = ANY($1)
         ORDER BY l.id;
     `;
     const results = await this.databaseService.runQuery(query, [locationIds]);
