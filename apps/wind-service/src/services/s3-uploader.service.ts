@@ -1,23 +1,26 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { gzipSync } from 'zlib';
 import { s3Client, S3_BUCKET, WIND_FILE_KEY, getPublicUrl } from '../config/s3.config';
 
 export class S3UploaderService {
   async uploadWindData(windData: any): Promise<string> {
     console.log('Uploading wind data to S3...');
-    const jsonString = JSON.stringify(windData);
+    const { compressedBody, uncompressedSize } = this.preparePayload(windData);
 
     try {
       await s3Client.send(
         new PutObjectCommand({
           Bucket: S3_BUCKET,
           Key: WIND_FILE_KEY,
-          Body: jsonString,
+          Body: compressedBody,
           ContentType: 'application/json',
+          ContentEncoding: 'gzip',
           CacheControl: 'no-cache, must-revalidate',
           ACL: 'public-read',
           Metadata: {
             'last-updated': new Date().toISOString(),
             'data-source': 'NOAA GFS',
+            'uncompressed-bytes': uncompressedSize.toString(),
           },
         })
       );
@@ -33,6 +36,16 @@ export class S3UploaderService {
   async uploadFallbackData(): Promise<string> {
     const fallbackData = this.createFallbackData();
     return this.uploadWindData(fallbackData);
+  }
+
+  private preparePayload(data: any) {
+    const jsonString = JSON.stringify(data);
+    const compressedBody = gzipSync(jsonString);
+
+    return {
+      compressedBody,
+      uncompressedSize: Buffer.byteLength(jsonString),
+    };
   }
 
   private createFallbackData() {

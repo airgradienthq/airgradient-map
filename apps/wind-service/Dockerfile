@@ -2,7 +2,7 @@ FROM node:22-alpine
 
 # Install runtime dependencies
 RUN apk add --no-cache \
-    openjdk11-jre \
+    openjdk17-jre-headless \
     dumb-init
 
 # Create symlink so grib2json can find Java
