@@ -38,7 +38,7 @@ export async function seed(knex: Knex): Promise<void> {
       INSERT INTO location (
         id, owner_id, reference_id, sensor_type, location_name, 
         timezone, coordinate, deteted_at, licenses, data_source, provider
-      ) VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 3857), ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?, ?, ?, ?)
     `,
       [
         row.id,
