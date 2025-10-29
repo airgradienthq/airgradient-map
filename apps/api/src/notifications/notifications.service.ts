@@ -205,7 +205,7 @@ export class NotificationsService {
 
     // Apply EPA correction for AirGradient sensors to ensure consistency with display values
     measurements.forEach((measurement: LatestLocationMeasurementData) => {
-      if (measurement.measuredAt && measurement.pm25) {
+      if (measurement.pm25) {
         if (measurement.dataSource === DataSource.AIRGRADIENT) {
           measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
         }
@@ -225,7 +225,7 @@ export class NotificationsService {
       const measurement = measurementMap.get(notification.location_id);
       if (
         !measurement ||
-        (!measurement?.measuredAt && notification.alarm_type !== NotificationType.SCHEDULED)
+        (!measurement?.pm25 && notification.alarm_type !== NotificationType.SCHEDULED)
       ) {
         this.logger.warn(
           `No measurement for location ${notification.location_id} - skipping notification`,

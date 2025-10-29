@@ -26,7 +26,7 @@ export interface LatestLocationMeasurementData {
   locationId: number;
   pm25: number | null;
   rhum: number | null;
-  measuredAt: Date | null;
+  measuredAt: Date;
   locationName: string;
   sensorType: string;
   dataSource: string;

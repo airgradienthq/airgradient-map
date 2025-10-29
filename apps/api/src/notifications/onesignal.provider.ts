@@ -83,7 +83,6 @@ export class OneSignalProvider {
     androidAccentColor?: string,
     isScheduledNotificationNoData?: boolean,
   ): Promise<any> {
-
     const contents: { en: string; de: string } = {
       en: `No Air Quality data available for ${locationName}`,
       de: `Keine Luftqualitätsdaten verfügbar für ${locationName}`,
