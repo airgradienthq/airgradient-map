@@ -43,7 +43,8 @@ export class LocationService {
     id: number,
     start: string,
     end: string,
-    bucketSize: string,
+    bucketSize: BucketSize,
+    excludeOutliers: boolean,
     measure?: MeasureType,
   ) {
     // Default set to pm25 if not provided
@@ -54,7 +55,7 @@ export class LocationService {
     let endTime: DateTime;
     try {
       this.logger.debug(`Time range before processed: ${start} -- ${end}`);
-      startTime = roundToBucket(start, bucketSize as BucketSize);
+      startTime = roundToBucket(start, bucketSize);
       endTime = DateTime.fromISO(end, { setZone: true });
 
       // Ensure the conversion was successful before proceeding.
@@ -66,7 +67,7 @@ export class LocationService {
       throw new InternalServerErrorException({
         message: `LOC_007: Failed round range timestamp`,
         operation: 'getLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measure },
+        parameters: { id, start, end, bucketSize, excludeOutliers, measure },
         error: error.message,
         code: 'LOC_007',
       });
@@ -81,6 +82,7 @@ export class LocationService {
       startTime.toISO({ includeOffset: false }),
       endTime.toISO({ includeOffset: false }),
       bucketSize,
+      excludeOutliers,
       measureType,
     );
 

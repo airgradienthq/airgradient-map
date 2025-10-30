@@ -20,6 +20,7 @@ import LocationMeasuresDto from './locationMeasures.dto';
 import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
 import { MeasurementAveragesDto } from './averages.dto';
 import { AveragesQueryDto } from './averagesQuery.dto';
+import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
 
 @Controller('map/api/v1/locations')
 @ApiTags('Locations')
@@ -160,12 +161,14 @@ export class LocationController {
     @Param() { id }: FindOneParams,
     @Query() { measure }: MeasureTypeQuery,
     @Query() timeseries: TimeseriesQuery,
+    @Query() { excludeOutliers }: ExcludeOutliersQuery,
   ): Promise<Pagination<TimeseriesDto>> {
     const history = await this.locationService.getLocationMeasuresHistory(
       id,
       timeseries.start,
       timeseries.end,
       timeseries.bucketSize,
+      excludeOutliers,
       measure,
     );
     const timeseriesDto = history.map(
