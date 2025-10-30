@@ -4,9 +4,10 @@ import { TasksRepository } from './tasks.repository';
 import { HttpModule } from '@nestjs/axios';
 import { TasksHttp } from './tasks.http';
 import { NotificationModule } from 'src/notifications/notification.module';
+import { OutlierModule } from 'src/outlier/outlier.module';
 
 @Module({
-  imports: [HttpModule, NotificationModule],
+  imports: [HttpModule, NotificationModule, OutlierModule],
   providers: [TasksService, TasksRepository, TasksHttp],
 })
 export class TasksModule {}
