@@ -71,7 +71,13 @@ export class OutlierRepository {
         FROM nearby
         WHERE (SELECT COUNT(*) FROM nearby) >= $5;
       `;
-      const value = [radiusMeters, locationReferenceId, measuredAt, measuredAtIntervalHours, minNearbyCount];
+      const value = [
+        radiusMeters,
+        locationReferenceId,
+        measuredAt,
+        measuredAtIntervalHours,
+        minNearbyCount,
+      ];
       const result = await this.databaseService.runQuery(query, value);
       const row = result.rows[0];
       return new NearbyPm25Stats(row.mean, row.stddev);
@@ -80,7 +86,13 @@ export class OutlierRepository {
       throw new InternalServerErrorException({
         message: 'OUT_002: Failed to calculate the Z Score',
         operation: 'getSpatialZScoreStats',
-        parameters: { locationReferenceId, measuredAt, radiusMeters, measuredAtIntervalHours, minNearbyCount },
+        parameters: {
+          locationReferenceId,
+          measuredAt,
+          radiusMeters,
+          measuredAtIntervalHours,
+          minNearbyCount,
+        },
         error: error.message,
         code: 'OUT_002',
       });
