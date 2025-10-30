@@ -7,4 +7,5 @@ export const AQ_LEVELS_COLORS: Record<AQILevels, string> = {
   [AQILevels.UNHEALTHY]: '#E63333',
   [AQILevels.VERY_UNHEALTHY]: '#9933E6',
   [AQILevels.HAZARDOUS]: '#8C3333',
+  [AQILevels.NO_DATA]: '#778899',
 } as const;

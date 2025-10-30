@@ -5,4 +5,5 @@ export enum AQILevels {
   UNHEALTHY = 'unhealthy',
   VERY_UNHEALTHY = 'very_unhealthy',
   HAZARDOUS = 'hazardous',
+  NO_DATA = 'no_data',
 }
