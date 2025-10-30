@@ -211,11 +211,13 @@ class LocationRepository {
         const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
         const end = now.toISOString();
 
+        // TODO: Change excludeOutliers to True when outlier detection is approved
         const rows = await this.retrieveLocationMeasuresHistory(
           id,
           start,
           end,
           BucketSize.OneDay,
+          false,
           MeasureType.PM25,
         );
 
@@ -253,6 +255,7 @@ class LocationRepository {
     start: string,
     end: string,
     bucketSize: BucketSize,
+    excludeOutliers: boolean,
     measureType: MeasureType,
   ) {
     const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
@@ -265,7 +268,11 @@ class LocationRepository {
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
         : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
     const binClause = this.getBinClauseFromBucketSize(bucketSize);
-    const showQuery = measureType === MeasureType.PM25 ? 'AND m.is_pm25_outlier = false' : '';
+    const excludeOutliersQuery = excludeOutliers
+      ? measureType === MeasureType.PM25
+        ? 'AND m.is_pm25_outlier = false'
+        : ''
+      : '';
 
     const query = `
             SELECT
@@ -279,7 +286,7 @@ class LocationRepository {
             WHERE 
                 m.location_id = $1 AND 
                 m.measured_at BETWEEN $2 AND $3
-                ${showQuery}
+                ${excludeOutliersQuery}
                 ${validationQuery}
             GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
@@ -297,7 +304,7 @@ class LocationRepository {
       throw new InternalServerErrorException({
         message: 'LOC_006: Failed to retrieve location measures history',
         operation: 'retrieveLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measureType },
+        parameters: { id, start, end, bucketSize, excludeOutliers, measureType },
         error: error.message,
         code: 'LOC_006',
       });

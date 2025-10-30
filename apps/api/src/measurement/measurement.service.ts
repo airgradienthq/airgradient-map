@@ -59,6 +59,7 @@ export class MeasurementService {
     yMin: number,
     xMax: number,
     yMax: number,
+    excludeOutliers: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementsByAreaResult> {
     const measurements = await this.measurementRepository.retrieveLatestByArea(
@@ -66,6 +67,7 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
+      excludeOutliers,
       measure,
     );
 
@@ -78,6 +80,7 @@ export class MeasurementService {
     xMax: number,
     yMax: number,
     zoom: number,
+    excludeOutliers: boolean,
     measure?: MeasureType,
     minPoints?: number,
     radius?: number,
@@ -92,6 +95,7 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
+      excludeOutliers,
       measure,
     );
 

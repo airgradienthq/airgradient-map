@@ -10,6 +10,7 @@ class MeasurementRepository {
   private readonly logger = new Logger(MeasurementRepository.name);
 
   private buildMeasureQuery(
+    excludeOutliers: boolean,
     measure?: MeasureType,
     paramsCount: number = 0,
   ): {
@@ -41,6 +42,7 @@ class MeasurementRepository {
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
         query.whereQuery = `AND m.pm25 IS NOT NULL ${validationQuery}`;
+        query.whereQuery += excludeOutliers ? ' AND m.is_pm25_outlier = false' : '';
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `AND m.${measure} IS NOT NULL ${validationQuery}`;
@@ -55,7 +57,9 @@ class MeasurementRepository {
     measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [offset, limit];
+    // TODO: Might consider later if we want to exclude outliers here as well
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
+      false,
       measure,
       params.length,
     );
@@ -111,11 +115,13 @@ class MeasurementRepository {
     yMin: number,
     xMax: number,
     yMax: number,
+    excludeOutliers: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
 
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
+      excludeOutliers,
       measure,
       params.length,
     );
@@ -165,7 +171,7 @@ class MeasurementRepository {
       throw new InternalServerErrorException({
         message: 'MEAS_002: Failed to retrieve latest measurements by area',
         operation: 'retrieveLatestByArea',
-        parameters: { xMin, yMin, xMax, yMax, measure },
+        parameters: { xMin, yMin, xMax, yMax, excludeOutliers, measure },
         error: error.message,
         code: 'MEAS_002',
       });
