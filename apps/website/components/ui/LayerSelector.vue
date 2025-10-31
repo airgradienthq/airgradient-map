@@ -9,44 +9,20 @@
       @click="toggleDropdown"
     />
 
-    <div v-if="showDropdown" class="layer-dropdown" @click.stop>
-      <div class="layer-dropdown-header">
-        <span>Map Layers</span>
-      </div>
-
-      <div class="layer-list">
-        <div
-          v-for="layer in layers"
-          :key="layer.id"
-          class="layer-item"
-          :class="{ disabled: layer.disabled }"
-        >
-          <div class="layer-info">
-            <div class="layer-icon">
-              <i :class="layer.icon"></i>
-            </div>
-            <div class="layer-details">
-              <span class="layer-name">{{ layer.name }}</span>
-              <span v-if="layer.description" class="layer-description">{{
-                layer.description
-              }}</span>
-            </div>
-          </div>
-
-          <div class="layer-controls">
-            <div v-if="layer.loading" class="layer-loading">
-              <i class="mdi mdi-loading mdi-spin"></i>
-            </div>
-            <label v-else class="layer-toggle">
-              <input
-                type="checkbox"
-                :checked="layer.enabled"
-                :disabled="layer.disabled"
-                @change="toggleLayer(layer.id, ($event.target as HTMLInputElement).checked)"
-              />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
+    <div v-if="showDropdown" class="ag-dropdown-menu" @click.stop>
+      <div
+        v-for="layer in layers"
+        :key="layer.id"
+        class="layer-item"
+        :class="{ 
+          disabled: layer.disabled,
+          active: layer.enabled
+        }"
+        @click="toggleLayer(layer.id)"
+      >
+        <span class="layer-name">{{ layer.name }}</span>
+        <div v-if="layer.loading" class="layer-loading">
+          <i class="mdi mdi-loading mdi-spin"></i>
         </div>
       </div>
     </div>
@@ -84,8 +60,12 @@
     showDropdown.value = !showDropdown.value;
   }
 
-  function toggleLayer(layerId: string, enabled: boolean) {
-    emit('layerToggle', layerId, enabled);
+  function toggleLayer(layerId: string) {
+    const layer = props.layers.find(l => l.id === layerId);
+    if (layer && !layer.disabled && !layer.loading) {
+      emit('layerToggle', layerId, !layer.enabled);
+      showDropdown.value = false;
+    }
   }
 
   function handleClickOutside(event: Event) {
@@ -106,164 +86,82 @@
   });
 </script>
 
-<style scoped>
+<style lang="scss">
   .layer-selector {
     position: relative;
   }
 
-  .layer-dropdown {
+  .ag-dropdown-menu {
     position: absolute;
     top: 100%;
     left: 0;
     margin-top: 4px;
-    width: 300px;
-    background: var(--main-white-color);
+    width: 220px;
+    background-color: var(--main-white-color);
     border: 2px solid var(--grayColor400);
     border-radius: 20px;
     box-shadow: var(--shadow-primary);
     z-index: 1000;
     overflow: hidden;
-  }
-
-  .layer-dropdown-header {
-    padding: 8px 20px;
-    background: var(--primary-color);
-    color: var(--main-white-color);
+    font-family: var(--secondary-font);
     font-weight: var(--font-weight-medium);
-    font-size: var(--font-size-base);
-    text-align: center;
-    border-radius: 18px 18px 0 0;
-  }
-
-  .layer-list {
-    padding: 0;
+    animation: dropdownFadeIn 0.2s ease-out;
   }
 
   .layer-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 20px;
-    transition: background-color var(--main-transition);
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: var(--main-transition);
     border-bottom: 1px solid var(--grayColor200);
-  }
+    border-radius: 0;
+    min-height: auto;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 
-  .layer-item:hover:not(.disabled) {
-    background: var(--primary-color);
-    color: var(--main-white-color);
-  }
+    &:first-child {
+      border-radius: 18px 18px 0 0;
+    }
 
-  .layer-item:last-child {
-    border-bottom: none;
-    border-radius: 0 0 18px 18px;
-  }
+    &:last-child {
+      border-bottom: none;
+      border-radius: 0 0 18px 18px;
+    }
 
-  .layer-item.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+    &:only-child {
+      border-radius: 18px;
+      border-bottom: none;
+    }
 
-  .layer-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-  }
+    &:hover:not(.disabled) {
+      background-color: var(--primary-color);
+      color: var(--main-white-color);
+      border-color: transparent;
+    }
 
-  .layer-icon {
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--primary-color);
-    font-size: 18px;
-  }
+    &.active {
+      background-color: var(--light-primary-color);
+      color: var(--primary-color);
+      font-weight: var(--font-weight-bold);
+      border-color: transparent;
+    }
 
-  .layer-details {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    &.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 
   .layer-name {
-    font-weight: var(--font-weight-medium);
-    color: var(--main-text-color);
     font-size: var(--font-size-base);
-  }
-
-  .layer-description {
-    font-size: var(--font-size-sm);
-    color: var(--grayColor600);
-  }
-
-  .layer-controls {
-    display: flex;
-    align-items: center;
   }
 
   .layer-loading {
     color: var(--primary-color);
     font-size: 16px;
-  }
-
-  .layer-toggle {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    cursor: pointer;
-  }
-
-  .layer-toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--grayColor300);
-    transition: var(--main-transition);
-    border-radius: 24px;
-  }
-
-  .toggle-slider:before {
-    position: absolute;
-    content: '';
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: var(--main-white-color);
-    transition: var(--main-transition);
-    border-radius: 50%;
-  }
-
-  .layer-toggle input:checked + .toggle-slider {
-    background-color: var(--primary-color);
-  }
-
-  .layer-toggle input:focus + .toggle-slider {
-    box-shadow: 0 0 1px var(--primary-color);
-  }
-
-  .layer-toggle input:checked + .toggle-slider:before {
-    transform: translateX(20px);
-  }
-
-  .layer-toggle input:disabled + .toggle-slider {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .layer-dropdown {
-    animation: dropdownFadeIn 0.2s ease-out;
   }
 
   @keyframes dropdownFadeIn {
@@ -278,9 +176,9 @@
   }
 
   @media (max-width: 480px) {
-    .layer-dropdown {
-      width: 280px;
-      left: -220px;
+    .ag-dropdown-menu {
+      width: 200px;
+      left: -140px;
     }
   }
 </style>
