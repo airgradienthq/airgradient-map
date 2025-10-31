@@ -20,7 +20,12 @@
         }"
         @click="toggleLayer(layer.id)"
       >
-        <span class="layer-name">{{ layer.name }}</span>
+        <div class="layer-info">
+          <div class="layer-icon">
+            <i :class="layer.icon"></i>
+          </div>
+          <span class="layer-name">{{ layer.name }}</span>
+        </div>
         <div v-if="layer.loading" class="layer-loading">
           <i class="mdi mdi-loading mdi-spin"></i>
         </div>
@@ -140,6 +145,10 @@
       background-color: var(--primary-color);
       color: var(--main-white-color);
       border-color: transparent;
+
+      .layer-icon {
+        color: var(--main-white-color);
+      }
     }
 
     &.active {
@@ -153,6 +162,23 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+  }
+
+  .layer-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .layer-icon {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+    font-size: 14px;
   }
 
   .layer-name {
