@@ -14,7 +14,7 @@
         v-for="layer in layers"
         :key="layer.id"
         class="layer-item"
-        :class="{ 
+        :class="{
           disabled: layer.disabled,
           active: layer.enabled
         }"
