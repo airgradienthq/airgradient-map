@@ -47,6 +47,7 @@
     "geojson": "^0.5.0",
     "leaflet": "^1.9.4",
     "leaflet-geosearch": "^4.2.0",
+    "leaflet-velocity": "^2.1.4",
     "luxon": "^3.6.1",
     "maplibre-gl": "^4.7.1",
     "nuxt": "3.16.1",
@@ -61,6 +62,7 @@
   "devDependencies": {
     "@capacitor/cli": "^7.2.0",
     "@nuxtjs/leaflet": "^1.2.6",
+    "@types/geojson": "^7946.0.16",
     "@types/luxon": "^3.6.2",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
