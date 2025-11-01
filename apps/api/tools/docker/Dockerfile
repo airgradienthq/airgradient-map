@@ -30,6 +30,9 @@ WORKDIR /app
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
 
+# Install pm2 to run in cluster
+RUN npm install -g pm2
+
 # Copy built application and node_modules from builder stage
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
@@ -46,3 +49,6 @@ EXPOSE 3001
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
+
+# Start default command to run the application
+CMD ["node", "dist/api-main"]

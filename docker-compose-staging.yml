@@ -36,7 +36,8 @@ services:
       - postgrex
     environment:
       - NODE_ENV=staging
-    command: node dist/api-main
+      - PM2_INSTANCE=2 # Default
+    command: ["pm2-runtime", "start", "dist/api-main.js", "-i", "${PM2_INSTANCE}", "--name", "mapapi"]
 
   cron:
     image: "mapapi-mono:${IMAGE_TAG}" # prevent rebuild
