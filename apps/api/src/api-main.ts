@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { ApiModule } from './api.module';
 import { LogLevel, Logger } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { createSwaggerConfig } from './config/swagger.config';
@@ -13,7 +13,7 @@ async function bootstrap(): Promise<void> {
     : ['error', 'warn', 'log', 'debug', 'verbose'];
   logger.log(process.env.NODE_ENV);
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create(ApiModule, {
     logger: logLevels,
   });
 
@@ -36,6 +36,6 @@ async function bootstrap(): Promise<void> {
   SwaggerModule.setup('map/api/v1/docs', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3001);
-  logger.log('Application Started');
+  logger.log('API Started');
 }
 bootstrap();

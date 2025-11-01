@@ -1,22 +1,9 @@
 import { Module } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
-import { ConfigModule } from '@nestjs/config';
-import { NotificationsService } from './notifications.service';
 import { NotificationsController } from './notifications.controller';
-import { OneSignalProvider } from './onesignal.provider';
-import { NotificationBatchProcessor } from './notification-batch.processor';
-import { NotificationsRepository } from './notifications.repository';
-import { LocationModule } from 'src/location/location.module';
+import { NotificationCoreModule } from './notification-core.module';
 
 @Module({
-  imports: [HttpModule, ConfigModule, LocationModule],
+  imports: [NotificationCoreModule],
   controllers: [NotificationsController],
-  providers: [
-    NotificationsService,
-    OneSignalProvider,
-    NotificationBatchProcessor,
-    NotificationsRepository,
-  ],
-  exports: [NotificationsService],
 })
 export class NotificationModule {}

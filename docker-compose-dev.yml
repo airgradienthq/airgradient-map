@@ -23,6 +23,7 @@ services:
     build:
       context: apps/api
       dockerfile: tools/docker/Dockerfile.dev
+    image: mapapi:latest
     restart: unless-stopped
     ports:
       - 3001:3001
@@ -34,6 +35,19 @@ services:
       - ./apps/api/database:/app/database
       - ./apps/api/knexfile.ts:/app/knexfile.ts
     command: npm run start:dev
+    depends_on:
+      - postgrex
+
+  cron:
+    container_name: cron-mono
+    image: mapapi:latest # prevent rebuild
+    restart: unless-stopped
+    networks:
+      - dev 
+    volumes:
+      - ./apps/api/.env.development:/app/.env.development
+      - ./apps/api/src:/app/src
+    command: npm run start:cron:dev
     depends_on:
       - postgrex
 
