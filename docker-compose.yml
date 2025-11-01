@@ -37,6 +37,21 @@ services:
       - postgrex
     environment:
       - NODE_ENV=production
+    command: node dist/api-main
+
+  cron:
+    image: "mapapi-mono:${IMAGE_TAG}" # prevent rebuild
+    container_name: cron-mono
+    restart: unless-stopped
+    networks:
+      - airgradient-map-prod
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - postgrex
+    environment:
+      - NODE_ENV=production
+    command: node dist/cron-main
 
   app:
     image: "website-mono:${IMAGE_TAG}"

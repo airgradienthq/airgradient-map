@@ -46,6 +46,3 @@ EXPOSE 3001
 
 # Use dumb-init for proper signal handling
 ENTRYPOINT ["dumb-init", "--"]
-
-# Start the application
-CMD ["node", "dist/main"]
