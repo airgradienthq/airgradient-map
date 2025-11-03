@@ -12,6 +12,7 @@ import {
   NotificationType,
   NotificationJob,
   BatchResult,
+  LatestLocationMeasurementData,
 } from './notification.model';
 import { UpdateNotificationDto } from './update-notification.dto';
 import { NotificationsRepository } from './notifications.repository';
@@ -23,6 +24,7 @@ import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { AQ_LEVELS_COLORS } from 'src/constants/aq-levels-colors';
 import { getAQIColor } from 'src/utils/get-aqi-color-by-value';
+import { AQILevels } from 'src/types/shared/aq-levels.types';
 
 @Injectable()
 export class NotificationsService {
@@ -198,21 +200,22 @@ export class NotificationsService {
     const locationIds = [...new Set(allNotifications.map(n => n.location_id))];
     this.logger.debug(`Fetching measurements for ${locationIds.length} unique locations`);
 
-    const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
+    const measurements: LatestLocationMeasurementData[] =
+      await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
 
     // Apply EPA correction for AirGradient sensors to ensure consistency with display values
-    measurements.forEach((measurement: any) => {
-      if (measurement.dataSource === DataSource.AIRGRADIENT) {
-        measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
+    measurements.forEach((measurement: LatestLocationMeasurementData) => {
+      if (measurement.pm25) {
+        if (measurement.dataSource === DataSource.AIRGRADIENT) {
+          measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
+        }
       }
     });
 
-    const measurementMap = new Map<number, { pm25: number; locationName: string }>();
-    measurements.forEach((m: any) => {
-      measurementMap.set(m.locationId, {
-        pm25: m.pm25,
-        locationName: m.locationName || `Location ${m.locationId}`,
-      });
+    const measurementMap = new Map<number, LatestLocationMeasurementData>();
+
+    measurements.forEach((measurement: LatestLocationMeasurementData) => {
+      measurementMap.set(measurement.locationId, measurement);
     });
 
     const jobs: NotificationJob[] = [];
@@ -220,11 +223,41 @@ export class NotificationsService {
 
     for (const notification of allNotifications) {
       const measurement = measurementMap.get(notification.location_id);
-
-      if (!measurement) {
+      if (
+        !measurement ||
+        (!measurement?.pm25 && notification.alarm_type !== NotificationType.SCHEDULED)
+      ) {
         this.logger.warn(
           `No measurement for location ${notification.location_id} - skipping notification`,
         );
+        continue;
+      }
+
+      let androidAccentColor: string =
+        AQ_LEVELS_COLORS[
+          measurement.pm25 === null ? AQILevels.NO_DATA : getAQIColor(measurement.pm25)
+        ];
+      androidAccentColor = androidAccentColor.replace('#', 'FF');
+
+      if (
+        measurement &&
+        measurement.pm25 === null &&
+        notification.alarm_type === NotificationType.SCHEDULED
+      ) {
+        jobs.push({
+          playerId: notification.player_id,
+          locationName: measurement.locationName,
+          value: null,
+          unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
+          unit: notification.unit as NotificationPMUnit,
+          imageUrl: this.getImageUrlForAQI(measurement.pm25),
+          androidAccentColor,
+          isScheduledNotificationNoData: true,
+          title: {
+            en: 'Scheduled Notification: ' + measurement.locationName,
+            de: 'Geplante Benachrichtigung: ' + measurement.locationName,
+          },
+        });
         continue;
       }
 
@@ -232,9 +265,6 @@ export class NotificationsService {
         notification.unit === NotificationPMUnit.UG
           ? measurement.pm25
           : convertPmToUsAqi(measurement.pm25);
-
-      const androidAccentColor: string = AQ_LEVELS_COLORS[getAQIColor(measurement.pm25)];
-      androidAccentColor.replace('#', 'FF');
 
       // For scheduled notifications, always send
       if (notification.alarm_type === NotificationType.SCHEDULED) {
@@ -276,9 +306,14 @@ export class NotificationsService {
           this.logger.debug('Threshold notification skipped', {
             notificationId: notification.id,
             reason:
-              pmValueConvertedForUnit <= notification.threshold_ug_m3
-                ? 'below_threshold'
-                : 'conditions_not_met',
+              measurement.pm25 === null || measurement.pm25 === undefined
+                ? 'missing_pm_value'
+                : notification.threshold_ug_m3 === null ||
+                    notification.threshold_ug_m3 === undefined
+                  ? 'missing_threshold_setting'
+                  : measurement.pm25 <= notification.threshold_ug_m3
+                    ? 'below_threshold'
+                    : 'conditions_not_met',
           });
         }
       }
@@ -435,15 +470,24 @@ export class NotificationsService {
   }
 
   private getImageUrlForAQI(pm25: number): string {
-    if (pm25 <= 9) return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-good.png';
-    if (pm25 <= 35.4)
+    if (pm25 === null) {
+      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-no-data.png';
+    }
+    if (pm25 <= 9) {
+      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-good.png';
+    }
+    if (pm25 <= 35.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-moderate.png';
-    if (pm25 <= 55.4)
+    }
+    if (pm25 <= 55.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy-sensitive.png';
-    if (pm25 <= 125.4)
+    }
+    if (pm25 <= 125.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy.png';
-    if (pm25 <= 225.4)
+    }
+    if (pm25 <= 225.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-very-unhealthy.png';
+    }
     return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-hazardous.png';
   }
 }

@@ -8,6 +8,8 @@ import DatabaseService from 'src/database/database.service';
 import { LocationEntity } from './location.entity';
 import { MeasureType, PM25Period, PM25PeriodConfig, MeasurementAveragesResult } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
+import { LatestLocationMeasurementData } from 'src/notifications/notification.model';
+import { BucketSize } from 'src/utils/timeSeriesBucket';
 
 @Injectable()
 class LocationRepository {
@@ -103,27 +105,37 @@ class LocationRepository {
     }
   }
 
-  async retrieveLastPM25ByLocationsList(locationIds: number[]) {
+  async retrieveLastPM25ByLocationsList(
+    locationIds: number[],
+  ): Promise<LatestLocationMeasurementData[]> {
     if (locationIds.length === 0) {
       return [];
     }
     const query = `
-        SELECT DISTINCT ON (m.location_id)
-                m.location_id AS "locationId",
-                m.pm25,
-                m.rhum,
-                m.measured_at AS "measuredAt",
-                l.location_name AS "locationName",
-                l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
-        FROM measurement m
-        JOIN location l ON m.location_id = l.id
-        WHERE m.location_id = ANY($1::int[])
-          AND (
-            (l.data_source = 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '30 minutes')
-            OR (l.data_source <> 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '90 minutes')
-          )
-        ORDER BY m.location_id, m.measured_at DESC;
+        SELECT
+          l.id AS "locationId",
+          l.location_name AS "locationName",
+          l.sensor_type AS "sensorType",
+          l.data_source AS "dataSource",
+          m.pm25,
+          m.rhum,
+          m.measured_at AS "measuredAt"
+        FROM location l
+        LEFT JOIN LATERAL (
+          SELECT m.pm25, m.rhum, m.measured_at
+          FROM measurement m
+            WHERE m.location_id = l.id
+              AND m.measured_at >= NOW() - (
+                CASE WHEN l.data_source = 'AirGradient'
+                     THEN INTERVAL '30 minutes'
+                     ELSE INTERVAL '90 minutes'
+                END
+              )
+            ORDER BY m.measured_at DESC
+            LIMIT 1
+        ) m ON TRUE
+        WHERE l.id = ANY($1)
+        ORDER BY l.id;
     `;
     const results = await this.databaseService.runQuery(query, [locationIds]);
     return results.rows;
@@ -189,7 +201,13 @@ class LocationRepository {
         const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
         const end = now.toISOString();
 
-        const rows = await this.retrieveLocationMeasuresHistory(id, start, end, '1 day', 'pm25');
+        const rows = await this.retrieveLocationMeasuresHistory(
+          id,
+          start,
+          end,
+          BucketSize.OneDay,
+          MeasureType.PM25,
+        );
 
         let sum = 0;
         for (const row of rows) {
@@ -205,29 +223,46 @@ class LocationRepository {
     }
   }
 
+  private getBinClauseFromBucketSize(bucketSize: BucketSize): string {
+    switch (bucketSize) {
+      case BucketSize.OneMonth: {
+        return `date_trunc('month', m.measured_at)`;
+      }
+
+      case BucketSize.OneYear: {
+        return `date_trunc('year', m.measured_at)`;
+      }
+
+      default:
+        return `date_bin($4, m.measured_at, $2)`;
+    }
+  }
+
   async retrieveLocationMeasuresHistory(
     id: number,
     start: string,
     end: string,
-    bucketSize: string,
-    measure: string,
+    bucketSize: BucketSize,
+    measureType: MeasureType,
   ) {
-    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measure as MeasureType);
+    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
 
-    const validationQuery = hasValidation ? `AND m.${measure} BETWEEN $5 AND $6` : '';
+    const validationQuery = hasValidation ? `AND m.${measureType} BETWEEN $5 AND $6` : '';
 
     // For pm25, we need both pm25 and rhum for EPA correction
     const selectClause =
-      measure === 'pm25'
+      measureType === MeasureType.PM25
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
-        : `round(avg(m.${measure})::NUMERIC , 2) AS value`;
+        : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
+    const binClause = this.getBinClauseFromBucketSize(bucketSize);
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
+                ${binClause} AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
                 l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
+                l.data_source AS "dataSource",
+                $4::text AS unused_bucket_param -- Make sure that $4 always be used
             FROM measurement m
             JOIN location l on m.location_id = l.id
             WHERE 
@@ -250,7 +285,7 @@ class LocationRepository {
       throw new InternalServerErrorException({
         message: 'LOC_006: Failed to retrieve location measures history',
         operation: 'retrieveLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measure },
+        parameters: { id, start, end, bucketSize, measureType },
         error: error.message,
         code: 'LOC_006',
       });
@@ -304,7 +339,7 @@ class LocationRepository {
     return this.convertPeriodToInterval(periods[longestIndex]);
   }
 
-  private buildAveragesQuery(measure: MeasureType, periods?: string[]): string {
+  private buildAveragesQuery(measureType: MeasureType, periods?: string[]): string {
     // Use default predefined periods if none specified
     const defaultPeriods = Object.values(PM25Period);
     const requestedPeriods = periods || defaultPeriods;
@@ -314,7 +349,7 @@ class LocationRepository {
         const interval = periods
           ? this.convertPeriodToInterval(period)
           : PM25PeriodConfig[period as PM25Period].interval;
-        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measure} END) as "${period}"`;
+        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measureType} END) as "${period}"`;
       })
       .join(',\n      ');
 
@@ -333,8 +368,8 @@ class LocationRepository {
         ${periodCases}
       FROM measurement
       WHERE location_id = $1
-        AND ${measure} IS NOT NULL
-        AND ${measure} BETWEEN 0 AND 500
+        AND ${measureType} IS NOT NULL
+        AND ${measureType} BETWEEN 0 AND 500
         AND measured_at >= NOW() - INTERVAL '${longestInterval}'
       GROUP BY location_id
     `;
@@ -342,10 +377,10 @@ class LocationRepository {
 
   async retrieveAveragesByLocationId(
     id: number,
-    measure: MeasureType,
+    measureType: MeasureType,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
-    const query = this.buildAveragesQuery(measure, periods);
+    const query = this.buildAveragesQuery(measureType, periods);
 
     // Debug logging
     this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);

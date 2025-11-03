@@ -144,7 +144,7 @@ class MeasurementRepository {
                 WHERE 
                     ST_Within(
                         coordinate,
-                        ST_MakeEnvelope($1, $2, $3, $4, 3857)
+                        ST_MakeEnvelope($1, $2, $3, $4, 4326)
                     )
                 AND
                   ${whereQuery}

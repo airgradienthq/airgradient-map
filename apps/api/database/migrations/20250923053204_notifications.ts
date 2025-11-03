@@ -29,7 +29,7 @@ export async function up(knex: Knex): Promise<void> {
       CONSTRAINT valid_time_format_check
         CHECK (
           scheduled_time IS NULL OR
-          scheduled_time ~ '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+          scheduled_time ~ '^([01]\\?[0-9]|2[0-3]):[0-5][0-9]$'
         )
     );
   `);
