@@ -37,6 +37,22 @@ services:
       - postgrex
     environment:
       - NODE_ENV=production
+      - PM2_INSTANCE=2 # Default
+    command: ["pm2-runtime", "start", "dist/api-main.js", "-i", "${PM2_INSTANCE}", "--name", "mapapi"]
+
+  cron:
+    image: "mapapi-mono:${IMAGE_TAG}" # prevent rebuild
+    container_name: cron-mono
+    restart: unless-stopped
+    networks:
+      - airgradient-map-prod
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      - postgrex
+    environment:
+      - NODE_ENV=production
+    command: node dist/cron-main
 
   app:
     image: "website-mono:${IMAGE_TAG}"
