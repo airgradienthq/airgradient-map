@@ -212,7 +212,7 @@ export class TasksRepository {
         .join(', ');
 
       const query = `
-          INSERT INTO public."measurement" (
+          INSERT INTO public."measurement_recent" (
               location_id, pm25, pm10, atmp, rhum, rco2, measured_at
           )
           SELECT
@@ -262,7 +262,7 @@ export class TasksRepository {
         .join(',');
 
       const query = `
-        INSERT INTO measurement (location_id, pm25, measured_at) 
+        INSERT INTO public."measurement_recent" (location_id, pm25, measured_at) 
             VALUES ${latestValues} 
         ON CONFLICT (location_id, measured_at)
         DO NOTHING;
