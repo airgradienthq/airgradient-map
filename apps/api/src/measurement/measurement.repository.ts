@@ -64,36 +64,36 @@ class MeasurementRepository {
       params.push(minVal, maxVal);
     }
 
-    const query = ` 
+    const query = `
             WITH latest_measurements AS (
-                SELECT 
+                SELECT
                     location_id,
                     last(measured_at, measured_at) AS last_measured_at
-                FROM 
-                    measurement
+                FROM
+                    measurement_recent
                 WHERE measured_at  >= NOW() - INTERVAL '6 hours'
                 GROUP BY
                     location_id
             )
-            SELECT 
-                lm.location_id AS "locationId", 
-                l.location_name AS "locationName", 
+            SELECT
+                lm.location_id AS "locationId",
+                l.location_name AS "locationName",
                 ST_X(l.coordinate) AS longitude,
                 ST_Y(l.coordinate) AS latitude,
                 l.sensor_type AS "sensorType",
                 ${selectQuery},
                 lm.last_measured_at AS "measuredAt"
-            FROM 
+            FROM
                 latest_measurements lm
-            JOIN 
-                measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
-            JOIN 
+            JOIN
+                measurement_recent m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
+            JOIN
                 location l ON m.location_id = l.id
             WHERE
               ${whereQuery}
-            ORDER BY 
-                lm.location_id 
-            OFFSET $1 LIMIT $2; 
+            ORDER BY
+                lm.location_id
+            OFFSET $1 LIMIT $2;
         `;
 
     try {
@@ -134,14 +134,14 @@ class MeasurementRepository {
     // Format query
     const query = `
             WITH latest_measurements AS (
-                SELECT 
+                SELECT
                     l.id AS location_id,
                     LAST(m.measured_at, m.measured_at) AS last_measured_at
                 FROM 
-                    measurement m
-                JOIN location l 
-                    ON m.location_id = l.id 
-                WHERE 
+                    measurement_recent m
+                JOIN location l
+                    ON m.location_id = l.id
+                WHERE
                     ST_Within(
                         coordinate,
                         ST_MakeEnvelope($1, $2, $3, $4, 4326)
@@ -155,19 +155,19 @@ class MeasurementRepository {
                 GROUP BY 
                     l.id
             )
-            SELECT 
-                lm.location_id AS "locationId", 
-                l.location_name AS "locationName", 
+            SELECT
+                lm.location_id AS "locationId",
+                l.location_name AS "locationName",
                 ST_X(l.coordinate) AS longitude,
                 ST_Y(l.coordinate) AS latitude,
                 l.sensor_type AS "sensorType",
                 ${selectQuery},
                 lm.last_measured_at AS "measuredAt",
                 l.data_source AS "dataSource"
-            FROM 
+            FROM
                 latest_measurements lm
-            JOIN 
-                measurement m ON
+            JOIN
+                measurement_recent m ON
                     lm.location_id = m.location_id
                     AND lm.last_measured_at = m.measured_at
                     AND m.measured_at >= NOW() - INTERVAL '6 hours'
