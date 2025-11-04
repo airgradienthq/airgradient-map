@@ -30,13 +30,13 @@ class LocationRepository {
                 l.provider,
                 l.data_source AS "dataSource",
                 l.timezone
-            FROM 
+            FROM
                 location l
             JOIN
                 owner o ON l.owner_id = o.id
-            ORDER BY 
+            ORDER BY
                 l.id
-            OFFSET $1 LIMIT $2; 
+            OFFSET $1 LIMIT $2;
         `;
 
     try {
@@ -70,7 +70,7 @@ class LocationRepository {
                 l.provider,
                 l.data_source AS "dataSource",
                 l.timezone
-            FROM 
+            FROM
                 location l
             JOIN
                 owner o ON l.owner_id = o.id
@@ -122,7 +122,7 @@ class LocationRepository {
         FROM location l
         LEFT JOIN LATERAL (
           SELECT m.pm25, m.rhum, m.measured_at
-          FROM measurement m
+          FROM measurement_recent m
             WHERE m.location_id = l.id
               AND m.measured_at >= NOW() - (
                 CASE WHEN l.data_source = 'AirGradient'
@@ -154,7 +154,7 @@ class LocationRepository {
                 m.measured_at AS "measuredAt",
                 l.sensor_type AS "sensorType",
                 l.data_source AS "dataSource"
-            FROM measurement m
+            FROM measurement_recent m
             JOIN location l ON m.location_id = l.id
             WHERE m.location_id = $1
             ORDER BY m.measured_at DESC 
