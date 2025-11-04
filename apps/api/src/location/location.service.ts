@@ -78,8 +78,8 @@ export class LocationService {
 
     const results = await this.locationRepository.retrieveLocationMeasuresHistory(
       id,
-      startTime.toISO({ includeOffset: false }),
-      endTime.toISO({ includeOffset: false }),
+      startTime.toISO(),
+      endTime.toISO(),
       bucketSize,
       measureType,
     );

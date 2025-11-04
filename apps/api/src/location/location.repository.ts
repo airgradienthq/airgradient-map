@@ -227,6 +227,8 @@ class LocationRepository {
 
     const validationQuery = hasValidation ? `AND m.${measure} BETWEEN $5 AND $6` : '';
 
+    // TODO: Add other query if bucket time is 5 minutes
+    // since table already in 5 minutes bucket so no aggregation needed (date_bin)
     // For pm25, we need both pm25 and rhum for EPA correction
     const selectClause =
       measure === 'pm25'
@@ -235,15 +237,15 @@ class LocationRepository {
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
+                date_bin($4, m.bucket_time, $2) AS timebucket,
                 ${selectClause},
                 l.sensor_type AS "sensorType",
                 l.data_source AS "dataSource"
-            FROM measurement m
+            FROM measurement_5min_agg m
             JOIN location l on m.location_id = l.id
-            WHERE 
-                m.location_id = $1 AND 
-                m.measured_at BETWEEN $2 AND $3 
+            WHERE
+                m.location_id = $1 AND
+                m.bucket_time BETWEEN $2 AND $3
                 ${validationQuery}
             GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
