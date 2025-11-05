@@ -327,7 +327,7 @@ class LocationRepository {
         const interval = periods
           ? this.convertPeriodToInterval(period)
           : PM25PeriodConfig[period as PM25Period].interval;
-        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measure} END) as "${period}"`;
+        return `AVG(CASE WHEN ma.bucket_time >= NOW() - INTERVAL '${interval}' THEN ma.${measure} END) as "${period}"`;
       })
       .join(',\n      ');
 
@@ -344,11 +344,11 @@ class LocationRepository {
       SELECT 
         $1::integer as location_id,
         ${periodCases}
-      FROM measurement
+      FROM measurement_5min_agg ma
       WHERE location_id = $1
-        AND ${measure} IS NOT NULL
-        AND ${measure} BETWEEN 0 AND 500
-        AND measured_at >= NOW() - INTERVAL '${longestInterval}'
+        AND ma.${measure} IS NOT NULL
+        AND ma.${measure} BETWEEN 0 AND 500
+        AND ma.bucket_time >= NOW() - INTERVAL '${longestInterval}'
       GROUP BY location_id
     `;
   }
