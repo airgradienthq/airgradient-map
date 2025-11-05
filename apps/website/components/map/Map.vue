@@ -175,7 +175,7 @@
     }
 
     L.maplibreGL({
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      style: 'https://tiles.openfreemap.org/styles/bright',
       center: [Number(urlState.lat), Number(urlState.long)],
       zoom: Number(urlState.zoom)
     }).addTo(mapInstance);
