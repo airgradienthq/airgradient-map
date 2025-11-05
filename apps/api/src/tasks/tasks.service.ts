@@ -132,22 +132,24 @@ export class TasksService {
     this.logger.log('Run job retrieve OpenAQ latest value');
     const before = Date.now();
 
-    let locationIds = await this.tasksRepository.retrieveOpenAQLocationId();
-    if (locationIds === null) {
+    const referenceIdToIdMap = await this.tasksRepository.retrieveOpenAQLocationId();
+    const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
+
+    if (referenceIdToIdMapLength === 0) {
       // NOTE: Right now ignore until runSyncOpenAQLocations() already triggered
       this.logger.warn('No openaq locationId found');
       return;
     }
 
-    const locationIdsLength = Object.keys(locationIds).length;
     let maxPages = -1;
     let pageCounter = 1;
     let matchCounter = 0;
 
     this.logger.debug(
-      `Start request to openaq parameters endpoint with interest total locationId ${locationIdsLength}`,
+      `Start request to openaq parameters endpoint with interest total locationId ${referenceIdToIdMapLength}`,
     );
-    while (matchCounter < locationIdsLength) {
+
+    while (matchCounter < referenceIdToIdMapLength) {
       // Parameters '2' is pm2.5 parameter id
       const url = `https://api.openaq.org/v3/parameters/2/latest?limit=1000&page=${pageCounter}`;
       let data: OpenAQApiParametersResponse | null;
@@ -167,16 +169,17 @@ export class TasksService {
 
       // Check each parameters locationId if it match to one of the already saved openaq location
       let batches = [];
-      for (let i = 0; i < data.results.length; i++) {
-        if (Object.hasOwn(locationIds, data.results[i].locationsId)) {
-          // LocationId is in intereset, push so later will be inserted
-          let batch = {};
-          // locationId here is the actual locationId from table, not from openaq
-          batch['locationId'] = locationIds[data.results[i].locationsId.toString()];
-          batch['pm25'] = data.results[i].value;
-          batch['measuredAt'] = data.results[i].datetime.utc;
-          batches.push(batch);
 
+      for (let i = 0; i < data.results.length; i++) {
+        const locationReferenceId = data.results[i].locationsId.toString();
+
+        if (locationReferenceId in referenceIdToIdMap) {
+          batches.push({
+            locationReferenceId: Number(locationReferenceId),
+            locationId: referenceIdToIdMap[locationReferenceId],
+            pm25: data.results[i].value,
+            measuredAt: data.results[i].datetime.utc,
+          });
           matchCounter = matchCounter + 1;
         }
       }
@@ -203,8 +206,10 @@ export class TasksService {
       pageCounter = pageCounter + 1;
     }
 
-    if (matchCounter < locationIdsLength) {
-      this.logger.warn(`Total OpenAQ locations that not match ${locationIdsLength - matchCounter}`);
+    if (matchCounter < referenceIdToIdMapLength) {
+      this.logger.warn(
+        `Total OpenAQ locations that not match ${referenceIdToIdMapLength - matchCounter}`,
+      );
     }
 
     const after = Date.now();

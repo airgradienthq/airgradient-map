@@ -238,7 +238,7 @@ export class TasksRepository {
     }
   }
 
-  async retrieveOpenAQLocationId(): Promise<object | null> {
+  async retrieveOpenAQLocationId(): Promise<Record<string, number>> {
     try {
       const result = await this.databaseService.runQuery(
         `SELECT json_object_agg(reference_id::TEXT, id) FROM "location" WHERE data_source = '${DataSource.OPENAQ}';`,
@@ -246,7 +246,7 @@ export class TasksRepository {
       if (result.rowCount === 0 || result.rows[0].json_object_agg === null) {
         return {};
       }
-      return result.rows[0].json_object_agg;
+      return result.rows[0].json_object_agg as Record<string, number>;
     } catch (error) {
       this.logger.error(error);
       return {};
