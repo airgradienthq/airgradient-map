@@ -18,10 +18,9 @@ export function pm25ToAQI(pm25: number): number {
     result = ((200 - 151) / (125.4 - 55.5)) * (pm25 - 55.5) + 151;
   } else if (pm25 <= 225.4) {
     result = ((300 - 201) / (225.4 - 125.5)) * (pm25 - 125.5) + 201;
-  } else if (pm25 <= 325.4) {
-    result = ((500 - 301) / (325.4 - 225.5)) * (pm25 - 225.5) + 301;
   } else {
-    result = 500;
+    // Values above 500 should continue using the same SLOPE as the Hazardous category cw 2024-09-07
+    result = ((500 - 301) / (325.4 - 225.5)) * (pm25 - 225.5) + 301;
   }
   if (result < 0) {
     result = 0;

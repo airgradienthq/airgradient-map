@@ -32,7 +32,7 @@ export function getPM25Color(
     result = ChartColorsType.RED;
   } else if (pmValue <= 225.4) {
     result = ChartColorsType.PURPLE;
-  } else if (pmValue <= 10000) {
+  } else {
     result = ChartColorsType.BROWN;
   }
 

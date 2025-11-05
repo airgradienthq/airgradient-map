@@ -362,6 +362,11 @@ class LocationRepository {
       longestInterval = PM25PeriodConfig[PM25Period.DAYS_90].interval;
     }
 
+    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
+    const validationQuery = hasValidation
+      ? `AND ${measureType} BETWEEN ${minVal} AND ${maxVal}`
+      : '';
+
     return `
       SELECT 
         $1::integer as location_id,
@@ -369,8 +374,8 @@ class LocationRepository {
       FROM measurement
       WHERE location_id = $1
         AND ${measureType} IS NOT NULL
-        AND ${measureType} BETWEEN 0 AND 500
         AND measured_at >= NOW() - INTERVAL '${longestInterval}'
+        ${validationQuery}
       GROUP BY location_id
     `;
   }
