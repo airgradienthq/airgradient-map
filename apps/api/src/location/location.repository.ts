@@ -226,15 +226,15 @@ class LocationRepository {
   private getBinClauseFromBucketSize(bucketSize: BucketSize): string {
     switch (bucketSize) {
       case BucketSize.OneMonth: {
-        return `date_trunc('month', m.measured_at)`;
+        return `date_trunc('month', ma.bucket_time)`;
       }
 
       case BucketSize.OneYear: {
-        return `date_trunc('year', m.measured_at)`;
+        return `date_trunc('year', ma.bucket_time)`;
       }
 
       default:
-        return `date_bin($4, m.measured_at, $2)`;
+        return `date_bin($4, ma.bucket_time, $2)`;
     }
   }
 
@@ -247,29 +247,30 @@ class LocationRepository {
   ) {
     const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
 
-    const validationQuery = hasValidation ? `AND m.${measureType} BETWEEN $5 AND $6` : '';
+    const validationQuery = hasValidation ? `AND ma.${measureType} BETWEEN $5 AND $6` : '';
 
     // TODO: Add other query if bucket time is 5 minutes
     // since table already in 5 minutes bucket so no aggregation needed (date_bin)
+
     // For pm25, we need both pm25 and rhum for EPA correction
     const selectClause =
       measureType === MeasureType.PM25
-        ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
-        : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
+        ? `round(avg(ma.pm25)::NUMERIC , 2) AS pm25, round(avg(ma.rhum)::NUMERIC , 2) AS rhum`
+        : `round(avg(ma.${measureType})::NUMERIC , 2) AS value`;
     const binClause = this.getBinClauseFromBucketSize(bucketSize);
 
     const query = `
             SELECT
-                ${binClause} AT TIME ZONE 'UTC' AS timebucket,
+                ${binClause} AS timebucket,
                 ${selectClause},
                 l.sensor_type AS "sensorType",
                 l.data_source AS "dataSource",
                 $4::text AS unused_bucket_param -- Make sure that $4 always be used
-            FROM measurement m
-            JOIN location l on m.location_id = l.id
+            FROM measurement_5min_agg ma
+            JOIN location l on ma.location_id = l.id
             WHERE
-                m.location_id = $1 AND
-                m.bucket_time BETWEEN $2 AND $3
+                ma.location_id = $1 AND
+                ma.bucket_time BETWEEN $2 AND $3
                 ${validationQuery}
             GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
@@ -351,7 +352,7 @@ class LocationRepository {
         const interval = periods
           ? this.convertPeriodToInterval(period)
           : PM25PeriodConfig[period as PM25Period].interval;
-        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measureType} END) as "${period}"`;
+        return `AVG(CASE WHEN ma.bucket_time >= NOW() - INTERVAL '${interval}' THEN ma.${measureType} END) as "${period}"`;
       })
       .join(',\n      ');
 
@@ -366,7 +367,7 @@ class LocationRepository {
 
     const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
     const validationQuery = hasValidation
-      ? `AND ${measureType} BETWEEN ${minVal} AND ${maxVal}`
+      ? `AND ma.${measureType} BETWEEN ${minVal} AND ${maxVal}`
       : '';
 
     return `
@@ -375,8 +376,8 @@ class LocationRepository {
         ${periodCases}
       FROM measurement_5min_agg ma
       WHERE location_id = $1
-        AND ${measureType} IS NOT NULL
-        AND measured_at >= NOW() - INTERVAL '${longestInterval}'
+        AND ma.${measureType} IS NOT NULL
+        AND ma.bucket_time >= NOW() - INTERVAL '${longestInterval}'
         ${validationQuery}
       GROUP BY location_id
     `;
