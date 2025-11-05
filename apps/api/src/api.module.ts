@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import DatabaseModule from './database/database.module';
-import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
+import { NotificationModule } from './notifications/notification.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    TasksModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [`.env.${process.env.NODE_ENV}`],
@@ -27,8 +26,9 @@ import { LocationModule } from './location/location.module';
     }),
     MeasurementModule,
     LocationModule,
+    NotificationModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class ApiModule {}

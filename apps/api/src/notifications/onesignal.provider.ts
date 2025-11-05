@@ -81,17 +81,25 @@ export class OneSignalProvider {
     unitLabel?: string,
     title?: { en: string; de: string },
     androidAccentColor?: string,
+    isScheduledNotificationNoData?: boolean,
   ): Promise<any> {
+    const contents: { en: string; de: string } = {
+      en: `No Air Quality data available for ${locationName}`,
+      de: `Keine Luftqualitätsdaten verfügbar für ${locationName}`,
+    };
+
+    if (!isScheduledNotificationNoData) {
+      contents.en = `Air Quality is now ${pmValue} ${unitLabel}`;
+      contents.de = `Die Luftqualität ist derzeit ${pmValue} ${unitLabel}`;
+    }
+
     const notification: OneSignalNotification = {
       include_player_ids: playerIds,
       headings: {
         en: title?.en || locationName,
         de: title?.de || locationName,
       },
-      contents: {
-        en: `Air Quality is now ${pmValue} ${unitLabel}`,
-        de: `Die Luftqualität ist derzeit ${pmValue} ${unitLabel}`,
-      },
+      contents,
       ios_attachments: imageUrl
         ? {
             id1:
