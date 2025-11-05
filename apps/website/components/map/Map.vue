@@ -15,6 +15,17 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
+    <div v-if="generalConfigStore.embedded" class="map-open-fullscreen-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-open-in-new"
+        :style="'light'"
+        @click="handleOpenFullscreen"
+      >
+      </UiIconButton>
+    </div>
+
     <UiProgressBar :show="loading && loaderShown"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
@@ -164,7 +175,7 @@
     }
 
     L.maplibreGL({
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      style: 'https://tiles.openfreemap.org/styles/bright',
       center: [Number(urlState.lat), Number(urlState.long)],
       zoom: Number(urlState.zoom)
     }).addTo(mapInstance);
@@ -325,12 +336,22 @@
     }
   }
 
+  function handleOpenFullscreen(): void {
+    window.open(
+      window.location.href
+        .replace('headless=true', 'headless=false')
+        .replace('embedded=true', 'embedded=false'),
+      '_blank'
+    );
+  }
+
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
   }
 
   onMounted(() => {
     generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
+    generalConfigStore.setEmbedded(window.location.href.includes('embedded=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
       setUrlState({
         meas: MeasureNames.PM25
@@ -600,6 +621,13 @@
   .map-geolocation-btn-box {
     position: absolute;
     top: 154px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .map-open-fullscreen-btn-box {
+    position: absolute;
+    top: 198px;
     left: 10px;
     z-index: 999;
   }

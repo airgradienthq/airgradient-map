@@ -472,22 +472,18 @@ export class NotificationsService {
   private getImageUrlForAQI(pm25: number): string {
     if (pm25 === null) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-no-data.png';
-    }
-    if (pm25 <= 9) {
+    } else if (pm25 <= 9) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-good.png';
-    }
-    if (pm25 <= 35.4) {
+    } else if (pm25 <= 35.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-moderate.png';
-    }
-    if (pm25 <= 55.4) {
+    } else if (pm25 <= 55.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy-sensitive.png';
-    }
-    if (pm25 <= 125.4) {
+    } else if (pm25 <= 125.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy.png';
-    }
-    if (pm25 <= 225.4) {
+    } else if (pm25 <= 225.4) {
       return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-very-unhealthy.png';
+    } else {
+      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-hazardous.png';
     }
-    return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-hazardous.png';
   }
 }
