@@ -11,6 +11,7 @@ export class OutlierService {
   // Configuration from constants or environment
   private readonly RADIUS_METERS: number;
   private readonly MEASURED_AT_INTERVAL_HOURS: number;
+  private readonly ABSOLUTE_THRESHOLD: number;
   private readonly Z_SCORE_THRESHOLD: number;
   private readonly MIN_NEARBY_COUNT: number;
 
@@ -26,6 +27,10 @@ export class OutlierService {
     this.MEASURED_AT_INTERVAL_HOURS = this.configService.get<number>(
       'MEASURED_AT_INTERVAL_HOURS',
       OUTLIER_CONFIG.MEASURED_AT_INTERVAL_HOURS,
+    );
+    this.ABSOLUTE_THRESHOLD = this.configService.get<number>(
+      'ABSOLUTE_THRESHOLD',
+      OUTLIER_CONFIG.ABSOLUTE_THRESHOLD,
     );
     this.Z_SCORE_THRESHOLD = this.configService.get<number>(
       'Z_SCORE_THRESHOLD',
@@ -67,8 +72,12 @@ export class OutlierService {
       return false;
     }
 
-    const zScore = (pm25 - mean) / stddev;
-    return Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
+    if (mean >= 50) {
+      const zScore = (pm25 - mean) / stddev;
+      return Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
+    } else {
+      return Math.abs(pm25 - mean) > this.ABSOLUTE_THRESHOLD;
+    }
   }
 
   public async calculateIsPm25Outlier(
