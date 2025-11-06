@@ -36,7 +36,52 @@ export class LocationService {
   }
 
   async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
-    return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
+    const timeframes = [
+      { label: 'last24hours', days: 1 },
+      { label: 'last7days', days: 7 },
+      { label: 'last30days', days: 30 },
+      { label: 'last365days', days: 365 },
+    ];
+
+    try {
+      const now = new Date();
+      const cigaretteData: Record<string, number | null> = {};
+
+      for (const timeframe of timeframes) {
+        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
+        const end = now.toISOString();
+
+        const rows = await this.locationRepository.retrieveLocationMeasuresHistory(
+          id,
+          start,
+          end,
+          BucketSize.OneDay,
+          true,
+          MeasureType.PM25,
+        );
+
+        let results = rows.map((row: any) => ({
+          timebucket: row.timebucket,
+          value:
+            row.dataSource === DataSource.AIRGRADIENT
+              ? getEPACorrectedPM(row.pm25, row.rhum)
+              : row.pm25,
+        }));
+
+        results = results.filter(result => result.pm25 !== null);
+
+        if (results.length === 0) {
+          cigaretteData[timeframe.label] = null;
+        } else {
+          const sum = results.reduce((acc, result) => acc + parseFloat(result.value), 0);
+          cigaretteData[timeframe.label] = Math.round((sum / 22) * 100) / 100;
+        }
+      }
+      return cigaretteData;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException('Error query retrieve cigarettes smoked');
+    }
   }
 
   async getLocationMeasuresHistory(
@@ -44,6 +89,7 @@ export class LocationService {
     start: string,
     end: string,
     bucketSize: BucketSize,
+    excludeOutliers: boolean,
     measure?: MeasureType,
   ) {
     // Default set to pm25 if not provided
@@ -66,7 +112,7 @@ export class LocationService {
       throw new InternalServerErrorException({
         message: `LOC_007: Failed round range timestamp`,
         operation: 'getLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measure },
+        parameters: { id, start, end, bucketSize, excludeOutliers, measure },
         error: error.message,
         code: 'LOC_007',
       });
@@ -81,6 +127,7 @@ export class LocationService {
       startTime.toISO({ includeOffset: false }),
       endTime.toISO({ includeOffset: false }),
       bucketSize,
+      excludeOutliers,
       measureType,
     );
 

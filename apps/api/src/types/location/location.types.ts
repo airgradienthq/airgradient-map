@@ -46,7 +46,7 @@ export type LocationMeasuresResult = LocationMeasuresRaw | null;
 /**
  * Result type for getCigarettesSmoked service method
  */
-export type CigarettesSmokedResult = Record<string, number>;
+export type CigarettesSmokedResult = Record<string, number | null>;
 
 /**
  * PM2.5 time periods for averaging
