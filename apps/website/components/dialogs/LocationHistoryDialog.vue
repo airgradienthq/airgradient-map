@@ -317,7 +317,8 @@
             start,
             end,
             bucketSize: generalConfigStore.selectedHistoryPeriod.defaultBucketSize,
-            measure
+            measure,
+            excludeOutliers: generalConfigStore.excludeOutliers
           },
           retry: 1
         }

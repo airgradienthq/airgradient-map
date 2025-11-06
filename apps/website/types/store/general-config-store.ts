@@ -6,4 +6,5 @@ export type GeneralConfigStoreState = {
   selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone;
   headless: boolean;
   embedded: boolean;
+  excludeOutliers: boolean;
 };
