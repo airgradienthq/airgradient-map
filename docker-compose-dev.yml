@@ -59,12 +59,16 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      - AWS_REGION=eu-north-1
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - S3_BUCKET_NAME=airgradient-wind-data
+      # Database
+      - DATABASE_HOST=postgrex
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
     networks:
       - dev
+    depends_on:
+      - postgrex
 networks:
   dev:
     driver: bridge

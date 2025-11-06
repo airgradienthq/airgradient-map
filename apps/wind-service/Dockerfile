@@ -20,13 +20,13 @@ COPY package*.json ./
 COPY tsconfig.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci || (echo "npm ci failed" && exit 1)
 
 # Copy source code
 COPY src/ ./src/
 
-# Build TypeScript
-RUN npm run build
+# Build TypeScript - show full output
+RUN npm run build 2>&1 || (echo "TypeScript build failed. Listing files:" && ls -R src/ && cat tsconfig.json && exit 1)
 
 # Create temp directory
 RUN mkdir -p /app/temp && chmod 777 /app/temp
