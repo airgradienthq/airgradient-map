@@ -1,6 +1,7 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { PM25DataPointEntity } from './pm25-data-point.entity';
+import { NearbyPm25Stats } from './nearby-pm25-stats.entity';
 
 @Injectable()
 export class OutlierRepository {
@@ -36,6 +37,64 @@ export class OutlierRepository {
         parameters: { locationReferenceId, measuredAt },
         error: error.message,
         code: 'OUT_001',
+      });
+    }
+  }
+
+  public async getSpatialZScoreStats(
+    locationReferenceId: number,
+    measuredAt: string,
+    radiusMeters: number,
+    measuredAtIntervalHours: number,
+    minNearbyCount: number,
+  ): Promise<NearbyPm25Stats> {
+    try {
+      const query = `
+        WITH nearby AS (
+          SELECT DISTINCT ON (l2.id) m.pm25
+          FROM location l1
+          JOIN location l2
+            ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $1)
+          JOIN measurement m 
+            ON m.location_id = l2.id
+          WHERE l1.reference_id = $2
+            AND m.is_pm25_outlier = false
+            AND m.measured_at BETWEEN $3::timestamp - make_interval(hours => $4::int)
+                                AND $3::timestamp + make_interval(hours => $4::int)
+          ORDER BY 
+            l2.id, 
+            ABS(EXTRACT(EPOCH FROM (m.measured_at - $3::timestamp)))
+        )
+        SELECT
+          AVG(pm25) AS mean,
+          STDDEV_SAMP(pm25) AS stddev
+        FROM nearby
+        WHERE (SELECT COUNT(*) FROM nearby) >= $5;
+      `;
+      const value = [
+        radiusMeters,
+        locationReferenceId,
+        measuredAt,
+        measuredAtIntervalHours,
+        minNearbyCount,
+      ];
+      const result = await this.databaseService.runQuery(query, value);
+      const row = result.rows[0];
+      return new NearbyPm25Stats(row.mean, row.stddev);
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'OUT_002: Failed to calculate the Z Score',
+        operation: 'getSpatialZScoreStats',
+        parameters: {
+          locationReferenceId,
+          measuredAt,
+          radiusMeters,
+          measuredAtIntervalHours,
+          minNearbyCount,
+        },
+        error: error.message,
+        code: 'OUT_002',
       });
     }
   }
