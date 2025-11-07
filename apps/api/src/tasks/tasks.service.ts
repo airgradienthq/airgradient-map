@@ -72,7 +72,8 @@ export class TasksService {
 
     this.isAirgradientLatestJobRunning = true;
     this.logger.log('Run job retrieve AirGradient latest value');
-    // const start = Date.now();
+    const before = Date.now();
+    let totalData: number;
 
     try {
       // Fetch data from the airgradient external API
@@ -80,10 +81,14 @@ export class TasksService {
       const data = await this.http.fetch<AirgradientModel[]>(url, {
         Origin: 'https://airgradient.com',
       });
-      this.logger.log(`Sync AirGradient latest measures total public data: ${data.length}`);
+      totalData = data.length;
+      this.logger.log(`Sync AirGradient latest measures total public data: ${totalData}`);
       await this.tasksRepository.insertNewAirgradientLatest(data);
     } finally {
       this.isAirgradientLatestJobRunning = false;
+      this.logger.debug(
+        `getAirgradientLatest() time spend: ${Date.now() - before}ms with total data point: ${totalData}`,
+      );
     }
   }
 
@@ -124,13 +129,14 @@ export class TasksService {
 
     const after = Date.now();
     const duration = after - before;
-    this.logger.debug(`Sync OpenAQ locations time spend: ${duration}`);
+    this.logger.debug(`Sync OpenAQ locations time spend: ${duration}ms`);
   }
 
   @Cron(CronExpression.EVERY_HOUR)
   async runGetOpenAQLatest() {
     this.logger.log('Run job retrieve OpenAQ latest value');
     const before = Date.now();
+    let totalData: number = 0;
 
     const referenceIdToIdMap = await this.tasksRepository.retrieveOpenAQLocationId();
     const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
@@ -188,6 +194,7 @@ export class TasksService {
       this.logger.debug(matchCounter);
       if (batches.length > 0) {
         // Only insert if batch more than one
+        totalData += batches.length;
         await this.tasksRepository.insertNewOpenAQLatest(batches);
       }
 
@@ -215,7 +222,7 @@ export class TasksService {
     const after = Date.now();
     const duration = after - before;
     this.logger.debug(
-      `runGetOpenAQLatest() time spend: ${duration} with total page request ${pageCounter}`,
+      `runGetOpenAQLatest() time spend: ${duration}ms with total page request: ${pageCounter} and total data point: ${totalData}`,
     );
   }
 
