@@ -475,6 +475,12 @@
       height: 270px;
     }
 
+    @media (max-width: 768px) {
+      &.embedded .chart-container {
+        height: 200px;
+      }
+    }
+
     .chart-controls {
       margin-bottom: 25px !important;
       margin-top: -20px !important;

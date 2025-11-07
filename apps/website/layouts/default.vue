@@ -12,9 +12,10 @@
 
 <script setup lang="ts">
   import { onMounted, ref } from 'vue';
-  import { useI18n } from '#imports';
+  import { useI18n, useNuxtApp } from '#imports';
 
   const { locale } = useI18n();
+  const { $i18n } = useNuxtApp();
 
   const headless = ref(false);
 
@@ -23,6 +24,15 @@
       if (window.location.href.includes('headless=true')) {
         headless.value = true;
         document.documentElement.classList.add('headless');
+      }
+
+      if (window.location.href.includes('embedded=true')) {
+        document.documentElement.classList.add('embedded');
+      }
+
+      if (window.location.href.includes('external_lang=en')) {
+        $i18n.setLocale('en');
+        document.body.classList.remove('th-layout');
       }
 
       if (locale.value === 'th') {
