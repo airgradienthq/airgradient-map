@@ -31,15 +31,19 @@ export class WindDataRepositoryService {
       }
 
       // Add 5 hours to forecast_time (data availability delay)
-      const dataAvailableTime = new Date(latestForecast).getTime() + (5 * 60 * 60 * 1000);
+      const forecastTime = new Date(latestForecast);
+      const dataAvailableTime = new Date(forecastTime.getTime() + (5 * 60 * 60 * 1000));
 
       // Check if more than 6 hours have passed since data became available
-      const hoursSinceAvailable = (Date.now() - dataAvailableTime) / (1000 * 60 * 60);
+      const now = new Date();
+      const hoursSinceAvailable = (now.getTime() - dataAvailableTime.getTime()) / (1000 * 60 * 60);
 
       const shouldFetch = hoursSinceAvailable >= 6;
 
       logger.info('wind-data-repository', 'Checked if new data fetch needed', {
-        latestForecast,
+        forecastTime: forecastTime.toISOString(),
+        dataAvailableTime: dataAvailableTime.toISOString(),
+        now: now.toISOString(),
         hoursSinceAvailable: hoursSinceAvailable.toFixed(2),
         shouldFetch
       });
@@ -123,4 +127,142 @@ export class WindDataRepositoryService {
       client.release();
     }
   }
+
+  /**
+   * Deletes old forecast data, keeping only the most recent forecast
+   * This ensures the database only stores current data for API serving
+   * while historical data is preserved in S3
+   *
+   * @returns Number of records deleted
+   */
+  async deleteOldForecasts(): Promise<number> {
+    const client = await pool.connect();
+
+    try {
+      const query = `
+        DELETE FROM wind_data
+        WHERE forecast_time < (
+          SELECT MAX(forecast_time) FROM wind_data
+        )
+      `;
+
+      const result = await client.query(query);
+      const deletedCount = result.rowCount || 0;
+
+      logger.info('wind-data-repository', 'Cleaned up old forecast data', {
+        deletedRecords: deletedCount
+      });
+
+      return deletedCount;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      logger.error('wind-data-repository', 'Failed to delete old forecasts', {
+        error: errorMessage
+      });
+
+      return 0;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Transforms GFS wind data JSON into database records
+   * windData format: [uComponent, vComponent]
+   * Each component has: { header: { refTime, ... }, data: [values...] }
+   *
+   * Validates all required header fields before transformation.
+   * Returns empty array if any validation fails to prevent data corruption.
+   * No default/fallback values are used for grid parameters.
+   */
+  public transformWindData(windData: any[]): WindDataRecord[] {
+    const [uComponent, vComponent] = windData;
+
+    // Validate basic structure
+    if (!uComponent?.data || !vComponent?.data) {
+      logger.error('wind-data-repository', 'Invalid wind data format: missing data arrays');
+      return [];
+    }
+
+    if (!uComponent.header || !vComponent.header) {
+      logger.error('wind-data-repository', 'Invalid wind data format: missing headers');
+      return [];
+    }
+
+    // Validate required header fields - no defaults allowed
+    const requiredFields = ['refTime', 'nx', 'ny', 'la1', 'lo1', 'dx', 'dy'];
+    const missingFields = requiredFields.filter(field =>
+      uComponent.header[field] === undefined || uComponent.header[field] === null
+    );
+
+    if (missingFields.length > 0) {
+      logger.error('wind-data-repository', 'Missing required header fields', {
+        missingFields: missingFields.join(', ')
+      });
+      return [];
+    }
+
+    // Extract validated grid parameters
+    const forecastTime = new Date(uComponent.header.refTime);
+    const nx = uComponent.header.nx;
+    const ny = uComponent.header.ny;
+    const la1 = uComponent.header.la1;
+    const lo1 = uComponent.header.lo1;
+    const dx = uComponent.header.dx;
+    const dy = uComponent.header.dy;
+
+    // Validate grid parameters are sensible
+    if (nx <= 0 || ny <= 0 || dx <= 0 || dy <= 0) {
+      logger.error('wind-data-repository', 'Invalid grid parameters', {
+        nx, ny, dx, dy
+      });
+      return [];
+    }
+
+    // Validate data length matches grid size
+    const expectedLength = nx * ny;
+    if (uComponent.data.length !== expectedLength || vComponent.data.length !== expectedLength) {
+      logger.error('wind-data-repository', 'Data length mismatch', {
+        expected: expectedLength,
+        uLength: uComponent.data.length,
+        vLength: vComponent.data.length
+      });
+      return [];
+    }
+
+    const records: WindDataRecord[] = [];
+
+    for (let i = 0; i < uComponent.data.length; i++) {
+      const u = uComponent.data[i];
+      const v = vComponent.data[i];
+
+      if (u === null || v === null) continue;
+
+      // Calculate lat/lon from grid index
+      const row = Math.floor(i / nx);
+      const col = i % nx;
+      const latitude = la1 - row * dy;
+      const longitude = lo1 + col * dx;
+
+      records.push({
+        longitude,
+        latitude,
+        forecast_time: forecastTime,
+        u_component: u,
+        v_component: v,
+      });
+    }
+
+    logger.info('wind-data-repository', 'Transformed wind data', {
+      totalRecords: records.length,
+      forecastTime: forecastTime.toISOString(),
+      gridSize: `${nx}x${ny}`,
+      resolution: `${dx}°x${dy}°`
+    });
+
+    return records;
+  }
 }
+

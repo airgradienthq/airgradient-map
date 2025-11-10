@@ -12,6 +12,11 @@ export const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
+// PostgreSQL parameter limit: 65535
+// Each record uses 5 parameters (lon, lat, time, u, v)
+// Safe batch size: 65535 / 5 = 13107, using 10000 for safety margin
+export const WIND_DATA_BATCH_SIZE = 10000;
+
 export async function testConnection(): Promise<void> {
   try {
     const client = await pool.connect();

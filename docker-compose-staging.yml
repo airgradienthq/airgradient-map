@@ -52,6 +52,30 @@ services:
       - HOST=0.0.0.0
       - PORT=80
 
+  wind-service:
+    image: "wind-service-mono:${IMAGE_TAG}"
+    container_name: wind-service-mono
+    build:
+      context: apps/wind-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Database
+      - DATABASE_HOST=postgrex
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      # AWS S3
+      - AWS_REGION=${AWS_REGION}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    networks:
+      - airgradient-map-staging
+    depends_on:
+      - postgrex
+
 networks:
   airgradient-map-staging:
     driver: bridge
