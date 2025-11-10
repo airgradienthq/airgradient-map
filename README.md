@@ -39,17 +39,25 @@ To get the key, please follow steps from OpenAQ [here](https://docs.openaq.org/u
 
 3. **Run the containers**
 
-We have one docker compose file to build and run 3 containers:
+We have docker compose files that build and run containers:
 
-- `postgrex-mono`: the database
-- `mapapi-mono`: the backend
-- `website-mono`: the frontend
+- `postgrex-mono`: PostgreSQL database with PostGIS
+- `db-migrate-mono`: Database migration runner (runs automatically)
+- `mapapi-mono`: NestJS API backend
+- `cron-mono`: Background cron jobs
+- `website-mono`: Nuxt.js frontend
 
 To spin them up, run from the root of this repo:
 
 ```bash
 docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml up
 ```
+
+**What happens automatically:**
+1. PostgreSQL starts and initializes
+2. Database migrations run automatically (all tables created)
+3. API and cron services start (database is ready)
+4. Frontend starts
 
 This automatically builds and starts the necessary containers. When developing and changing source files, the api service automatically reloads the source files. Use the `--build` option when you change npm dependencies and need to rebuild the image. Optionally use the `-d` option for running detached in the background.
 
@@ -59,29 +67,31 @@ To stop the services, run:
 docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml down
 ```
 
-4. **Setup Database**
+4. **Database Migrations & Seeding**
 
 This project uses [Knexjs](https://knexjs.org/) for database migrations and seeding to keep the schema and test data consistent with project changes.
 
-> **⚠️ Important for Existing Developers:** 
+> **⚠️ Important for Existing Developers:**
 >
-> If you’ve previously run this project before migrations were introduced, it’s recommended to start fresh and make sure removing the existing Postgres volume:
-> 
+> If you've previously run this project before automated migrations were introduced, it's recommended to start fresh by removing the existing Postgres volume:
+>
 > ```bash
-> docker volume rm airgradient-map_pgdata
+> docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml down -v
 > ```
 
-- Run Migrations
+- **Migrations (Automatic)**
 
-Create/update tables with the latest schema:
+Migrations now run **automatically** when you start the containers. You don't need to run them manually.
+
+If you need to run migrations manually for testing:
 
 ```bash
 docker exec -it mapapi-mono npx knex migrate:latest --knexfile knexfile.ts
 ```
 
-- Seed Data
+- **Seed Data (Optional)**
 
-Populate tables with sample/initial data:
+Populate tables with sample/initial data for development:
 
 ```bash
 docker exec -it mapapi-mono npx knex seed:run --knexfile knexfile.ts
@@ -169,11 +179,14 @@ If you're working on an issue or it's ready for review, and the **project board*
 
 ### New Database Schema
 
-Since this project maintain database migrations using [Knexjs](https://knexjs.org/), run below command to create new migration file:
+Since this project maintains database migrations using [Knexjs](https://knexjs.org/), run below command to create new migration file:
 
 ```bash
+cd apps/api
 npx knex migrate:make <MIGRATION_NAME> --knexfile knexfile.ts
 ```
+
+This creates a new migration file in `apps/api/database/migrations/`. When you restart the docker-compose stack, the new migration will run automatically.
 
 Please see Knexjs [migration documentation](https://knexjs.org/guide/migrations.html) for more information.
 
