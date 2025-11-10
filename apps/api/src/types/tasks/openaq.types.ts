@@ -34,6 +34,7 @@ export interface Instrument {
  * OpenAQ latest measurement data structure for database insertion
  */
 export interface OpenAQLatestData {
+  locationReferenceId: number;
   locationId: number;
   pm25: number;
   measuredAt: string;

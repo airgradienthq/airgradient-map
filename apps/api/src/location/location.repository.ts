@@ -125,6 +125,7 @@ class LocationRepository {
           SELECT m.pm25, m.rhum, m.measured_at
           FROM measurement m
             WHERE m.location_id = l.id
+              AND (m.is_pm25_outlier = false)
               AND m.measured_at >= NOW() - (
                 CASE WHEN l.data_source = 'AirGradient'
                      THEN INTERVAL '30 minutes'
@@ -143,9 +144,16 @@ class LocationRepository {
 
   async retrieveLastMeasuresByLocationId(id: number) {
     const query = `
+            WITH latest_measurement AS (
+              SELECT *
+              FROM measurement
+              WHERE location_id = $1
+              ORDER BY measured_at DESC
+              LIMIT 1
+            )
             SELECT 
                 m.location_id AS "locationId",
-                m.pm25,
+                CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25,
                 m.pm10,
                 m.atmp,
                 m.rhum,
@@ -155,11 +163,17 @@ class LocationRepository {
                 m.measured_at AS "measuredAt",
                 l.sensor_type AS "sensorType",
                 l.data_source AS "dataSource"
-            FROM measurement m
+            FROM latest_measurement m
             JOIN location l ON m.location_id = l.id
-            WHERE m.location_id = $1
-            ORDER BY m.measured_at DESC 
-            LIMIT 1;
+            WHERE (
+                (m.is_pm25_outlier = false AND m.pm25 IS NOT NULL)  -- pm25 must be present
+                OR m.pm10 IS NOT NULL
+                OR m.atmp IS NOT NULL
+                OR m.rhum IS NOT NULL
+                OR m.rco2 IS NOT NULL
+                OR m.o3 IS NOT NULL
+                OR m.no2 IS NOT NULL
+              );
         `;
 
     try {
@@ -187,42 +201,6 @@ class LocationRepository {
     }
   }
 
-  async retrieveCigarettesSmokedByLocationId(id: number) {
-    const timeframes = [
-      { label: 'last24hours', days: 1 },
-      { label: 'last7days', days: 7 },
-      { label: 'last30days', days: 30 },
-      { label: 'last365days', days: 365 },
-    ];
-    try {
-      const now = new Date();
-      const cigaretteData: Record<string, number> = {};
-      for (const timeframe of timeframes) {
-        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
-        const end = now.toISOString();
-
-        const rows = await this.retrieveLocationMeasuresHistory(
-          id,
-          start,
-          end,
-          BucketSize.OneDay,
-          MeasureType.PM25,
-        );
-
-        let sum = 0;
-        for (const row of rows) {
-          sum += parseFloat(row.pm25);
-        }
-        const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
-        cigaretteData[timeframe.label] = cigaretteNumber;
-      }
-      return cigaretteData;
-    } catch (error) {
-      this.logger.error(error);
-      throw new InternalServerErrorException('Error query retrieve cigarettes smoked');
-    }
-  }
-
   private getBinClauseFromBucketSize(bucketSize: BucketSize): string {
     switch (bucketSize) {
       case BucketSize.OneMonth: {
@@ -243,6 +221,7 @@ class LocationRepository {
     start: string,
     end: string,
     bucketSize: BucketSize,
+    excludeOutliers: boolean,
     measureType: MeasureType,
   ) {
     const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
@@ -255,6 +234,11 @@ class LocationRepository {
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
         : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
     const binClause = this.getBinClauseFromBucketSize(bucketSize);
+    const excludeOutliersQuery = excludeOutliers
+      ? measureType === MeasureType.PM25
+        ? 'AND m.is_pm25_outlier = false'
+        : ''
+      : '';
 
     const query = `
             SELECT
@@ -267,7 +251,8 @@ class LocationRepository {
             JOIN location l on m.location_id = l.id
             WHERE 
                 m.location_id = $1 AND 
-                m.measured_at BETWEEN $2 AND $3 
+                m.measured_at BETWEEN $2 AND $3
+                ${excludeOutliersQuery}
                 ${validationQuery}
             GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
@@ -285,7 +270,7 @@ class LocationRepository {
       throw new InternalServerErrorException({
         message: 'LOC_006: Failed to retrieve location measures history',
         operation: 'retrieveLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measureType },
+        parameters: { id, start, end, bucketSize, excludeOutliers, measureType },
         error: error.message,
         code: 'LOC_006',
       });
@@ -367,6 +352,9 @@ class LocationRepository {
       ? `AND ${measureType} BETWEEN ${minVal} AND ${maxVal}`
       : '';
 
+    const excludeOutliersQuery =
+      measureType === MeasureType.PM25 ? 'AND is_pm25_outlier = false' : '';
+
     return `
       SELECT 
         $1::integer as location_id,
@@ -375,6 +363,7 @@ class LocationRepository {
       WHERE location_id = $1
         AND ${measureType} IS NOT NULL
         AND measured_at >= NOW() - INTERVAL '${longestInterval}'
+        ${excludeOutliersQuery}
         ${validationQuery}
       GROUP BY location_id
     `;
