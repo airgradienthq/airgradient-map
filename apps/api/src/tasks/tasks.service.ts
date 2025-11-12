@@ -13,6 +13,7 @@ import { SensorType } from 'src/types/shared/sensor-type';
 import { AG_DEFAULT_LICENSE } from 'src/constants/ag-default-license';
 import { OLD_AG_BASE_API_URL } from 'src/constants/old-ag-base-api-url';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { DataSource } from 'src/types/shared/data-source';
 
 @Injectable()
 export class TasksService {
@@ -57,7 +58,7 @@ export class TasksService {
 
     // NOTE: optimization needed to upsert in chunk?
     await this.tasksRepository.upsertLocationsAndOwners(
-      'AirGradient',
+      DataSource.AIRGRADIENT,
       result.data as UpsertLocationOwnerInput[],
     );
   }
@@ -144,7 +145,7 @@ export class TasksService {
     for (let i = 0; i < result.count; i += batchSize) {
       this.logger.debug(`Inserting from idx ${i}`);
       await this.tasksRepository.upsertLocationsAndOwners(
-        'OpenAQ',
+        DataSource.OPENAQ,
         result.data.slice(i, i + batchSize) as UpsertLocationOwnerInput[],
       );
     }
