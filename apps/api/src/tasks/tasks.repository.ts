@@ -18,11 +18,6 @@ export class TasksRepository {
 
   private readonly logger = new Logger(TasksRepository.name);
 
-  async getAll(): Promise<any[]> {
-    const result = await this.databaseService.runQuery('SELECT * FROM measurement;');
-    return result.rows;
-  }
-
   async upsertLocationsAndOwners(
     dataSource: string,
     locationOwnerInput: UpsertLocationOwnerInput[],
