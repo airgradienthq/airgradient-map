@@ -8,6 +8,7 @@ import { OpenAQLatestData } from '../types/tasks/openaq.types';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
 import { DataSource } from 'src/types/shared/data-source';
 import { OutlierService } from 'src/outlier/outlier.service';
+import { InsertLatestMeasuresInput } from 'src/types/tasks/latest-measures';
 
 @Injectable()
 export class TasksRepository {
@@ -282,6 +283,72 @@ export class TasksRepository {
         DO NOTHING;
       `;
 
+      await this.databaseService.runQuery(query);
+    } catch (error) {
+      this.logger.error(error);
+    }
+  }
+
+  async insertLatestMeasures(
+    dataSource: string,
+    locationIdAvailable: boolean,
+    data: InsertLatestMeasuresInput[],
+  ): Promise<void> {
+    try {
+      // Map into values query while set if value outlier or not
+      const latestValues = (
+        await Promise.all(
+          data.map(async dataPoint => {
+            const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
+              dataPoint;
+            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(
+              locationReferenceId,
+              pm25,
+              measuredAt,
+            );
+            const locId = locationIdAvailable ? locationId : locationReferenceId;
+            return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
+          }),
+        )
+      ).join(', ');
+
+      // Prepare query based on if locationId available or not
+      let query = '';
+      if (locationIdAvailable) {
+        query = `
+          INSERT INTO public."measurement" (
+            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
+          )
+          VALUES
+            ${latestValues}
+          ON CONFLICT (location_id, measured_at)
+          DO NOTHING;
+        `;
+      } else {
+        query = `
+          INSERT INTO public."measurement" (
+            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
+          )
+          SELECT
+            loc.id AS location_id,
+            m.pm25,
+            m.pm10,
+            m.atmp,
+            m.rhum,
+            m.rco2,
+            m.measured_at::timestamp,
+            m.is_pm25_outlier::boolean
+          FROM (
+            VALUES ${latestValues}
+          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier)
+          JOIN public."location" loc
+            ON loc.data_source = '${dataSource}'
+            AND loc.reference_id = m.reference_id
+          ON CONFLICT (location_id, measured_at) DO NOTHING;
+        `;
+      }
+
+      // Execute query
       await this.databaseService.runQuery(query);
     } catch (error) {
       this.logger.error(error);
