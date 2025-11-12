@@ -1,6 +1,7 @@
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import * as path from 'path';
 
 import { TasksRepository } from './tasks.repository';
 import { TasksHttp } from './tasks.http';
@@ -18,6 +19,7 @@ export class TasksService {
   private openAQApiKey = '';
   private readonly logger = new Logger(TasksService.name);
   private isAirgradientLatestJobRunning = false;
+  private dataSourcePath = '';
 
   constructor(
     private readonly tasksRepository: TasksRepository,
@@ -29,12 +31,14 @@ export class TasksService {
     if (apiKey) {
       this.openAQApiKey = apiKey;
     }
+
+    this.dataSourcePath = path.resolve(process.cwd(), 'data-source');
   }
 
   @Cron(CronExpression.EVERY_HOUR)
   async runSyncAirgradientLocations() {
     // load file and run
-    const filePath = 'airgradient-map/apps/api/data-source/public/airgradient.js';
+    const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
     const plugin = await import(filePath);
     const result = await plugin.location();
 
@@ -117,7 +121,7 @@ export class TasksService {
     const before = Date.now();
     this.logger.log('Run job sync OpenAQ locations');
 
-    const filePath = './airgradient-map/apps/api/data-source/public/openaq.js';
+    const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
     const plugin = await import(filePath);
     const result = await plugin.location(this.openAQApiKey);
 
