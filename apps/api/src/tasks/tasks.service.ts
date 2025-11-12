@@ -33,32 +33,29 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async runSyncAirgradientLocations() {
-    // const start = Date.now();
+    // load file and run
+    const filePath = 'airgradient-map/apps/api/data-source/public/airgradient.js';
+    const plugin = await import(filePath);
+    const result = await plugin.location();
 
-    // Fetch data from the airgradient external API
-    const url = OLD_AG_BASE_API_URL;
-    const data = await this.http.fetch<AirgradientModel[]>(url, {
-      Origin: 'https://airgradient.com',
-    });
-    this.logger.log(`Sync AirGradient locations with total public data: ${data.length}`);
+    // Check if success or not
+    if (!result.success) {
+      this.logger.error(`Sync airgradient location error: ${result.error}`);
+      return;
+    }
 
-    // map location data for upsert function
-    const locationOwnerInput: UpsertLocationOwnerInput[] = data.map(raw => ({
-      ownerReferenceId: raw.placeId,
-      ownerName: raw.publicContributorName,
-      ownerUrl: raw.publicPlaceUrl,
-      locationReferenceId: raw.locationId,
-      locationName: raw.publicLocationName,
-      sensorType: SensorType.SMALL_SENSOR,
-      timezone: raw.timezone,
-      coordinateLatitude: raw.latitude,
-      coordinateLongitude: raw.longitude,
-      licenses: [AG_DEFAULT_LICENSE],
-      provider: 'AirGradient',
-    }));
+    if (result.count == 0 || result.data == null) {
+      this.logger.error('Sync airgradient location error: no data available');
+      return;
+    }
+
+    this.logger.log(`Sync AirGradient locations with total public data: ${result.count}`);
 
     // NOTE: optimization needed to upsert in chunk?
-    await this.tasksRepository.upsertLocationsAndOwners('AirGradient', locationOwnerInput);
+    await this.tasksRepository.upsertLocationsAndOwners(
+      'AirGradient',
+      result.data as UpsertLocationOwnerInput[],
+    );
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
