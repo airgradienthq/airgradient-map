@@ -1,5 +1,3 @@
-const https = require('https');
-
 const URL = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
 const AG_DEFAULT_LICENSE = 'CC BY-SA 4.0';
 

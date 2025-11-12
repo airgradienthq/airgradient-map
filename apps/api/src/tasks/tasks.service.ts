@@ -114,19 +114,40 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async runSyncOpenAQLocations() {
-    this.logger.debug('Run job sync OpenAQ locations');
-    const providersId = OPENAQ_PROVIDERS.map(p => p.id);
-
     const before = Date.now();
+    this.logger.log('Run job sync OpenAQ locations');
 
-    // TODO: Improve this to run asynchronously for each providers, then wait after loop
-    for (let i = 0; i < providersId.length; i++) {
-      await this.performSyncOpenAQLocations(providersId[i]);
+    const filePath = './airgradient-map/apps/api/data-source/public/openaq.js';
+    const plugin = await import(filePath);
+    const result = await plugin.location(this.openAQApiKey);
+
+    // Check if success or not
+    if (!result.success) {
+      this.logger.error(`Sync OpenAQ location error: ${result.error}`);
+      return;
+    }
+
+    if (result.count == 0 || result.data == null) {
+      this.logger.error('Sync OpenAQ location error: no data available');
+      return;
+    }
+
+    this.logger.debug(`Total OpenAQ data: ${result.count}`);
+    this.logger.debug(result.data[0]);
+
+    // TODO: Temporarily put here batch process here, should be on repository.upsertLocationsAndOwners()
+    const batchSize = 1000;
+    for (let i = 0; i < result.count; i += batchSize) {
+      this.logger.debug(`Inserting from idx ${i}`);
+      await this.tasksRepository.upsertLocationsAndOwners(
+        'OpenAQ',
+        result.data.slice(i, i + batchSize) as UpsertLocationOwnerInput[],
+      );
     }
 
     const after = Date.now();
     const duration = after - before;
-    this.logger.debug(`Sync OpenAQ locations time spend: ${duration}ms`);
+    this.logger.log(`Sync OpenAQ locations time spend: ${duration}ms`);
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -221,53 +242,5 @@ export class TasksService {
     this.logger.debug(
       `runGetOpenAQLatest() time spend: ${duration}ms with total page request: ${pageCounter} and total data point: ${totalData}`,
     );
-  }
-
-  async performSyncOpenAQLocations(providerId: number) {
-    let finish = false;
-    let pageCounter = 1;
-    let total = 0;
-
-    while (finish === false) {
-      // Retrieve every 1000 data maximum, so it will sync to database every 500 row
-      const url = `https://api.openaq.org/v3/locations?monitor=true&page=${pageCounter}&limit=500&providers_id=${providerId}`;
-      const data = await this.http.fetch<OpenAQApiLocationsResponse>(url, {
-        'x-api-key': this.openAQApiKey,
-      });
-      // TODO: response error check
-
-      // map location data for upsert function
-      const locationOwnerInput: UpsertLocationOwnerInput[] = data.results.map(raw => ({
-        ownerReferenceId: raw.owner.id,
-        ownerName: raw.owner.name,
-        locationReferenceId: raw.id,
-        locationName: raw.name,
-        sensorType: SensorType.REFERENCE, // NOTE: Hardcoded
-        timezone: raw.timezone,
-        coordinateLatitude: raw.coordinates.latitude,
-        coordinateLongitude: raw.coordinates.longitude,
-        licenses: (raw.licenses ?? []).map(license => license.name), // Check if its null first
-        provider: raw.provider.name,
-      }));
-
-      await this.tasksRepository.upsertLocationsAndOwners('OpenAQ', locationOwnerInput);
-
-      // Sometimes `found` field is a string
-      const t = typeof data.meta.found;
-      if (t === 'number') {
-        let foundInt = Number(data.meta.found);
-        total = total + Number(data.meta.found);
-
-        // Check if this batch is the last batch
-        if (foundInt <= data.meta.limit) {
-          finish = true;
-          this.logger.debug(`ProviderId ${providerId} loop finish with total page ${pageCounter}`);
-        }
-      } else {
-        total = total + data.meta.limit;
-      }
-
-      pageCounter = pageCounter + 1;
-    }
   }
 }
