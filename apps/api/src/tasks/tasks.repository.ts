@@ -3,12 +3,10 @@ import { Logger } from '@nestjs/common';
 
 import DatabaseService from 'src/database/database.service';
 import { AirgradientModel } from './model/airgradient.model';
-import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
 import { OpenAQLatestData } from '../types/tasks/openaq.types';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
-import { DataSource } from 'src/types/shared/data-source';
 import { OutlierService } from 'src/outlier/outlier.service';
-import { InsertLatestMeasuresInput } from 'src/types/tasks/latest-measures';
+import { DataSource, InsertLatestMeasuresInput, UpsertLocationOwnerInput } from 'src/types';
 
 @Injectable()
 export class TasksRepository {

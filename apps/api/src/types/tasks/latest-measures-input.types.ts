@@ -10,8 +10,3 @@ export interface InsertLatestMeasuresInput {
   no2?: number;
   measuredAt: string;
 }
-
-export interface LatestMeasures {
-  locationIdAvailable: boolean;
-  insertLatestMeasuresInput: InsertLatestMeasuresInput[];
-}
