@@ -37,31 +37,32 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async runSyncAirgradientLocations() {
-    // TODO: Add try catch here
-    // load file and run
-    const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
-    const plugin = (await import(filePath)) as PluginDataSource;
-    const result = await plugin.location();
+    try {
+      // load file and run
+      const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
+      const plugin = (await import(filePath)) as PluginDataSource;
+      const result = await plugin.location();
 
-    // Check if success or not
-    if (!result.success) {
-      this.logger.error(`Sync airgradient location error: ${result.error}`);
-      return;
+      // Validate results
+      if (!result.success) {
+        this.logger.error(`Sync AirGradient location error: ${result.error}`);
+        return;
+      }
+      if (result.count == 0) {
+        this.logger.error('Sync AirGradient location error: no data available');
+        return;
+      }
+      this.logger.debug(result.data[0]);
+
+      await this.tasksRepository.upsertLocationsAndOwners(
+        DataSource.AIRGRADIENT,
+        result.data as UpsertLocationOwnerInput[],
+      );
+
+      this.logger.log(`Sync AirGradient locations with total public data: ${result.count}`);
+    } catch (err) {
+      this.logger.error('Sync AirGradient locations job failed: ', err);
     }
-
-    if (result.count == 0) {
-      this.logger.error('Sync airgradient location error: no data available');
-      return;
-    }
-
-    this.logger.log(`Sync AirGradient locations with total public data: ${result.count}`);
-    this.logger.debug(result.data[0]);
-
-    // NOTE: optimization needed to upsert in chunk?
-    await this.tasksRepository.upsertLocationsAndOwners(
-      DataSource.AIRGRADIENT,
-      result.data as UpsertLocationOwnerInput[],
-    );
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -104,9 +105,11 @@ export class TasksService {
         result.metadata.locationIdAvailable,
         result.data as InsertLatestMeasuresInput[],
       );
+    } catch (err) {
+      this.logger.error('Get AirGradient latest job failed: ', err);
     } finally {
       this.isAirgradientLatestJobRunning = false;
-      this.logger.debug(
+      this.logger.log(
         `getAirgradientLatest() time spend: ${Date.now() - before}ms with total data point: ${totalData}`,
       );
     }
@@ -140,33 +143,37 @@ export class TasksService {
     const before = Date.now();
     this.logger.log('Run job sync OpenAQ locations');
 
-    const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
-    const plugin = (await import(filePath)) as PluginDataSource;
-    const result = await plugin.location({
-      apiKey: this.openAQApiKey,
-    });
+    try {
+      const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
+      const plugin = (await import(filePath)) as PluginDataSource;
+      const result = await plugin.location({
+        apiKey: this.openAQApiKey,
+      });
 
-    // Check if success or not
-    if (!result.success) {
-      this.logger.error(`Sync OpenAQ location error: ${result.error}`);
-      return;
+      // Check if success or not
+      if (!result.success) {
+        this.logger.error(`Sync OpenAQ location error: ${result.error}`);
+        return;
+      }
+
+      if (result.count == 0) {
+        this.logger.error('Sync OpenAQ location error: no data available');
+        return;
+      }
+
+      this.logger.debug(`Total OpenAQ locations to insert: ${result.count}`);
+      this.logger.debug(result.data[0]);
+      await this.tasksRepository.upsertLocationsAndOwners(
+        DataSource.OPENAQ,
+        result.data as UpsertLocationOwnerInput[],
+      );
+
+      const after = Date.now();
+      const duration = after - before;
+      this.logger.log(`Sync OpenAQ locations time spend: ${duration}ms`);
+    } catch (err) {
+      this.logger.error('Sync OpenAQ locations job failed:', err);
     }
-
-    if (result.count == 0) {
-      this.logger.error('Sync OpenAQ location error: no data available');
-      return;
-    }
-
-    this.logger.debug(`Total OpenAQ locations to insert: ${result.count}`);
-    this.logger.debug(result.data[0]);
-    await this.tasksRepository.upsertLocationsAndOwners(
-      DataSource.OPENAQ,
-      result.data as UpsertLocationOwnerInput[],
-    );
-
-    const after = Date.now();
-    const duration = after - before;
-    this.logger.log(`Sync OpenAQ locations time spend: ${duration}ms`);
   }
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -174,48 +181,52 @@ export class TasksService {
     this.logger.log('Run job retrieve OpenAQ latest value');
     const before = Date.now();
 
-    const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
-    const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
+    try {
+      const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
+      const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
 
-    if (referenceIdToIdMapLength === 0) {
-      // NOTE: Right now ignore until runSyncOpenAQLocations() already triggered
-      this.logger.warn('No openaq locationId found');
-      return;
+      if (referenceIdToIdMapLength === 0) {
+        // NOTE: Right now ignore until runSyncOpenAQLocations() already triggered
+        this.logger.warn('No openaq locationId found');
+        return;
+      }
+
+      this.logger.debug(
+        `Start request to openaq parameters endpoint with interest total locationId count ${referenceIdToIdMapLength}`,
+      );
+
+      const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
+      const plugin = (await import(filePath)) as PluginDataSource;
+      const result = await plugin.latest({
+        apiKey: this.openAQApiKey,
+        referenceIdToIdMap: referenceIdToIdMap,
+        referenceIdToIdMapLength: referenceIdToIdMapLength,
+      });
+
+      // Check if success or not
+      if (!result.success) {
+        this.logger.error(`Get OpenAQ latest error: ${result.error}`);
+        return;
+      }
+
+      if (result.count == 0) {
+        this.logger.error('Get OpenAQ latest error: no data available');
+        return;
+      }
+
+      await this.tasksRepository.insertLatestMeasures(
+        DataSource.OPENAQ,
+        result.metadata.locationIdAvailable,
+        result.data as InsertLatestMeasuresInput[],
+      );
+
+      const after = Date.now();
+      const duration = after - before;
+      this.logger.log(
+        `runGetOpenAQLatest() time spend: ${duration}ms and total data point: ${result.count}`,
+      );
+    } catch (err) {
+      this.logger.error('Get OpenAQ latest job failed:', err);
     }
-
-    this.logger.debug(
-      `Start request to openaq parameters endpoint with interest total locationId count ${referenceIdToIdMapLength}`,
-    );
-
-    const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
-    const plugin = (await import(filePath)) as PluginDataSource;
-    const result = await plugin.latest({
-      apiKey: this.openAQApiKey,
-      referenceIdToIdMap: referenceIdToIdMap,
-      referenceIdToIdMapLength: referenceIdToIdMapLength,
-    });
-
-    // Check if success or not
-    if (!result.success) {
-      this.logger.error(`Get OpenAQ latest error: ${result.error}`);
-      return;
-    }
-
-    if (result.count == 0) {
-      this.logger.error('Get OpenAQ latest error: no data available');
-      return;
-    }
-
-    await this.tasksRepository.insertLatestMeasures(
-      DataSource.OPENAQ,
-      result.metadata.locationIdAvailable,
-      result.data as InsertLatestMeasuresInput[],
-    );
-
-    const after = Date.now();
-    const duration = after - before;
-    this.logger.debug(
-      `runGetOpenAQLatest() time spend: ${duration}ms and total data point: ${result.count}`,
-    );
   }
 }
