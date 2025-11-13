@@ -15,11 +15,29 @@ export class TasksRepository {
   ) {}
 
   private readonly logger = new Logger(TasksRepository.name);
+  private readonly batchSize = 1000;
 
   async upsertLocationsAndOwners(
     dataSource: string,
     locationOwnerInput: UpsertLocationOwnerInput[],
-  ) {
+  ): Promise<void> {
+    for (let i = 0; i < locationOwnerInput.length; i += this.batchSize) {
+      this.logger.debug(`Inserting location owner batch idx ${i}`);
+      await this._upsertLocationsAndOwners(
+        dataSource,
+        locationOwnerInput.slice(i, i + this.batchSize),
+      );
+      // Small delay between batches to reduce contention
+      if (i + this.batchSize < locationOwnerInput.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }
+
+  private async _upsertLocationsAndOwners(
+    dataSource: string,
+    locationOwnerInput: UpsertLocationOwnerInput[],
+  ): Promise<void> {
     try {
       // Creating columnar arrays
       // WHY: PostgreSQL's unnest() function works with arrays, not individual records
@@ -218,13 +236,33 @@ export class TasksRepository {
   async insertLatestMeasures(
     dataSource: string,
     locationIdAvailable: boolean,
-    data: InsertLatestMeasuresInput[],
+    latestMeasuresInput: InsertLatestMeasuresInput[],
+  ): Promise<void> {
+    for (let i = 0; i < latestMeasuresInput.length; i += this.batchSize) {
+      this.logger.debug(`Inserting latest measures batch idx ${i}`);
+      await this._insertLatestMeasures(
+        dataSource,
+        locationIdAvailable,
+        latestMeasuresInput.slice(i, i + this.batchSize),
+      );
+
+      // Small delay between batches to reduce contention
+      if (i + this.batchSize < latestMeasuresInput.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }
+
+  private async _insertLatestMeasures(
+    dataSource: string,
+    locationIdAvailable: boolean,
+    latestMeasuresInput: InsertLatestMeasuresInput[],
   ): Promise<void> {
     try {
       // Map into values query while set if value outlier or not
       const latestValues = (
         await Promise.all(
-          data.map(async dataPoint => {
+          latestMeasuresInput.map(async dataPoint => {
             const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
               dataPoint;
             const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(

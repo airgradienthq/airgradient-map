@@ -99,7 +99,7 @@ export class TasksService {
       totalData = result.count;
       this.logger.debug(result.data[0]);
 
-      this.tasksRepository.insertLatestMeasures(
+      await this.tasksRepository.insertLatestMeasures(
         DataSource.AIRGRADIENT,
         result.metadata.locationIdAvailable,
         result.data as InsertLatestMeasuresInput[],
@@ -157,18 +157,12 @@ export class TasksService {
       return;
     }
 
-    this.logger.debug(`Total OpenAQ data: ${result.count}`);
+    this.logger.debug(`Total OpenAQ locations to insert: ${result.count}`);
     this.logger.debug(result.data[0]);
-
-    // TODO: Temporarily put here batch process here, should be on repository.upsertLocationsAndOwners()
-    const batchSize = 1000;
-    for (let i = 0; i < result.count; i += batchSize) {
-      this.logger.debug(`Inserting from idx ${i}`);
-      await this.tasksRepository.upsertLocationsAndOwners(
-        DataSource.OPENAQ,
-        result.data.slice(i, i + batchSize) as UpsertLocationOwnerInput[],
-      );
-    }
+    await this.tasksRepository.upsertLocationsAndOwners(
+      DataSource.OPENAQ,
+      result.data as UpsertLocationOwnerInput[],
+    );
 
     const after = Date.now();
     const duration = after - before;
@@ -190,7 +184,7 @@ export class TasksService {
     }
 
     this.logger.debug(
-      `Start request to openaq parameters endpoint with interest total locationId ${referenceIdToIdMapLength}`,
+      `Start request to openaq parameters endpoint with interest total locationId count ${referenceIdToIdMapLength}`,
     );
 
     const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
@@ -212,9 +206,7 @@ export class TasksService {
       return;
     }
 
-    this.logger.debug(result.data[0]);
-
-    this.tasksRepository.insertLatestMeasures(
+    await this.tasksRepository.insertLatestMeasures(
       DataSource.OPENAQ,
       result.metadata.locationIdAvailable,
       result.data as InsertLatestMeasuresInput[],
