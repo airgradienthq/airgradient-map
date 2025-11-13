@@ -14,6 +14,7 @@ import { AG_DEFAULT_LICENSE } from 'src/constants/ag-default-license';
 import { OLD_AG_BASE_API_URL } from 'src/constants/old-ag-base-api-url';
 import { NotificationsService } from 'src/notifications/notifications.service';
 import { DataSource } from 'src/types/shared/data-source';
+import { InsertLatestMeasuresInput } from 'src/types/tasks/latest-measures';
 
 @Injectable()
 export class TasksService {
@@ -38,6 +39,7 @@ export class TasksService {
 
   @Cron(CronExpression.EVERY_HOUR)
   async runSyncAirgradientLocations() {
+    // TODO: Add try catch here
     // load file and run
     const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
     const plugin = await import(filePath);
@@ -78,14 +80,29 @@ export class TasksService {
     let totalData: number;
 
     try {
-      // Fetch data from the airgradient external API
-      const url = OLD_AG_BASE_API_URL;
-      const data = await this.http.fetch<AirgradientModel[]>(url, {
-        Origin: 'https://airgradient.com',
-      });
-      totalData = data.length;
-      this.logger.log(`Sync AirGradient latest measures total public data: ${totalData}`);
-      await this.tasksRepository.insertNewAirgradientLatest(data);
+      // load file and run
+      const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
+      const plugin = await import(filePath);
+      const result = await plugin.latest();
+      this.logger.debug(`Finish do latest in ${Date.now() - before}`);
+
+      // Check if success or not
+      if (!result.success) {
+        this.logger.error(`Get airgradient latest error: ${result.error}`);
+        return;
+      }
+
+      if (result.count == 0 || result.data == null) {
+        this.logger.error('Get airgradient latest error: no data available');
+        return;
+      }
+
+      totalData = result.count;
+      this.tasksRepository.insertLatestMeasures(
+        DataSource.AIRGRADIENT,
+        result.metadata.locationIdAvailable,
+        result.data,
+      );
     } finally {
       this.isAirgradientLatestJobRunning = false;
       this.logger.debug(

@@ -2,12 +2,56 @@ const URL = 'https://api.airgradient.com/public/api/v1/world/locations/measures/
 const AG_DEFAULT_LICENSE = 'CC BY-SA 4.0';
 
 async function latest() {
-  return {
-    success: false,
-    count: 0,
-    data: null,
-    error: '',
-  };
+  try {
+    const response = await fetch(URL, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: 'https://airgradient.com',
+      },
+    });
+    if (!response.ok) {
+      return {
+        success: false,
+        count: 0,
+        data: [],
+        error: `${response.status}: ${response.statusText}`,
+      };
+    }
+
+    // Map data to expected structure
+    const data = await response.json();
+    const latestMeasuresInput = data.map(raw => ({
+      locationReferenceId: raw.locationId,
+      pm25: raw.pm02,
+      pm10: raw.pm10,
+      atmp: raw.atmp,
+      rhum: raw.rhum,
+      rco2: raw.rco2,
+      o3: null,
+      no2: null,
+      measuredAt: raw.timestamp,
+    }));
+
+    const metadata = {
+      locationIdAvailable: false,
+    };
+
+    return {
+      success: true,
+      count: latestMeasuresInput.length ? latestMeasuresInput.length : 0,
+      data: latestMeasuresInput,
+      metadata: metadata,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      count: 0,
+      data: null,
+      error: err.message || String(err),
+    };
+  }
 }
 
 async function location() {
