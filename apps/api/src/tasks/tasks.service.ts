@@ -24,7 +24,6 @@ export class TasksService {
 
   constructor(
     private readonly tasksRepository: TasksRepository,
-    private readonly http: TasksHttp,
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
   ) {
@@ -180,7 +179,6 @@ export class TasksService {
   async runGetOpenAQLatest() {
     this.logger.log('Run job retrieve OpenAQ latest value');
     const before = Date.now();
-    let totalData: number = 0;
 
     const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
     const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
@@ -191,82 +189,41 @@ export class TasksService {
       return;
     }
 
-    let maxPages = -1;
-    let pageCounter = 1;
-    let matchCounter = 0;
-
     this.logger.debug(
       `Start request to openaq parameters endpoint with interest total locationId ${referenceIdToIdMapLength}`,
     );
 
-    while (matchCounter < referenceIdToIdMapLength) {
-      // Parameters '2' is pm2.5 parameter id
-      const url = `https://api.openaq.org/v3/parameters/2/latest?limit=1000&page=${pageCounter}`;
-      let data: OpenAQApiParametersResponse | null;
-      try {
-        data = await this.http.fetch<OpenAQApiParametersResponse>(url, {
-          'x-api-key': this.openAQApiKey,
-        });
-      } catch (error) {
-        if (error instanceof HttpException && error.getStatus() === 404) {
-          this.logger.debug('Requested page already empty for parameters endpoint');
-          break;
-        } else {
-          // TODO: What needs to be done here? Now just stop
-          break;
-        }
-      }
+    const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
+    const plugin = (await import(filePath)) as PluginDataSource;
+    const result = await plugin.latest({
+      apiKey: this.openAQApiKey,
+      referenceIdToIdMap: referenceIdToIdMap,
+      referenceIdToIdMapLength: referenceIdToIdMapLength,
+    });
 
-      // Check each parameters locationId if it match to one of the already saved openaq location
-      let batches = [];
-
-      for (let i = 0; i < data.results.length; i++) {
-        const locationReferenceId = data.results[i].locationsId.toString();
-
-        if (locationReferenceId in referenceIdToIdMap) {
-          batches.push({
-            locationReferenceId: Number(locationReferenceId),
-            locationId: referenceIdToIdMap[locationReferenceId],
-            pm25: data.results[i].value,
-            measuredAt: data.results[i].datetime.utc,
-          });
-          matchCounter = matchCounter + 1;
-        }
-      }
-
-      //this.logger.debug(batchValues);
-      this.logger.debug(matchCounter);
-      if (batches.length > 0) {
-        // Only insert if batch more than one
-        totalData += batches.length;
-        await this.tasksRepository.insertNewOpenAQLatest(batches);
-      }
-
-      if (maxPages === -1) {
-        const found = Number(data.meta.found);
-        const limit = Number(data.meta.limit);
-        if (!isNaN(found) && !isNaN(limit) && limit > 0) {
-          maxPages = Math.ceil(found / limit);
-        }
-      }
-      if (pageCounter == maxPages) {
-        this.logger.debug('Reached the last page of OpenAQ latest data.');
-        break;
-      }
-
-      pageCounter = pageCounter + 1;
+    // Check if success or not
+    if (!result.success) {
+      this.logger.error(`Get OpenAQ latest error: ${result.error}`);
+      return;
     }
 
-    if (matchCounter < referenceIdToIdMapLength) {
-      this.logger.warn(
-        `Total OpenAQ locations that not match ${referenceIdToIdMapLength - matchCounter}`,
-      );
+    if (result.count == 0) {
+      this.logger.error('Get OpenAQ latest error: no data available');
+      return;
     }
+
+    this.logger.debug(result.data[0]);
+
+    this.tasksRepository.insertLatestMeasures(
+      DataSource.OPENAQ,
+      result.metadata.locationIdAvailable,
+      result.data as InsertLatestMeasuresInput[],
+    );
 
     const after = Date.now();
     const duration = after - before;
     this.logger.debug(
-      `runGetOpenAQLatest() time spend: ${duration}ms with total page request: ${pageCounter} and total data point: ${totalData}`,
+      `runGetOpenAQLatest() time spend: ${duration}ms and total data point: ${result.count}`,
     );
   }
 }
