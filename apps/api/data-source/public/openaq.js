@@ -88,12 +88,13 @@ async function location(apiKey) {
       success: true,
       count: locationOwnerInput.length,
       data: locationOwnerInput,
+      error: null,
     };
   } catch (err) {
     return {
       success: false,
       count: 0,
-      data: null,
+      data: [],
       error: err.message || String(err),
     };
   }

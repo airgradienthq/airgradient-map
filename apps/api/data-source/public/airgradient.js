@@ -48,7 +48,7 @@ async function latest() {
     return {
       success: false,
       count: 0,
-      data: null,
+      data: [],
       error: err.message || String(err),
     };
   }
@@ -98,7 +98,7 @@ async function location() {
     return {
       success: false,
       count: 0,
-      data: null,
+      data: [],
       error: err.message || String(err),
     };
   }
