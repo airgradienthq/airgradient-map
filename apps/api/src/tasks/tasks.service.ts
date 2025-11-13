@@ -1,7 +1,7 @@
+import * as path from 'path';
 import { HttpException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
-import * as path from 'path';
 
 import { TasksRepository } from './tasks.repository';
 import { TasksHttp } from './tasks.http';
@@ -182,7 +182,7 @@ export class TasksService {
     const before = Date.now();
     let totalData: number = 0;
 
-    const referenceIdToIdMap = await this.tasksRepository.retrieveOpenAQLocationId();
+    const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
     const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
 
     if (referenceIdToIdMapLength === 0) {
