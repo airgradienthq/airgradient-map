@@ -215,34 +215,6 @@ export class TasksRepository {
     }
   }
 
-  async insertNewOpenAQLatest(latests: OpenAQLatestData[]): Promise<void> {
-    try {
-      const latestValues = (
-        await Promise.all(
-          latests.map(async ({ locationReferenceId, locationId, pm25, measuredAt }) => {
-            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(
-              locationReferenceId,
-              pm25,
-              measuredAt,
-            );
-            return `(${locationId},${pm25},'${measuredAt}', ${isPm25Outlier})`;
-          }),
-        )
-      ).join(',');
-
-      const query = `
-        INSERT INTO public.measurement (location_id, pm25, measured_at, is_pm25_outlier) 
-            VALUES ${latestValues} 
-        ON CONFLICT (location_id, measured_at)
-        DO NOTHING;
-      `;
-
-      await this.databaseService.runQuery(query);
-    } catch (error) {
-      this.logger.error(error);
-    }
-  }
-
   async insertLatestMeasures(
     dataSource: string,
     locationIdAvailable: boolean,
