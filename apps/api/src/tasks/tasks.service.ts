@@ -41,7 +41,7 @@ export class TasksService {
     // TODO: Add try catch here
     // load file and run
     const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
-    const plugin = await import(filePath);
+    const plugin = (await import(filePath)) as PluginDataSource;
     const result = await plugin.location();
 
     // Check if success or not
@@ -50,12 +50,13 @@ export class TasksService {
       return;
     }
 
-    if (result.count == 0 || result.data == null) {
+    if (result.count == 0) {
       this.logger.error('Sync airgradient location error: no data available');
       return;
     }
 
     this.logger.log(`Sync AirGradient locations with total public data: ${result.count}`);
+    this.logger.debug(result.data[0]);
 
     // NOTE: optimization needed to upsert in chunk?
     await this.tasksRepository.upsertLocationsAndOwners(
@@ -81,9 +82,9 @@ export class TasksService {
     try {
       // load file and run
       const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
-      const plugin = await import(filePath);
+      const plugin = (await import(filePath)) as PluginDataSource;
       const result = await plugin.latest();
-      this.logger.debug(`Finish do latest in ${Date.now() - before}`);
+      this.logger.debug(`Finish do latest plugin in ${Date.now() - before}`);
 
       // Check if success or not
       if (!result.success) {
@@ -91,16 +92,18 @@ export class TasksService {
         return;
       }
 
-      if (result.count == 0 || result.data == null) {
+      if (result.count == 0) {
         this.logger.error('Get airgradient latest error: no data available');
         return;
       }
 
       totalData = result.count;
+      this.logger.debug(result.data[0]);
+
       this.tasksRepository.insertLatestMeasures(
         DataSource.AIRGRADIENT,
         result.metadata.locationIdAvailable,
-        result.data,
+        result.data as InsertLatestMeasuresInput[],
       );
     } finally {
       this.isAirgradientLatestJobRunning = false;
@@ -139,8 +142,10 @@ export class TasksService {
     this.logger.log('Run job sync OpenAQ locations');
 
     const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
-    const plugin = await import(filePath);
-    const result = await plugin.location(this.openAQApiKey);
+    const plugin = (await import(filePath)) as PluginDataSource;
+    const result = await plugin.location({
+      apiKey: this.openAQApiKey,
+    });
 
     // Check if success or not
     if (!result.success) {
@@ -148,7 +153,7 @@ export class TasksService {
       return;
     }
 
-    if (result.count == 0 || result.data == null) {
+    if (result.count == 0) {
       this.logger.error('Sync OpenAQ location error: no data available');
       return;
     }

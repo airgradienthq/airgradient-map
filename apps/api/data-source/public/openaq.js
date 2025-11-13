@@ -13,7 +13,7 @@ const OPENAQ_PROVIDERS = [
   { sourceName: 'Taiwan', id: 279 },
 ];
 
-async function latest() {
+async function latest(args) {
   return {
     success: false,
     count: 0,
@@ -22,7 +22,7 @@ async function latest() {
   };
 }
 
-async function location(apiKey) {
+async function location(args) {
   try {
     const locationOwnerInput = [];
     for (let i = 0; i < OPENAQ_PROVIDERS.length; i++) {
@@ -40,7 +40,7 @@ async function location(apiKey) {
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
-            'x-api-key': apiKey,
+            'x-api-key': args.apiKey,
           },
         });
         if (!response.ok) {

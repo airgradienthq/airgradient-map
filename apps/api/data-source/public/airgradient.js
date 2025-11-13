@@ -1,7 +1,7 @@
 const URL = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
 const AG_DEFAULT_LICENSE = 'CC BY-SA 4.0';
 
-async function latest() {
+async function latest(args) {
   try {
     const response = await fetch(URL, {
       method: 'GET',
@@ -54,7 +54,7 @@ async function latest() {
   }
 }
 
-async function location() {
+async function location(args) {
   try {
     const response = await fetch(URL, {
       method: 'GET',
