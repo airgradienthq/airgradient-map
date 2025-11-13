@@ -5,16 +5,15 @@ import * as path from 'path';
 
 import { TasksRepository } from './tasks.repository';
 import { TasksHttp } from './tasks.http';
-import { AirgradientModel } from './model/airgradient.model';
-import { OpenAQApiLocationsResponse, OpenAQApiParametersResponse } from './model/openaq.model';
-import { OPENAQ_PROVIDERS } from 'src/constants/openaq-providers';
-import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
-import { SensorType } from 'src/types/shared/sensor-type';
-import { AG_DEFAULT_LICENSE } from 'src/constants/ag-default-license';
-import { OLD_AG_BASE_API_URL } from 'src/constants/old-ag-base-api-url';
+import { OpenAQApiParametersResponse } from './model/openaq.model';
 import { NotificationsService } from 'src/notifications/notifications.service';
-import { DataSource } from 'src/types/shared/data-source';
-import { InsertLatestMeasuresInput } from 'src/types/tasks/latest-measures';
+
+import {
+  DataSource,
+  UpsertLocationOwnerInput,
+  PluginDataSource,
+  InsertLatestMeasuresInput,
+} from 'src/types';
 
 @Injectable()
 export class TasksService {

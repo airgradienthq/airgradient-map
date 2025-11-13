@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
 import DatabaseService from 'src/database/database.service';
-import { AirgradientModel } from './model/airgradient.model';
 import { OpenAQLatestData } from '../types/tasks/openaq.types';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
 import { OutlierService } from 'src/outlier/outlier.service';
