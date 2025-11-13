@@ -1,7 +1,24 @@
+/**
+ * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSource} PluginDataSource
+ * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSourceOutput} PluginDataSourceOutput
+ */
+
 const URL = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
 const AG_DEFAULT_LICENSE = 'CC BY-SA 4.0';
 
+/**
+ * @type {PluginDataSource['latest']}
+ */
 async function latest(args) {
+  /** @type {PluginDataSourceOutput} */
+  let output = {
+    success: false,
+    count: 0,
+    data: [],
+    metadata: null,
+    error: null,
+  };
+
   try {
     const response = await fetch(URL, {
       method: 'GET',
@@ -11,12 +28,8 @@ async function latest(args) {
       },
     });
     if (!response.ok) {
-      return {
-        success: false,
-        count: 0,
-        data: [],
-        error: `${response.status}: ${response.statusText}`,
-      };
+      output.error = `${response.status}: ${response.statusText}`;
+      return output;
     }
 
     // Map data to expected structure
@@ -33,28 +46,32 @@ async function latest(args) {
       measuredAt: raw.timestamp,
     }));
 
-    const metadata = {
+    output.success = true;
+    output.count = latestMeasuresInput.length ? latestMeasuresInput.length : 0;
+    output.data = latestMeasuresInput;
+    output.metadata = {
       locationIdAvailable: false,
     };
-
-    return {
-      success: true,
-      count: latestMeasuresInput.length ? latestMeasuresInput.length : 0,
-      data: latestMeasuresInput,
-      metadata: metadata,
-      error: null,
-    };
+    return output;
   } catch (err) {
-    return {
-      success: false,
-      count: 0,
-      data: [],
-      error: err.message || String(err),
-    };
+    output.error = err.message || String(err);
+    return output;
   }
 }
 
+/**
+ * @type {PluginDataSource['location']}
+ */
 async function location(args) {
+  /** @type {PluginDataSourceOutput} */
+  let output = {
+    success: false,
+    count: 0,
+    data: [],
+    metadata: null,
+    error: null,
+  };
+
   try {
     const response = await fetch(URL, {
       method: 'GET',
@@ -64,12 +81,8 @@ async function location(args) {
       },
     });
     if (!response.ok) {
-      return {
-        success: false,
-        count: 0,
-        data: [],
-        error: `${response.status}: ${response.statusText}`,
-      };
+      output.error = `${response.status}: ${response.statusText}`;
+      return output;
     }
 
     // Map data to expected structure
@@ -88,19 +101,13 @@ async function location(args) {
       provider: 'AirGradient',
     }));
 
-    return {
-      success: true,
-      count: locationOwnerInput.length ? locationOwnerInput.length : 0,
-      data: locationOwnerInput,
-      error: null,
-    };
+    output.success = true;
+    output.count = locationOwnerInput.length ? locationOwnerInput.length : 0;
+    output.data = locationOwnerInput;
+    return output;
   } catch (err) {
-    return {
-      success: false,
-      count: 0,
-      data: [],
-      error: err.message || String(err),
-    };
+    output.error = err.message || String(err);
+    return output;
   }
 }
 

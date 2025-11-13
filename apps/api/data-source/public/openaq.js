@@ -1,3 +1,8 @@
+/**
+ * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSource} PluginDataSource
+ * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSourceOutput} PluginDataSourceOutput
+ */
+
 const OPENAQ_PROVIDERS = [
   { sourceName: 'air4thai', id: 118 },
   { sourceName: 'airnow', id: 119 },
@@ -13,7 +18,19 @@ const OPENAQ_PROVIDERS = [
   { sourceName: 'Taiwan', id: 279 },
 ];
 
+/**
+ * @type {PluginDataSource['latest']}
+ */
 async function latest(args) {
+  /** @type {PluginDataSourceOutput} */
+  let output = {
+    success: false,
+    count: 0,
+    data: [],
+    metadata: null,
+    error: null,
+  };
+
   try {
     const referenceIdToIdMap = args.referenceIdToIdMap;
     const referenceIdToIdMapLength = args.referenceIdToIdMapLength;
@@ -88,29 +105,34 @@ async function latest(args) {
       );
     }
 
-    // Since actual locationId already available, then just re-use it for later
-    const metadata = {
+    // Return results
+    output.success = true;
+    output.count = latestMeasuresInput.length;
+    output.data = latestMeasuresInput;
+    output.metadata = {
+      // Since actual locationId already available, then just re-use it for later
       locationIdAvailable: true,
     };
-
-    return {
-      success: true,
-      count: latestMeasuresInput.length,
-      data: latestMeasuresInput,
-      metadata: metadata,
-      error: null,
-    };
+    return output;
   } catch (err) {
-    return {
-      success: false,
-      count: 0,
-      data: [],
-      error: err.message || String(err),
-    };
+    output.error = err.message || String(err);
+    return output;
   }
 }
 
+/**
+ * @type {PluginDataSource['location']}
+ */
 async function location(args) {
+  /** @type {PluginDataSourceOutput} */
+  let output = {
+    success: false,
+    count: 0,
+    data: [],
+    metadata: null,
+    error: null,
+  };
+
   try {
     const locationOwnerInput = [];
     for (let i = 0; i < OPENAQ_PROVIDERS.length; i++) {
@@ -172,19 +194,14 @@ async function location(args) {
       }
     }
 
-    return {
-      success: true,
-      count: locationOwnerInput.length,
-      data: locationOwnerInput,
-      error: null,
-    };
+    // Return results
+    output.success = true;
+    output.count = locationOwnerInput.length;
+    output.data = locationOwnerInput;
+    return output;
   } catch (err) {
-    return {
-      success: false,
-      count: 0,
-      data: [],
-      error: err.message || String(err),
-    };
+    output.error = err.message || String(err);
+    return output;
   }
 }
 
