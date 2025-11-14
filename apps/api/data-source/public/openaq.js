@@ -1,6 +1,7 @@
 /**
  * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSource} PluginDataSource
  * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSourceOutput} PluginDataSourceOutput
+ * @typedef {import('../../src/types/shared/sensor-type').SensorType} SensorType
  */
 
 // Note: Only the **reference** sensor types from provider such as EEA, Air4Thai, AirNow, etc., are synchronized
@@ -167,6 +168,7 @@ async function location(args) {
             ownerName: raw.owner.name,
             locationReferenceId: raw.id,
             locationName: raw.name,
+            /** @type {SensorType} */
             sensorType: 'Reference',
             timezone: raw.timezone,
             coordinateLatitude: raw.coordinates.latitude,

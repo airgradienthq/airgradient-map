@@ -1,6 +1,7 @@
 /**
  * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSource} PluginDataSource
  * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSourceOutput} PluginDataSourceOutput
+ * @typedef {import('../../src/types/shared/sensor-type').SensorType} SensorType
  */
 
 const URL = 'https://api.airgradient.com/public/api/v1/world/locations/measures/current';
@@ -93,6 +94,7 @@ async function location(args) {
       ownerUrl: raw.publicPlaceUrl,
       locationReferenceId: raw.locationId,
       locationName: raw.publicLocationName,
+      /** @type {SensorType} */
       sensorType: 'Small Sensor',
       timezone: raw.timezone,
       coordinateLatitude: raw.latitude,
