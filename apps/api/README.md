@@ -20,7 +20,7 @@ Since not all external platforms providing sensor data are publicly accessible, 
 
 Each plugin must export two async functions that return a standardized response object. The expected return format is defined in [plugin-data-source.types.ts](./src/types/tasks/plugin-data-source.types.ts):
 
-```
+```js
 async function latest() {
   let output = {
     success: false,
