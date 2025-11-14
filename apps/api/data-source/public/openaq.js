@@ -54,7 +54,7 @@ async function latest(args) {
         },
       });
       if (response.status == 404) {
-        console.log('Requested page already empty for parameters endpoint');
+        //console.log('Requested page already empty for parameters endpoint');
         break;
       }
       if (!response.ok) {
@@ -92,7 +92,7 @@ async function latest(args) {
         }
       }
       if (pageCounter == maxPages) {
-        console.log('Reached the last page of OpenAQ latest data.');
+        //console.log('Reached the last page of OpenAQ latest data.');
         break;
       }
 
@@ -100,9 +100,9 @@ async function latest(args) {
     }
 
     if (matchCounter < referenceIdToIdMapLength) {
-      console.log(
-        `Total OpenAQ locations that not match ${referenceIdToIdMapLength - matchCounter}`,
-      );
+      //console.log(
+      //  `Total OpenAQ locations that not match ${referenceIdToIdMapLength - matchCounter}`,
+      //);
     }
 
     // Return results
@@ -184,7 +184,7 @@ async function location(args) {
           // Check if this batch is the last batch
           if (foundInt <= data.meta.limit) {
             finish = true;
-            console.log(`ProviderId ${providerId} loop finish with total page ${pageCounter}`);
+            //console.log(`ProviderId ${providerId} loop finish with total page ${pageCounter}`);
           }
         } else {
           total = total + data.meta.limit;
