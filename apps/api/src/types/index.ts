@@ -16,7 +16,6 @@ export * from './measurement/measurement.types';
 export * from './measurement/cluster.types';
 
 // Task types
-export * from './tasks/openaq.types';
 export * from './tasks/location-owner-input.types';
 export * from './tasks/latest-measures-input.types';
 export * from './tasks/plugin-data-source.types';

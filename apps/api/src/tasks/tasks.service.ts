@@ -1,11 +1,9 @@
 import * as path from 'path';
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 
 import { TasksRepository } from './tasks.repository';
-import { TasksHttp } from './tasks.http';
-import { OpenAQApiParametersResponse } from './model/openaq.model';
 import { NotificationsService } from 'src/notifications/notifications.service';
 
 import {
