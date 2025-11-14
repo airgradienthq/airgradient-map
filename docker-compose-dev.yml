@@ -75,6 +75,7 @@ services:
     volumes:
       - ./apps/api/.env.development:/app/.env.development
       - ./apps/api/src:/app/src
+      - ./apps/api/data-source:/app/data-source
     command: npm run start:cron:dev
     depends_on:
       db-migrate:
