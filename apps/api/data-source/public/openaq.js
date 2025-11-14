@@ -3,6 +3,7 @@
  * @typedef {import('../../src/types/tasks/plugin-data-source.types').PluginDataSourceOutput} PluginDataSourceOutput
  */
 
+// Note: Only the **reference** sensor types from provider such as EEA, Air4Thai, AirNow, etc., are synchronized
 const OPENAQ_PROVIDERS = [
   { sourceName: 'air4thai', id: 118 },
   { sourceName: 'airnow', id: 119 },
