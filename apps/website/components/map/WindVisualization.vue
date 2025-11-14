@@ -5,15 +5,18 @@
 <script setup lang="ts">
   import { watch, onUnmounted, onMounted, ref, nextTick } from 'vue';
   import L from 'leaflet';
+  import { useRuntimeConfig } from 'nuxt/app';
+
   import { VELOCITY_COLOR_SCALE } from '~/constants/map/wind-layer';
+  import { transformToLeafletVelocityFormat } from '~/utils/wind-data-transformer';
 
   interface Props {
     map: L.Map | null;
     enabled: boolean;
-    windDataUrl: string;
   }
 
   const props = defineProps<Props>();
+  const config = useRuntimeConfig();
 
   const emit = defineEmits<{
     loadingChange: [loading: boolean];
@@ -92,17 +95,36 @@
   }
 
   async function loadWindData() {
+    console.log('loadWindData');
+    console.log('windData', windData);
+    console.log('props.map', props.map);
     if (windData) {
+      return;
+    }
+
+    if (!props.map) {
       return;
     }
 
     isLoadingWindData.value = true;
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      // Get map bounds
+      const bounds = props.map.getBounds();
+      const xmin = bounds.getWest();
+      const xmax = bounds.getEast();
+      const ymin = bounds.getSouth();
+      const ymax = bounds.getNorth();
 
-      const res = await fetch(`${props.windDataUrl}?t=${Date.now()}`, {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 50000); // 10 second timeout
+
+      const apiUrl = config.public.apiUrl as string;
+
+      const url = `${apiUrl}/wind-data/current?xmin=${xmin}&xmax=${xmax}&ymin=${ymin}&ymax=${ymax}`;
+      console.log('url', url);
+
+      const res = await fetch(url, {
         signal: controller.signal
       });
 
@@ -112,11 +134,53 @@
         throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
 
-      windData = await res.json();
+      const apiData = await res.json();
 
-      if (!windData || (!Array.isArray(windData) && !windData.features)) {
+      console.log('apiData', apiData);
+      if (!apiData || !apiData.header || !apiData.data) {
         throw new Error('Invalid wind data format');
       }
+
+      // Transform API format to leaflet-velocity format
+      windData = transformToLeafletVelocityFormat(apiData);
+      console.log('windData transformed:', {
+        uHeader: windData[0].header,
+        vHeader: windData[1].header,
+        uDataLength: windData[0].data.length,
+        vDataLength: windData[1].data.length,
+        firstUValues: windData[0].data.slice(0, 5),
+        firstVValues: windData[1].data.slice(0, 5)
+      });
+
+      // Validate transformed data structure matches what leaflet-velocity expects
+      if (!Array.isArray(windData) || windData.length !== 2) {
+        throw new Error(
+          `Invalid wind data: expected array of 2 components, got ${Array.isArray(windData) ? windData.length : typeof windData}`
+        );
+      }
+
+      if (!windData[0] || !windData[0].header || !windData[0].data) {
+        throw new Error('Invalid wind data: U-component missing header or data');
+      }
+
+      if (!windData[1] || !windData[1].header || !windData[1].data) {
+        throw new Error('Invalid wind data: V-component missing header or data');
+      }
+
+      if (!Array.isArray(windData[0].data) || !Array.isArray(windData[1].data)) {
+        throw new Error('Invalid wind data: data must be arrays');
+      }
+
+      console.log('Wind data validation passed:', {
+        uComponent: {
+          headerKeys: Object.keys(windData[0].header),
+          dataLength: windData[0].data.length
+        },
+        vComponent: {
+          headerKeys: Object.keys(windData[1].header),
+          dataLength: windData[1].data.length
+        }
+      });
     } catch (error) {
       console.error('Wind data load failed:', error);
       windData = null;
@@ -158,6 +222,17 @@
 
       if (!props.map || !props.enabled) {
         return;
+      }
+
+      // Final validation before passing to leaflet-velocity
+      if (!Array.isArray(windData) || windData.length !== 2) {
+        throw new Error(
+          `Wind data must be array of 2 components, got: ${Array.isArray(windData) ? windData.length : typeof windData}`
+        );
+      }
+
+      if (!windData[0] || !windData[0].data || !windData[1] || !windData[1].data) {
+        throw new Error('Wind data components must have data arrays');
       }
 
       velocityLayer = (L as any).velocityLayer({

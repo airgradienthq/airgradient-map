@@ -43,8 +43,6 @@
         :center="[Number(urlState.lat), Number(urlState.long)]"
         :attributionControl="true"
         @ready="onMapReady"
-        @move="onMapMove"
-        @zoom="onMapMove"
       >
       </LMap>
 
@@ -52,7 +50,6 @@
         v-if="mapInstance && isMapFullyReady"
         :map="mapInstance"
         :enabled="windLayerEnabled"
-        :wind-data-url="windDataUrl"
         @loading-change="handleWindLoadingChange"
       />
 
@@ -131,9 +128,6 @@
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
   const windLayerEnabled = computed(() => urlState.wind_layer === 'true');
-
-  const config = useRuntimeConfig();
-  const windDataUrl = computed(() => config.public.windDataUrl as string);
 
   const measureSelectOptions: DropdownOption[] = [
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
@@ -243,17 +237,17 @@
         console.warn(`Unknown layer: ${layerId}`);
     }
   }
-  function onMapMove(): void {
-    if (!mapInstance) {
-      return;
-    }
+  // function onMapMove(): void {
+  //   if (!mapInstance) {
+  //     return;
+  //   }
 
-    setUrlState({
-      zoom: mapInstance.getZoom(),
-      lat: mapInstance.getCenter().lat.toFixed(2),
-      long: mapInstance.getCenter().lng.toFixed(2)
-    });
-  }
+  //   setUrlState({
+  //     zoom: mapInstance.getZoom(),
+  //     lat: mapInstance.getCenter().lat.toFixed(2),
+  //     long: mapInstance.getCenter().lng.toFixed(2)
+  //   });
+  // }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
     let displayValue: number = feature.properties?.value;
@@ -290,7 +284,9 @@
         dialogStore.open(locationHistoryDialogId, { location: feature.properties });
       } else if (!isSensor) {
         const currentZoom = mapInstance!.getZoom();
+        console.log('currentZoom', currentZoom);
         const newZoom = Math.min(currentZoom + 2, DEFAULT_MAP_VIEW_CONFIG.maxZoom);
+        console.log('newZoom', newZoom);
         mapInstance!.flyTo(latlng, newZoom, { animate: true, duration: 0.8 });
       }
     });
