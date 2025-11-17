@@ -7,5 +7,9 @@ RUN npm install -g @nestjs/cli
 RUN npm ci
 RUN npm cache clean --force
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gdal-bin \
+  && rm -rf /var/lib/apt/lists/*
+
 # First build and run with dev tag
 RUN npm run build
