@@ -128,45 +128,6 @@ export class WindDataRepositoryService {
     }
   }
 
-  /**
-   * Deletes old forecast data, keeping only the most recent forecast
-   * This ensures the database only stores current data for API serving
-   * while historical data is preserved in S3
-   *
-   * @returns Number of records deleted
-   */
-  async deleteOldForecasts(): Promise<number> {
-    const client = await pool.connect();
-
-    try {
-      const query = `
-        DELETE FROM wind_data
-        WHERE forecast_time < (
-          SELECT MAX(forecast_time) FROM wind_data
-        )
-      `;
-
-      const result = await client.query(query);
-      const deletedCount = result.rowCount || 0;
-
-      logger.info('wind-data-repository', 'Cleaned up old forecast data', {
-        deletedRecords: deletedCount
-      });
-
-      return deletedCount;
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-      logger.error('wind-data-repository', 'Failed to delete old forecasts', {
-        error: errorMessage
-      });
-
-      return 0;
-    } finally {
-      client.release();
-    }
-  }
 
   /**
    * Transforms GFS wind data JSON into database records
