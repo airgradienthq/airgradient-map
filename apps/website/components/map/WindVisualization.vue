@@ -9,6 +9,7 @@
 
   import { VELOCITY_COLOR_SCALE } from '~/constants/map/wind-layer';
   import { transformToLeafletVelocityFormat } from '~/utils/wind-data-transformer';
+  import { createVueDebounce } from '~/utils/debounce';
 
   interface Props {
     map: L.Map | null;
@@ -28,6 +29,9 @@
   let isInitializing = false;
   const isLoadingWindData = ref(false);
 
+  // Debounced reload to prevent multiple API calls on zoom/pan
+  const reloadWindLayerDebounced = createVueDebounce(reloadWindLayerForCurrentView, 500);
+
   onMounted(async () => {
     if (process.client) {
       try {
@@ -38,6 +42,7 @@
 
         if (props.enabled && props.map) {
           await loadAndShowWindLayer();
+          setupMapEventListeners();
         }
       } catch (error) {
         console.error('Failed to load leaflet-velocity library:', error);
@@ -66,13 +71,17 @@
     async (newMap, oldMap) => {
       if (!libraryLoaded) return;
 
-      if (oldMap && velocityLayer) {
-        removeWindLayer();
+      if (oldMap) {
+        removeMapEventListeners();
+        if (velocityLayer) {
+          removeWindLayer();
+        }
       }
 
       if (newMap && props.enabled) {
         setTimeout(async () => {
           await loadAndShowWindLayer();
+          setupMapEventListeners();
         }, 100);
       }
     }
@@ -84,21 +93,95 @@
 
   function removeWindLayer() {
     if (velocityLayer && props.map) {
-      try {
-        props.map.removeLayer(velocityLayer);
-        velocityLayer = null;
-      } catch (e) {
-        console.warn('Error removing wind layer:', e);
-        velocityLayer = null;
+      props.map.removeLayer(velocityLayer);
+      velocityLayer = null;
+    }
+  }
+
+  function hideWindLayer() {
+    if (velocityLayer && props.map) {
+      const canvas = velocityLayer?._canvasLayer?._canvas;
+      if (canvas) {
+        canvas.style.opacity = '0';
       }
     }
   }
 
-  async function loadWindData() {
-    console.log('loadWindData');
-    console.log('windData', windData);
-    console.log('props.map', props.map);
-    if (windData) {
+  async function reloadWindLayerForCurrentView() {
+    if (!props.map || !props.enabled) return;
+
+    try {
+      // Reload wind data for current bounds
+      await loadWindData(true);
+
+      if (!windData) return;
+
+      // Remove old layer
+      removeWindLayer();
+
+      await nextTick();
+
+      addVelocityLayerToMap();
+      
+    } catch (error) {
+      console.error('Error reloading wind layer:', error);
+    }
+  }
+
+  function addVelocityLayerToMap() {
+    velocityLayer = (L as any).velocityLayer({
+        displayValues: true,
+        displayOptions: {
+          velocityType: 'Wind',
+          position: 'bottomleft',
+          emptyString: 'No wind data',
+          showCardinal: true,
+          speedUnit: 'm/s',
+          directionString: 'Direction',
+          speedString: 'Speed',
+          angleConvention: 'bearingCW'
+        },
+        data: windData,
+        minVelocity: 0,
+        maxVelocity: 15,
+        velocityScale: 0.015,
+        opacity: 0.97,
+        colorScale: VELOCITY_COLOR_SCALE
+      });
+
+      if (velocityLayer && props.map && props.enabled) {
+        velocityLayer.addTo(props.map);
+      }
+  }
+
+  function setupMapEventListeners() {
+    if (!props.map) return;
+
+    // Hide wind layer when map starts moving to avoid visual lag
+    props.map.on('movestart', hideWindLayer);
+    props.map.on('zoomstart', hideWindLayer);
+
+    // Reload wind data when map stops moving (debounced to prevent multiple requests)
+    props.map.on('moveend', () => {
+      reloadWindLayerDebounced();
+    });
+
+    props.map.on('zoomend', () => {
+      reloadWindLayerDebounced();
+    });
+  }
+
+  function removeMapEventListeners() {
+    if (!props.map) return;
+
+    props.map.off('movestart', hideWindLayer);
+    props.map.off('zoomstart', hideWindLayer);
+    props.map.off('moveend');
+    props.map.off('zoomend');
+  }
+
+  async function loadWindData(forceReload = false) {
+    if (windData && !forceReload) {
       return;
     }
 
@@ -122,7 +205,6 @@
       const apiUrl = config.public.apiUrl as string;
 
       const url = `${apiUrl}/wind-data/current?xmin=${xmin}&xmax=${xmax}&ymin=${ymin}&ymax=${ymax}`;
-      console.log('url', url);
 
       const res = await fetch(url, {
         signal: controller.signal
@@ -136,21 +218,12 @@
 
       const apiData = await res.json();
 
-      console.log('apiData', apiData);
       if (!apiData || !apiData.header || !apiData.data) {
         throw new Error('Invalid wind data format');
       }
 
       // Transform API format to leaflet-velocity format
       windData = transformToLeafletVelocityFormat(apiData);
-      console.log('windData transformed:', {
-        uHeader: windData[0].header,
-        vHeader: windData[1].header,
-        uDataLength: windData[0].data.length,
-        vDataLength: windData[1].data.length,
-        firstUValues: windData[0].data.slice(0, 5),
-        firstVValues: windData[1].data.slice(0, 5)
-      });
 
       // Validate transformed data structure matches what leaflet-velocity expects
       if (!Array.isArray(windData) || windData.length !== 2) {
@@ -170,17 +243,6 @@
       if (!Array.isArray(windData[0].data) || !Array.isArray(windData[1].data)) {
         throw new Error('Invalid wind data: data must be arrays');
       }
-
-      console.log('Wind data validation passed:', {
-        uComponent: {
-          headerKeys: Object.keys(windData[0].header),
-          dataLength: windData[0].data.length
-        },
-        vComponent: {
-          headerKeys: Object.keys(windData[1].header),
-          dataLength: windData[1].data.length
-        }
-      });
     } catch (error) {
       console.error('Wind data load failed:', error);
       windData = null;
@@ -235,29 +297,8 @@
         throw new Error('Wind data components must have data arrays');
       }
 
-      velocityLayer = (L as any).velocityLayer({
-        displayValues: true,
-        displayOptions: {
-          velocityType: 'Wind',
-          position: 'bottomleft',
-          emptyString: 'No wind data',
-          showCardinal: true,
-          speedUnit: 'm/s',
-          directionString: 'Direction',
-          speedString: 'Speed',
-          angleConvention: 'bearingCW'
-        },
-        data: windData,
-        minVelocity: 0,
-        maxVelocity: 15,
-        velocityScale: 0.015,
-        opacity: 0.97,
-        colorScale: VELOCITY_COLOR_SCALE
-      });
+      addVelocityLayerToMap();
 
-      if (velocityLayer && props.map && props.enabled) {
-        velocityLayer.addTo(props.map);
-      }
     } catch (error) {
       console.error('Error creating/adding velocity layer:', error);
       velocityLayer = null;
@@ -267,6 +308,7 @@
   }
 
   onUnmounted(() => {
+    removeMapEventListeners();
     removeWindLayer();
     windData = null;
     libraryLoaded = false;
