@@ -18,10 +18,17 @@ export async function up(knex: Knex): Promise<void> {
   `);
 
   // Create indexes for efficient querying
+  // Index on forecast_time DESC for latest data queries (most common use case)
   await knex.raw(
-    'CREATE INDEX IF NOT EXISTS idx_wind_data_forecast_time ON public.wind_data(forecast_time)',
+    'CREATE INDEX IF NOT EXISTS idx_wind_data_forecast_time_desc ON public.wind_data(forecast_time DESC)',
   );
 
+  // Composite index for time-range queries by location
+  await knex.raw(
+    'CREATE INDEX IF NOT EXISTS idx_wind_data_time_location ON public.wind_data(forecast_time, longitude, latitude)',
+  );
+
+  // Optional: Index for spatial queries (if needed for bounded area queries in future)
   await knex.raw(
     'CREATE INDEX IF NOT EXISTS idx_wind_data_location ON public.wind_data(longitude, latitude)',
   );
