@@ -53,18 +53,18 @@ export class WindDataService {
    * - Regular grid with fixed dx/dy resolution
    *
    * @param records Wind data records from database
-   * @param xmin Requested minimum longitude
-   * @param xmax Requested maximum longitude
-   * @param ymin Requested minimum latitude
-   * @param ymax Requested maximum latitude
+   * @param xmin Requested minimum longitude (unused, kept for future bounds filtering)
+   * @param xmax Requested maximum longitude (unused, kept for future bounds filtering)
+   * @param ymin Requested minimum latitude (unused, kept for future bounds filtering)
+   * @param ymax Requested maximum latitude (unused, kept for future bounds filtering)
    * @returns Formatted wind data entity
    */
   private transformToGridFormat(
     records: WindDataRecord[],
-    xmin: number,
-    xmax: number,
-    ymin: number,
-    ymax: number,
+    _xmin: number,
+    _xmax: number,
+    _ymin: number,
+    _ymax: number,
   ): WindDataEntity {
     if (records.length === 0) {
       throw new Error('No records to transform');
@@ -84,32 +84,29 @@ export class WindDataService {
     const actualNorth = lats.reduce((max, lat) => Math.max(max, lat), -Infinity);
 
     // Calculate grid resolution (assuming uniform spacing)
-    // GFS data typically has 0.25° resolution
+    // Database stores data at 1° resolution
     const uniqueLons = Array.from(new Set(lons)).sort((a, b) => a - b);
     const uniqueLats = Array.from(new Set(lats)).sort((a, b) => b - a);
 
     const dx = uniqueLons.length > 1
       ? Math.abs(uniqueLons[1] - uniqueLons[0])
-      : 0.25;
+      : 1.0;
     const dy = uniqueLats.length > 1
       ? Math.abs(uniqueLats[0] - uniqueLats[1])
-      : 0.25;
+      : 1.0;
 
     const nx = uniqueLons.length;
     const ny = uniqueLats.length;
 
     this.logger.log(`Grid dimensions: ${nx}x${ny}, resolution: ${dx}°x${dy}°, total points: ${records.length}`);
 
-
     // Create coordinate to index mapping for fast lookup
-    // Use a tolerance-based approach instead of rounding to handle floating point precision
     const tolerance = dx / 10; // 10% of grid resolution
     const coordToIndex = new Map<string, number>();
 
     uniqueLats.forEach((lat, y) => {
       uniqueLons.forEach((lon, x) => {
         const index = y * nx + x;
-        // Round to reasonable precision for map key (6 decimal places ~ 0.1m precision)
         const key = `${lat.toFixed(6)},${lon.toFixed(6)}`;
         coordToIndex.set(key, index);
       });
@@ -121,13 +118,11 @@ export class WindDataService {
 
     // Fill data arrays using coordinate mapping with tolerance-based matching
     records.forEach(record => {
-      // First try exact match with same precision
       const exactKey = `${record.latitude.toFixed(6)},${record.longitude.toFixed(6)}`;
       let index = coordToIndex.get(exactKey);
 
       // If exact match fails, find nearest grid point
       if (index === undefined) {
-        // Find closest lat/lon in grid
         const closestLat = uniqueLats.find(lat => Math.abs(lat - record.latitude) < tolerance);
         const closestLon = uniqueLons.find(lon => Math.abs(lon - record.longitude) < tolerance);
 

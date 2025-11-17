@@ -173,6 +173,7 @@ export class WindDataRepositoryService {
    * windData format: [uComponent, vComponent]
    * Each component has: { header: { refTime, ... }, data: [values...] }
    *
+   * Data is already at 1° resolution from NOAA NOMADS filter (filter_gfs_1p00.pl)
    * Validates all required header fields before transformation.
    * Returns empty array if any validation fails to prevent data corruption.
    * No default/fallback values are used for grid parameters.
@@ -234,31 +235,33 @@ export class WindDataRepositoryService {
 
     const records: WindDataRecord[] = [];
 
-    for (let i = 0; i < uComponent.data.length; i++) {
-      const u = uComponent.data[i];
-      const v = vComponent.data[i];
+    // Process all data points (already at 1° resolution from NOAA)
+    for (let row = 0; row < ny; row++) {
+      for (let col = 0; col < nx; col++) {
+        const i = row * nx + col;
+        const u = uComponent.data[i];
+        const v = vComponent.data[i];
 
-      if (u === null || v === null) continue;
+        if (u === null || v === null) continue;
 
-      // Calculate lat/lon from grid index
-      const row = Math.floor(i / nx);
-      const col = i % nx;
-      const latitude = la1 - row * dy;
-      const longitude = lo1 + col * dx;
+        // Calculate lat/lon from grid index
+        const latitude = la1 - row * dy;
+        const longitude = lo1 + col * dx;
 
-      records.push({
-        longitude,
-        latitude,
-        forecast_time: forecastTime,
-        u_component: u,
-        v_component: v,
-      });
+        records.push({
+          longitude,
+          latitude,
+          forecast_time: forecastTime,
+          u_component: u,
+          v_component: v,
+        });
+      }
     }
 
     logger.info('wind-data-repository', 'Transformed wind data', {
       totalRecords: records.length,
       forecastTime: forecastTime.toISOString(),
-      gridSize: `${nx}x${ny}`,
+      grid: `${nx}x${ny}`,
       resolution: `${dx}°x${dy}°`
     });
 

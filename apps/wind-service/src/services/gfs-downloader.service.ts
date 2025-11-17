@@ -17,9 +17,12 @@ export class GFSDownloaderService {
   }
 
   /**
-   * Downloads GFS wind data from NOAA
+   * Downloads GFS wind data from NOAA at 1° resolution
    * Tries latest available cycles in order: 18z, 12z, 06z, 00z
    * GFS data is typically available 3-4 hours after model run time
+   *
+   * Uses 1.00 degree resolution to minimize download size and processing overhead
+   * 1° data is ~16x smaller than 0.25° resolution
    */
   async downloadGFSData(): Promise<string | null> {
     const today = new Date();
@@ -31,8 +34,8 @@ export class GFSDownloaderService {
 
       for (const cycle of ['18', '12', '06', '00']) {
         const url =
-          `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?` +
-          `dir=%2Fgfs.${dateStr}%2F${cycle}%2Fatmos&file=gfs.t${cycle}z.pgrb2.0p25.f000&` +
+          `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_1p00.pl?` +
+          `dir=%2Fgfs.${dateStr}%2F${cycle}%2Fatmos&file=gfs.t${cycle}z.pgrb2.1p00.f000&` +
           `var_UGRD=on&var_VGRD=on&lev_10_m_above_ground=on`;
 
         const filePath = path.join(this.tempDir, `wind-${dateStr}-${cycle}.grib2`);
