@@ -16,7 +16,6 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
-
     <div class="layer-selector-btn-box">
       <UiIconButton
         :ripple="false"
@@ -25,7 +24,7 @@
         :active="windLayerEnabled"
         title="Toggle Wind Layer"
         @click="toggleWindLayer"
-        >
+      >
       </UiIconButton>
     </div>
 
@@ -40,7 +39,6 @@
       </UiIconButton>
     </div>
 
-   
     <div class="map-exclude-outliers-btn-box">
       <UiIconButton
         :ripple="false"
@@ -223,7 +221,6 @@
       console.warn('Attribution init failed:', e);
     }
 
-
     currentMapStyle = windLayerEnabled.value
       ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
       : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
@@ -299,9 +296,7 @@
         dialogStore.open(locationHistoryDialogId, { location: feature.properties });
       } else if (!isSensor) {
         const currentZoom = mapInstance!.getZoom();
-        console.log('currentZoom', currentZoom);
         const newZoom = Math.min(currentZoom + 2, DEFAULT_MAP_VIEW_CONFIG.maxZoom);
-        console.log('newZoom', newZoom);
         mapInstance!.flyTo(latlng, newZoom, { animate: true, duration: 0.8 });
       }
     });
@@ -758,7 +753,6 @@
     left: 10px;
     z-index: 999;
   }
-
 
   .layer-selector-btn-box {
     position: absolute;

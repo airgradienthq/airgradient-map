@@ -171,6 +171,7 @@
   }
 
   .custom-icon-button.active .custom-icon {
-    filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(1352%) hue-rotate(180deg) brightness(91%) contrast(86%);
+    filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(1352%) hue-rotate(180deg)
+      brightness(91%) contrast(86%);
   }
 </style>

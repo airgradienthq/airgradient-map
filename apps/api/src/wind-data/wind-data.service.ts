@@ -54,9 +54,7 @@ export class WindDataService {
    * @param ymax Requested maximum latitude (unused, kept for future bounds filtering)
    * @returns Formatted wind data entity
    */
-  private transformToGridFormat(
-    records: WindDataRecord[],
-  ): WindDataEntity {
+  private transformToGridFormat(records: WindDataRecord[]): WindDataEntity {
     if (records.length === 0) {
       throw new Error('No records to transform');
     }

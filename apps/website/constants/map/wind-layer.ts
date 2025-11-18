@@ -14,5 +14,5 @@ export const VELOCITY_COLOR_SCALE = [
   '#2f529d', // Darker blue (13.5 m/s)
   '#234B85', // Dark blue-purple (15 m/s)
   '#593C9B', // Dark purple (16.5+ m/s - for values exceeding maxVelocity)
-  '#402A80'  // Very dark purple (18+ m/s - ensures no white rendering)
+  '#402A80' // Very dark purple (18+ m/s - ensures no white rendering)
 ];

@@ -124,7 +124,6 @@
       await nextTick();
 
       addVelocityLayerToMap();
-      
     } catch (error) {
       console.error('Error reloading wind layer:', error);
     }
@@ -132,28 +131,28 @@
 
   function addVelocityLayerToMap() {
     velocityLayer = (L as any).velocityLayer({
-        displayValues: true,
-        displayOptions: {
-          velocityType: 'Wind',
-          position: 'bottomleft',
-          emptyString: 'No wind data',
-          showCardinal: true,
-          speedUnit: 'm/s',
-          directionString: 'Direction',
-          speedString: 'Speed',
-          angleConvention: 'bearingCW'
-        },
-        data: windData,
-        minVelocity: 0,
-        maxVelocity: 15,
-        velocityScale: 0.015,
-        opacity: 0.97,
-        colorScale: VELOCITY_COLOR_SCALE
-      });
+      displayValues: true,
+      displayOptions: {
+        velocityType: 'Wind',
+        position: 'bottomleft',
+        emptyString: 'No wind data',
+        showCardinal: true,
+        speedUnit: 'm/s',
+        directionString: 'Direction',
+        speedString: 'Speed',
+        angleConvention: 'bearingCW'
+      },
+      data: windData,
+      minVelocity: 0,
+      maxVelocity: 15,
+      velocityScale: 0.015,
+      opacity: 0.97,
+      colorScale: VELOCITY_COLOR_SCALE
+    });
 
-      if (velocityLayer && props.map && props.enabled) {
-        velocityLayer.addTo(props.map);
-      }
+    if (velocityLayer && props.map && props.enabled) {
+      velocityLayer.addTo(props.map);
+    }
   }
 
   function setupMapEventListeners() {
@@ -300,7 +299,6 @@
       }
 
       addVelocityLayerToMap();
-
     } catch (error) {
       console.error('Error creating/adding velocity layer:', error);
       velocityLayer = null;
