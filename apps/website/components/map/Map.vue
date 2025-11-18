@@ -16,6 +16,7 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
     </div>
 
+
     <div class="layer-selector-btn-box">
       <UiIconButton
         :ripple="false"
@@ -24,12 +25,44 @@
         :active="windLayerEnabled"
         title="Toggle Wind Layer"
         @click="toggleWindLayer"
+        >
+      </UiIconButton>
+    </div>
+
+    <div v-if="generalConfigStore.embedded" class="map-open-fullscreen-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        icon="mdi-open-in-new"
+        :style="'light'"
+        @click="handleOpenFullscreen"
+      >
+      </UiIconButton>
+    </div>
+
+   
+    <div class="map-exclude-outliers-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        :icon="generalConfigStore.excludeOutliers ? 'mdi-filter' : 'mdi-filter-off'"
+        :style="'light'"
+        :title="
+          generalConfigStore.excludeOutliers
+            ? 'Experimental: Outliers filtered'
+            : 'Show all data points'
+        "
+        @click="
+          () => {
+            generalConfigStore.setExcludeOutliers(!generalConfigStore.excludeOutliers);
+            updateMapData();
+          }
+        "
       >
       </UiIconButton>
     </div>
 
     <UiProgressBar :show="(loading && loaderShown) || windLoading"></UiProgressBar>
-
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl
@@ -190,6 +223,7 @@
       console.warn('Attribution init failed:', e);
     }
 
+
     currentMapStyle = windLayerEnabled.value
       ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
       : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
@@ -295,7 +329,8 @@
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
               ? MeasureNames.PM25
-              : generalConfigStore.selectedMeasure
+              : generalConfigStore.selectedMeasure,
+          excludeOutliers: generalConfigStore.excludeOutliers
         },
         retry: 1
       });
@@ -395,12 +430,22 @@
     }
   }
 
+  function handleOpenFullscreen(): void {
+    window.open(
+      window.location.href
+        .replace('headless=true', 'headless=false')
+        .replace('embedded=true', 'embedded=false'),
+      '_blank'
+    );
+  }
+
   function handleGeolocationError(message: string): void {
     console.error('Geolocation error:', message);
   }
 
   onMounted(() => {
     generalConfigStore.setHeadless(window.location.href.includes('headless=true'));
+    generalConfigStore.setEmbedded(window.location.href.includes('embedded=true'));
     if ([<MeasureNames>'pm02', <MeasureNames>'pm02_raw'].includes(urlState.meas)) {
       setUrlState({ meas: MeasureNames.PM25 });
     } else if (urlState.meas === <MeasureNames>'pi02') {
@@ -707,9 +752,23 @@
     z-index: 999;
   }
 
+  .map-open-fullscreen-btn-box {
+    position: absolute;
+    top: 198px;
+    left: 10px;
+    z-index: 999;
+  }
+
+
   .layer-selector-btn-box {
     position: absolute;
     top: 198px;
+    left: 10px;
+    z-index: 999;
+  }
+  .map-exclude-outliers-btn-box {
+    position: absolute;
+    top: 242px;
     left: 10px;
     z-index: 999;
   }

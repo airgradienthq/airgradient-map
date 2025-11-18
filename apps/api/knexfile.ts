@@ -13,6 +13,7 @@ const config: Knex.Config = {
     directory: './database/migrations',
     tableName: 'schema_migrations',
     extension: 'ts',
+    disableMigrationsListValidation: true,
   },
   seeds: {
     directory: './database/seeds',

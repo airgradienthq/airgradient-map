@@ -3,9 +3,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import DatabaseModule from './database/database.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MeasurementModule } from './measurement/measurement.module';
-import { LocationModule } from './location/location.module';
-import { WindDataModule } from './wind-data/wind-data.module';
 
 @Module({
   imports: [
@@ -26,11 +23,8 @@ import { WindDataModule } from './wind-data/wind-data.module';
         database: configService.get('DATABASE_NAME'),
       }),
     }),
-    MeasurementModule,
-    LocationModule,
-    WindDataModule,
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class CronModule {}

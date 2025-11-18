@@ -2,27 +2,41 @@ import { Injectable } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
 
 import DatabaseService from 'src/database/database.service';
-import { AirgradientModel } from './model/airgradient.model';
-import { UpsertLocationOwnerInput } from 'src/types/tasks/upsert-location-input';
-import { OpenAQLatestData } from '../types/tasks/openaq.types';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
-import { DataSource } from 'src/types/shared/data-source';
+import { OutlierService } from 'src/outlier/outlier.service';
+import { DataSource, InsertLatestMeasuresInput, UpsertLocationOwnerInput } from 'src/types';
 
 @Injectable()
 export class TasksRepository {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly outlierService: OutlierService,
+  ) {}
 
   private readonly logger = new Logger(TasksRepository.name);
-
-  async getAll(): Promise<any[]> {
-    const result = await this.databaseService.runQuery('SELECT * FROM measurement;');
-    return result.rows;
-  }
+  private readonly batchSize = 1000;
 
   async upsertLocationsAndOwners(
     dataSource: string,
     locationOwnerInput: UpsertLocationOwnerInput[],
-  ) {
+  ): Promise<void> {
+    for (let i = 0; i < locationOwnerInput.length; i += this.batchSize) {
+      this.logger.debug(`Inserting location owner batch idx ${i}`);
+      await this._upsertLocationsAndOwners(
+        dataSource,
+        locationOwnerInput.slice(i, i + this.batchSize),
+      );
+      // Small delay between batches to reduce contention
+      if (i + this.batchSize < locationOwnerInput.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }
+
+  private async _upsertLocationsAndOwners(
+    dataSource: string,
+    locationOwnerInput: UpsertLocationOwnerInput[],
+  ): Promise<void> {
     try {
       // Creating columnar arrays
       // WHY: PostgreSQL's unnest() function works with arrays, not individual records
@@ -202,72 +216,102 @@ export class TasksRepository {
     }
   }
 
-  async insertNewAirgradientLatest(data: AirgradientModel[]): Promise<void> {
-    try {
-      const measurementValues = data
-        .map(
-          ({ locationId, pm02, pm10, atmp, rhum, rco2, timestamp }) =>
-            `(${locationId}, ${pm02}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${timestamp}')`,
-        )
-        .join(', ');
-
-      const query = `
-          INSERT INTO public."measurement" (
-              location_id, pm25, pm10, atmp, rhum, rco2, measured_at
-          )
-          SELECT
-              loc.id AS location_id,
-              m.pm25,
-              m.pm10,
-              m.atmp,
-              m.rhum,
-              m.rco2,
-              m.measured_at::timestamp
-          FROM (
-            VALUES ${measurementValues}
-          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at)
-          JOIN public."location" loc
-              ON loc.data_source = '${DataSource.AIRGRADIENT}'
-             AND loc.reference_id = m.reference_id
-          ON CONFLICT (location_id, measured_at) DO NOTHING;
-        `;
-
-      await this.databaseService.runQuery(query);
-    } catch (error) {
-      this.logger.error(error);
-    }
-  }
-
-  async retrieveOpenAQLocationId(): Promise<object | null> {
+  async retrieveLocationIds(dataSource: string): Promise<Record<string, number>> {
     try {
       const result = await this.databaseService.runQuery(
-        `SELECT json_object_agg(reference_id::TEXT, id) FROM "location" WHERE data_source = '${DataSource.OPENAQ}';`,
+        `SELECT json_object_agg(reference_id::TEXT, id) FROM "location" WHERE data_source = '${dataSource}';`,
       );
       if (result.rowCount === 0 || result.rows[0].json_object_agg === null) {
         return {};
       }
-      return result.rows[0].json_object_agg;
+      // {"<locationReferenceId>": locationId}
+      return result.rows[0].json_object_agg as Record<string, number>;
     } catch (error) {
       this.logger.error(error);
       return {};
     }
   }
 
-  async insertNewOpenAQLatest(latests: OpenAQLatestData[]): Promise<void> {
+  async insertLatestMeasures(
+    dataSource: string,
+    locationIdAvailable: boolean,
+    latestMeasuresInput: InsertLatestMeasuresInput[],
+  ): Promise<void> {
+    for (let i = 0; i < latestMeasuresInput.length; i += this.batchSize) {
+      this.logger.debug(`Inserting latest measures batch idx ${i}`);
+      await this._insertLatestMeasures(
+        dataSource,
+        locationIdAvailable,
+        latestMeasuresInput.slice(i, i + this.batchSize),
+      );
+
+      // Small delay between batches to reduce contention
+      if (i + this.batchSize < latestMeasuresInput.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+  }
+
+  private async _insertLatestMeasures(
+    dataSource: string,
+    locationIdAvailable: boolean,
+    latestMeasuresInput: InsertLatestMeasuresInput[],
+  ): Promise<void> {
     try {
-      const latestValues = latests
-        .flatMap(({ locationId, pm25, measuredAt }) => {
-          return `(${locationId},${pm25},'${measuredAt}')`;
-        })
-        .join(',');
+      // Map into values query while set if value outlier or not
+      const latestValues = (
+        await Promise.all(
+          latestMeasuresInput.map(async dataPoint => {
+            const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
+              dataPoint;
+            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(
+              locationReferenceId,
+              pm25,
+              measuredAt,
+            );
+            const locId = locationIdAvailable ? locationId : locationReferenceId;
+            return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
+          }),
+        )
+      ).join(', ');
 
-      const query = `
-        INSERT INTO measurement (location_id, pm25, measured_at) 
-            VALUES ${latestValues} 
-        ON CONFLICT (location_id, measured_at)
-        DO NOTHING;
-      `;
+      // Prepare query based on if locationId available or not
+      let query = '';
+      if (locationIdAvailable) {
+        query = `
+          INSERT INTO public."measurement" (
+            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
+          )
+          VALUES
+            ${latestValues}
+          ON CONFLICT (location_id, measured_at)
+          DO NOTHING;
+        `;
+      } else {
+        query = `
+          INSERT INTO public."measurement" (
+            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
+          )
+          SELECT
+            loc.id AS location_id,
+            m.pm25,
+            m.pm10,
+            m.atmp,
+            m.rhum,
+            m.rco2,
+            m.measured_at::timestamp,
+            m.is_pm25_outlier::boolean
+          FROM (
+            VALUES ${latestValues}
+          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier)
+          JOIN public."location" loc
+            ON loc.data_source = '${dataSource}'
+            AND loc.reference_id = m.reference_id
+          ON CONFLICT (location_id, measured_at) DO NOTHING;
+        `;
+      }
 
+      // Execute query
       await this.databaseService.runQuery(query);
     } catch (error) {
       this.logger.error(error);

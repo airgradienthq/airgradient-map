@@ -18,6 +18,27 @@ services:
       - POSTGRES_USER=${DATABASE_USER}
     networks:
       - airgradient-map-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-migrate:
+    container_name: db-migrate-mono
+    image: "mapapi-mono:${IMAGE_TAG}"
+    command: npx knex migrate:latest --knexfile knexfile.ts
+    networks:
+      - airgradient-map-prod
+    volumes:
+      - ./apps/api/database:/app/database
+      - ./apps/api/knexfile.ts:/app/knexfile.ts
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      postgrex:
+        condition: service_healthy
+    restart: on-failure
 
   mapapi:
     image: "mapapi-mono:${IMAGE_TAG}"
@@ -34,9 +55,31 @@ services:
     env_file:
       - ./apps/api/.env
     depends_on:
-      - postgrex
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
     environment:
       - NODE_ENV=production
+      - PM2_INSTANCE=2 # Default
+    command: ["pm2-runtime", "start", "dist/api-main.js", "-i", "${PM2_INSTANCE}", "--name", "mapapi"]
+
+  cron:
+    image: "mapapi-mono:${IMAGE_TAG}" # prevent rebuild
+    container_name: cron-mono
+    restart: unless-stopped
+    networks:
+      - airgradient-map-prod
+    env_file:
+      - ./apps/api/.env
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+    command: node dist/cron-main
 
   app:
     image: "website-mono:${IMAGE_TAG}"
@@ -69,7 +112,10 @@ services:
     networks:
       - airgradient-map-prod
     depends_on:
-      - postgrex
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
 
 networks:
   airgradient-map-prod:

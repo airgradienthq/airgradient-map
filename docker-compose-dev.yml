@@ -16,17 +16,43 @@ services:
       - POSTGRES_USER=${DATABASE_USER}
     networks:
       - dev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-migrate:
+    container_name: db-migrate-mono
+    image: mapapi:latest
+    command: npx knex migrate:latest --knexfile knexfile.ts
+    networks:
+      - dev
+    volumes:
+      - ./apps/api/database:/app/database
+      - ./apps/api/knexfile.ts:/app/knexfile.ts
+    environment:
+      - DATABASE_HOST=postgrex
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    depends_on:
+      postgrex:
+        condition: service_healthy
+    restart: on-failure
 
   mapapi:
     container_name: mapapi-mono
     build:
       context: apps/api
       dockerfile: tools/docker/Dockerfile.dev
+    image: mapapi:latest
     restart: unless-stopped
     ports:
       - 3001:3001
     networks:
-      - dev 
+      - dev
     volumes:
       - ./apps/api/.env.development:/app/.env.development
       - ./apps/api/src:/app/src
@@ -34,7 +60,27 @@ services:
       - ./apps/api/knexfile.ts:/app/knexfile.ts
     command: npm run start:dev
     depends_on:
-      - postgrex
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
+
+  cron:
+    container_name: cron-mono
+    image: mapapi:latest # prevent rebuild
+    restart: unless-stopped
+    networks:
+      - dev
+    volumes:
+      - ./apps/api/.env.development:/app/.env.development
+      - ./apps/api/src:/app/src
+      - ./apps/api/data-source:/app/data-source
+    command: npm run start:cron:dev
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
 
   app:
     container_name: website-mono
@@ -69,7 +115,10 @@ services:
     networks:
       - dev
     depends_on:
-      - postgrex
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
 networks:
   dev:
     driver: bridge

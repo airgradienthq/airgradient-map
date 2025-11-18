@@ -1,6 +1,10 @@
 export function getEPACorrectedPM(rawPM: number, rawRhum: number): number {
   let result = 0;
 
+  if ([undefined, null].includes(rawPM)) {
+    return null;
+  }
+
   if ([undefined, null].includes(rawRhum)) {
     return null;
   }
