@@ -754,7 +754,7 @@
 
   .map-open-fullscreen-btn-box {
     position: absolute;
-    top: 198px;
+    top: 242px;
     left: 10px;
     z-index: 999;
   }
