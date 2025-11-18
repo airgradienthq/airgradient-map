@@ -33,38 +33,97 @@ export class TasksService {
     this.dataSourcePath = path.resolve(process.cwd(), 'data-source');
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
-  async runSyncAirgradientLocations() {
+  private async syncLocations(
+    folder: string,
+    fileName: string,
+    dataSource: DataSource,
+    args?: Record<string, any>,
+  ): Promise<void> {
     try {
+      const before = Date.now();
+      this.logger.log(`Run job sync ${fileName} locations`);
+
       // load file and run
-      const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
+      const filePath = path.join(this.dataSourcePath, folder, fileName);
       const plugin = (await import(filePath)) as PluginDataSource;
-      const result = await plugin.location();
+      const result = await plugin.location(args);
 
       // Validate results
       if (!result.success) {
-        this.logger.error(`Sync AirGradient location error: ${result.error}`);
+        this.logger.error(`Sync ${fileName} location error: ${result.error}`);
         return;
       }
       if (result.count == 0) {
-        this.logger.error('Sync AirGradient location error: no data available');
+        this.logger.error(`Sync ${fileName} location error: no data available`);
         return;
       }
       this.logger.debug(result.data[0]);
 
       await this.tasksRepository.upsertLocationsAndOwners(
-        DataSource.AIRGRADIENT,
+        dataSource,
         result.data as UpsertLocationOwnerInput[],
       );
-
-      this.logger.log(`Sync AirGradient locations with total public data: ${result.count}`);
+      this.logger.log(
+        `Sync ${fileName} locations with total public data: ${result.count} time spend: ${Date.now() - before}ms`,
+      );
     } catch (err) {
-      this.logger.error('Sync AirGradient locations job failed: ', err);
+      this.logger.error(`Sync ${fileName} locations job failed: ${err}`);
     }
   }
 
+  private async getLatest(
+    folder: string,
+    fileName: string,
+    dataSource: DataSource,
+    args?: Record<string, any>,
+  ): Promise<void> {
+    try {
+      const before = Date.now();
+      this.logger.log(`Run job get ${fileName} latest`);
+
+      // load file and run
+      const filePath = path.join(this.dataSourcePath, folder, fileName);
+      const plugin = (await import(filePath)) as PluginDataSource;
+      const result = await plugin.latest(args);
+
+      // Validate results
+      if (!result.success) {
+        this.logger.error(`Get ${fileName} latest error: ${result.error}`);
+        return;
+      }
+      if (result.count == 0) {
+        this.logger.error(`Get ${fileName} latest error: no data available`);
+        return;
+      }
+      this.logger.debug(result.data[0]);
+
+      await this.tasksRepository.insertLatestMeasures(
+        dataSource,
+        result.metadata.locationIdAvailable,
+        result.data as InsertLatestMeasuresInput[],
+      );
+      this.logger.log(
+        `Get ${fileName} latest with total public data: ${result.count} time spend: ${Date.now() - before}ms`,
+      );
+    } catch (err) {
+      this.logger.error(`Get ${fileName} latest job failed: ${err}`);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async syncAirgradientLocations(): Promise<void> {
+    return await this.syncLocations('public', 'airgradient.js', DataSource.AIRGRADIENT);
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async syncOpenAQLocations(): Promise<void> {
+    return await this.syncLocations('public', 'openaq.js', DataSource.OPENAQ, {
+      apiKey: this.openAQApiKey,
+    });
+  }
+
   @Cron(CronExpression.EVERY_MINUTE)
-  async getAirgradientLatest() {
+  async getAirgradientLatest(): Promise<void> {
     if (this.isAirgradientLatestJobRunning) {
       this.logger.warn(
         'AirGradient latest job skipped because a previous run is still in progress',
@@ -73,43 +132,33 @@ export class TasksService {
     }
 
     this.isAirgradientLatestJobRunning = true;
-    this.logger.log('Run job retrieve AirGradient latest value');
-    const before = Date.now();
-    let totalData: number;
+    await this.getLatest('public', 'airgradient.js', DataSource.AIRGRADIENT);
+    this.isAirgradientLatestJobRunning = false;
+  }
 
+  @Cron(CronExpression.EVERY_HOUR)
+  async getOpenAQLatest(): Promise<void> {
     try {
-      // load file and run
-      const filePath = path.join(this.dataSourcePath, 'public', 'airgradient.js');
-      const plugin = (await import(filePath)) as PluginDataSource;
-      const result = await plugin.latest();
-      this.logger.debug(`Finish do latest plugin in ${Date.now() - before}`);
+      const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
+      const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
 
-      // Check if success or not
-      if (!result.success) {
-        this.logger.error(`Get airgradient latest error: ${result.error}`);
+      if (referenceIdToIdMapLength === 0) {
+        // NOTE: Right now ignore until runSyncOpenAQLocations() already triggered
+        this.logger.warn('No openaq locationId found');
         return;
       }
 
-      if (result.count == 0) {
-        this.logger.error('Get airgradient latest error: no data available');
-        return;
-      }
-
-      totalData = result.count;
-      this.logger.debug(result.data[0]);
-
-      await this.tasksRepository.insertLatestMeasures(
-        DataSource.AIRGRADIENT,
-        result.metadata.locationIdAvailable,
-        result.data as InsertLatestMeasuresInput[],
+      this.logger.debug(
+        `Start request to openaq parameters endpoint with interest total locationId count ${referenceIdToIdMapLength}`,
       );
+
+      return await this.getLatest('public', 'openaq.js', DataSource.OPENAQ, {
+        apiKey: this.openAQApiKey,
+        referenceIdToIdMap: referenceIdToIdMap,
+        referenceIdToIdMapLength: referenceIdToIdMapLength,
+      });
     } catch (err) {
-      this.logger.error('Get AirGradient latest job failed: ', err);
-    } finally {
-      this.isAirgradientLatestJobRunning = false;
-      this.logger.log(
-        `getAirgradientLatest() time spend: ${Date.now() - before}ms with total data point: ${totalData}`,
-      );
+      this.logger.error(`Get openaq.js latest job failed: ${err}`);
     }
   }
 
@@ -133,98 +182,6 @@ export class TasksService {
       }
     } catch (error) {
       this.logger.error('Notification job failed:', error);
-    }
-  }
-
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async runSyncOpenAQLocations() {
-    const before = Date.now();
-    this.logger.log('Run job sync OpenAQ locations');
-
-    try {
-      const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
-      const plugin = (await import(filePath)) as PluginDataSource;
-      const result = await plugin.location({
-        apiKey: this.openAQApiKey,
-      });
-
-      // Check if success or not
-      if (!result.success) {
-        this.logger.error(`Sync OpenAQ location error: ${result.error}`);
-        return;
-      }
-
-      if (result.count == 0) {
-        this.logger.error('Sync OpenAQ location error: no data available');
-        return;
-      }
-
-      this.logger.debug(`Total OpenAQ locations to insert: ${result.count}`);
-      this.logger.debug(result.data[0]);
-      await this.tasksRepository.upsertLocationsAndOwners(
-        DataSource.OPENAQ,
-        result.data as UpsertLocationOwnerInput[],
-      );
-
-      const after = Date.now();
-      const duration = after - before;
-      this.logger.log(`Sync OpenAQ locations time spend: ${duration}ms`);
-    } catch (err) {
-      this.logger.error('Sync OpenAQ locations job failed:', err);
-    }
-  }
-
-  @Cron(CronExpression.EVERY_HOUR)
-  async runGetOpenAQLatest() {
-    this.logger.log('Run job retrieve OpenAQ latest value');
-    const before = Date.now();
-
-    try {
-      const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
-      const referenceIdToIdMapLength = Object.keys(referenceIdToIdMap).length;
-
-      if (referenceIdToIdMapLength === 0) {
-        // NOTE: Right now ignore until runSyncOpenAQLocations() already triggered
-        this.logger.warn('No openaq locationId found');
-        return;
-      }
-
-      this.logger.debug(
-        `Start request to openaq parameters endpoint with interest total locationId count ${referenceIdToIdMapLength}`,
-      );
-
-      const filePath = path.join(this.dataSourcePath, 'public', 'openaq.js');
-      const plugin = (await import(filePath)) as PluginDataSource;
-      const result = await plugin.latest({
-        apiKey: this.openAQApiKey,
-        referenceIdToIdMap: referenceIdToIdMap,
-        referenceIdToIdMapLength: referenceIdToIdMapLength,
-      });
-
-      // Check if success or not
-      if (!result.success) {
-        this.logger.error(`Get OpenAQ latest error: ${result.error}`);
-        return;
-      }
-
-      if (result.count == 0) {
-        this.logger.error('Get OpenAQ latest error: no data available');
-        return;
-      }
-
-      await this.tasksRepository.insertLatestMeasures(
-        DataSource.OPENAQ,
-        result.metadata.locationIdAvailable,
-        result.data as InsertLatestMeasuresInput[],
-      );
-
-      const after = Date.now();
-      const duration = after - before;
-      this.logger.log(
-        `runGetOpenAQLatest() time spend: ${duration}ms and total data point: ${result.count}`,
-      );
-    } catch (err) {
-      this.logger.error('Get OpenAQ latest job failed:', err);
     }
   }
 }
