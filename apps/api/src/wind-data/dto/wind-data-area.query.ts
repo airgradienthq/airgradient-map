@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNumber, Min, Max, IsOptional } from 'class-validator';
+import { IsNumber } from 'class-validator';
 
 /**
  * Query parameters for fetching wind data within a bounding box
@@ -38,5 +38,4 @@ export class WindDataAreaQuery {
   @Type(() => Number)
   @IsNumber()
   ymax: number;
-
 }

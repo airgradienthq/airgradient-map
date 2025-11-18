@@ -1,10 +1,4 @@
-import {
-  Controller,
-  Get,
-  Query,
-  UsePipes,
-  ValidationPipe,
-} from '@nestjs/common';
+import { Controller, Get, Query, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { WindDataService } from './wind-data.service';
 import { WindDataAreaQuery } from './dto/wind-data-area.query';
@@ -46,14 +40,7 @@ export class WindDataController {
     description: 'Wind data retrieved successfully',
     type: WindDataEntity,
   })
-  async getCurrentWindData(
-    @Query() query: WindDataAreaQuery,
-  ): Promise<WindDataEntity> {
-    return this.windDataService.getWindDataInArea(
-      query.xmin,
-      query.xmax,
-      query.ymin,
-      query.ymax,
-    );
+  async getCurrentWindData(@Query() query: WindDataAreaQuery): Promise<WindDataEntity> {
+    return this.windDataService.getWindDataInArea(query.xmin, query.xmax, query.ymin, query.ymax);
   }
 }

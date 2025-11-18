@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import DatabaseService from "../database/database.service"
+import DatabaseService from '../database/database.service';
 
 /**
  * Raw wind data record from database
@@ -176,8 +176,8 @@ export class WindDataRepository {
 
       this.logger.log(
         `Fetched ${result.rows.length} wind data points for bounds: ` +
-        `[${xmin.toFixed(2)}, ${ymin.toFixed(2)}] to [${xmax.toFixed(2)}, ${ymax.toFixed(2)}] ` +
-        `(${isGlobalView ? 'global view' : `with ${buffer}° buffer`})`,
+          `[${xmin.toFixed(2)}, ${ymin.toFixed(2)}] to [${xmax.toFixed(2)}, ${ymax.toFixed(2)}] ` +
+          `(${isGlobalView ? 'global view' : `with ${buffer}° buffer`})`,
       );
 
       // Convert longitude back from 0-360° (database) to -180 to 180° (Leaflet)

@@ -33,15 +33,10 @@ export class WindDataService {
     ymax: number,
   ): Promise<WindDataEntity> {
     // Fetch wind data records from database
-    const records = await this.windDataRepository.getWindDataInArea(
-      xmin,
-      xmax,
-      ymin,
-      ymax,
-    );
+    const records = await this.windDataRepository.getWindDataInArea(xmin, xmax, ymin, ymax);
 
     // Transform records into grid format
-    return this.transformToGridFormat(records, xmin, xmax, ymin, ymax);
+    return this.transformToGridFormat(records);
   }
 
   /**
@@ -61,10 +56,6 @@ export class WindDataService {
    */
   private transformToGridFormat(
     records: WindDataRecord[],
-    _xmin: number,
-    _xmax: number,
-    _ymin: number,
-    _ymax: number,
   ): WindDataEntity {
     if (records.length === 0) {
       throw new Error('No records to transform');
@@ -88,17 +79,15 @@ export class WindDataService {
     const uniqueLons = Array.from(new Set(lons)).sort((a, b) => a - b);
     const uniqueLats = Array.from(new Set(lats)).sort((a, b) => b - a);
 
-    const dx = uniqueLons.length > 1
-      ? Math.abs(uniqueLons[1] - uniqueLons[0])
-      : 1.0;
-    const dy = uniqueLats.length > 1
-      ? Math.abs(uniqueLats[0] - uniqueLats[1])
-      : 1.0;
+    const dx = uniqueLons.length > 1 ? Math.abs(uniqueLons[1] - uniqueLons[0]) : 1.0;
+    const dy = uniqueLats.length > 1 ? Math.abs(uniqueLats[0] - uniqueLats[1]) : 1.0;
 
     const nx = uniqueLons.length;
     const ny = uniqueLats.length;
 
-    this.logger.log(`Grid dimensions: ${nx}x${ny}, resolution: ${dx}°x${dy}°, total points: ${records.length}`);
+    this.logger.log(
+      `Grid dimensions: ${nx}x${ny}, resolution: ${dx}°x${dy}°, total points: ${records.length}`,
+    );
 
     // Create coordinate to index mapping for fast lookup
     const tolerance = dx / 10; // 10% of grid resolution
@@ -136,19 +125,23 @@ export class WindDataService {
         uData[index] = record.u_component;
         vData[index] = record.v_component;
       } else {
-        this.logger.warn(`No grid point found for coordinate: ${record.latitude}, ${record.longitude}`);
+        this.logger.warn(
+          `No grid point found for coordinate: ${record.latitude}, ${record.longitude}`,
+        );
       }
     });
 
     // Convert null to 0 or filter them out based on requirements
     // For now, replace null with 0 to maintain grid structure
-    const uDataFinal = uData.map(v => v === null ? 0 : v);
-    const vDataFinal = vData.map(v => v === null ? 0 : v);
+    const uDataFinal = uData.map(v => (v === null ? 0 : v));
+    const vDataFinal = vData.map(v => (v === null ? 0 : v));
 
     // Log statistics for debugging
     const nonNullU = uData.filter(v => v !== null).length;
     const nonNullV = vData.filter(v => v !== null).length;
-    this.logger.log(`Data coverage: U=${nonNullU}/${uData.length}, V=${nonNullV}/${vData.length} (${((nonNullU / uData.length) * 100).toFixed(1)}%)`);
+    this.logger.log(
+      `Data coverage: U=${nonNullU}/${uData.length}, V=${nonNullV}/${vData.length} (${((nonNullU / uData.length) * 100).toFixed(1)}%)`,
+    );
 
     return new WindDataEntity({
       header: {

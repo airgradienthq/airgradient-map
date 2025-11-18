@@ -6,13 +6,13 @@ import { ApiProperty } from '@nestjs/swagger';
 export class WindDataHeader {
   @ApiProperty({
     description: 'Forecast reference time (ISO 8601)',
-    example: '2025-11-10T06:00:00.000Z'
+    example: '2025-11-10T06:00:00.000Z',
   })
   forecastTime: string;
 
   @ApiProperty({
     description: 'Geographic bounds of the wind data grid',
-    example: { north: 70, south: 35, west: -10, east: 40 }
+    example: { north: 70, south: 35, west: -10, east: 40 },
   })
   bounds: {
     north: number;
@@ -23,7 +23,7 @@ export class WindDataHeader {
 
   @ApiProperty({
     description: 'Grid resolution in degrees',
-    example: { dx: 0.25, dy: 0.25 }
+    example: { dx: 0.25, dy: 0.25 },
   })
   resolution: {
     dx: number;
@@ -32,7 +32,7 @@ export class WindDataHeader {
 
   @ApiProperty({
     description: 'Grid dimensions (number of points)',
-    example: { nx: 200, ny: 140 }
+    example: { nx: 200, ny: 140 },
   })
   grid: {
     nx: number;
@@ -47,14 +47,14 @@ export class WindDataGrid {
   @ApiProperty({
     description: 'U-component (eastward wind) values in m/s',
     type: [Number],
-    example: [1.5, 2.3, 1.8]
+    example: [1.5, 2.3, 1.8],
   })
   u: number[];
 
   @ApiProperty({
     description: 'V-component (northward wind) values in m/s',
     type: [Number],
-    example: [-0.5, 1.2, 0.8]
+    example: [-0.5, 1.2, 0.8],
   })
   v: number[];
 }
@@ -65,13 +65,13 @@ export class WindDataGrid {
 export class WindDataEntity {
   @ApiProperty({
     description: 'Wind data grid metadata',
-    type: WindDataHeader
+    type: WindDataHeader,
   })
   header: WindDataHeader;
 
   @ApiProperty({
     description: 'Wind data grid values',
-    type: WindDataGrid
+    type: WindDataGrid,
   })
   data: WindDataGrid;
 
