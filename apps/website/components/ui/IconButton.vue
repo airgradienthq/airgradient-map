@@ -5,7 +5,7 @@
     :disabled="disabled"
     :icon="icon"
     variant="plain"
-    :class="['custom-icon-button', style]"
+    :class="['custom-icon-button', style, { active }]"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
@@ -16,7 +16,7 @@
     :ripple="ripple"
     :disabled="disabled"
     variant="plain"
-    :class="['custom-icon-button', style]"
+    :class="['custom-icon-button', style, { active }]"
     :size="size === ButtonSize.NORMAL ? 'default' : 'small'"
     @click="handleClick"
   >
@@ -98,6 +98,15 @@
     style: {
       type: String as PropType<'light' | 'dark'>,
       default: 'light'
+    },
+    /**
+     * Whether the button is active/highlighted (shows blue icon).
+     * @type {boolean}
+     * @default false
+     */
+    active: {
+      type: Boolean,
+      default: false
     }
   });
 
@@ -120,6 +129,7 @@
     border-radius: 50%;
     width: 40px;
     height: 40px;
+    min-width: 40px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     opacity: 1 !important;
   }
@@ -148,11 +158,19 @@
     font-size: var(--font-size-base) !important;
   }
 
+  .custom-icon-button.active :deep(.v-icon) {
+    color: #1c75bc !important;
+  }
+
   .custom-icon {
     width: var(--font-size-base);
     height: var(--font-size-base);
     transition: all var(--main-transition);
     object-fit: contain;
     opacity: 1;
+  }
+
+  .custom-icon-button.active .custom-icon {
+    filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(1352%) hue-rotate(180deg) brightness(91%) contrast(86%);
   }
 </style>

@@ -6,6 +6,7 @@
         :size="ButtonSize.NORMAL"
         icon="mdi-information-outline"
         :style="'light'"
+        :active="isLegendShown"
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
@@ -16,7 +17,15 @@
     </div>
 
     <div class="layer-selector-btn-box">
-      <UiLayerSelector :layers="mapLayers" @layer-toggle="handleLayerToggle" />
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        customIcon="wind-icon.svg"
+        :active="windLayerEnabled"
+        title="Toggle Wind Layer"
+        @click="toggleWindLayer"
+      >
+      </UiIconButton>
     </div>
 
     <UiProgressBar :show="(loading && loaderShown) || windLoading"></UiProgressBar>
@@ -101,7 +110,6 @@
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
   import { useNuxtApp } from '#imports';
-  import UiLayerSelector from '~/components/ui/LayerSelector.vue';
   const loading = ref<boolean>(false);
   const windLoading = ref<boolean>(false);
   const isMapFullyReady = ref<boolean>(false);
@@ -134,16 +142,6 @@
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM_AQI], value: MeasureNames.PM_AQI },
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.RCO2], value: MeasureNames.RCO2 }
   ];
-  const mapLayers = computed(() => [
-    {
-      id: 'wind',
-      name: 'Wind Layer',
-      description: 'Real-time wind speed and direction',
-      icon: 'mdi mdi-weather-windy',
-      enabled: windLayerEnabled.value,
-      loading: windLoading.value
-    }
-  ]);
 
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
 
@@ -228,26 +226,9 @@
     });
   }
 
-  function handleLayerToggle(layerId: string, enabled: boolean): void {
-    switch (layerId) {
-      case 'wind':
-        setUrlState({ wind_layer: String(enabled) });
-        break;
-      default:
-        console.warn(`Unknown layer: ${layerId}`);
-    }
+  function toggleWindLayer(): void {
+    setUrlState({ wind_layer: String(!windLayerEnabled.value) });
   }
-  // function onMapMove(): void {
-  //   if (!mapInstance) {
-  //     return;
-  //   }
-
-  //   setUrlState({
-  //     zoom: mapInstance.getZoom(),
-  //     lat: mapInstance.getCenter().lat.toFixed(2),
-  //     long: mapInstance.getCenter().lng.toFixed(2)
-  //   });
-  // }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
     let displayValue: number = feature.properties?.value;
@@ -646,7 +627,7 @@
   }
 
   .leaflet-geosearch-bar form input {
-    background-image: url('/assets/images/icons/iconamoon_search-fill.svg');
+    background-image: url('/assets/images/icons/search-fill.svg');
     background-position: left 5px top 1px;
     background-size: 16px;
     background-repeat: no-repeat;

@@ -59,8 +59,10 @@
 
       if (enabled && props.map) {
         await loadAndShowWindLayer();
+        setupMapEventListeners();
       } else {
         removeWindLayer();
+        removeMapEventListeners();
       }
     },
     { immediate: false }
