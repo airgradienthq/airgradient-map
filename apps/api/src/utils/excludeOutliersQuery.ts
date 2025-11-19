@@ -14,7 +14,7 @@ class ExcludeOutliersQuery {
     if (value === 'false' || value === false) return false;
     return Boolean(value);
   })
-  excludeOutliers: boolean = false;
+  excludeOutliers: boolean = true;
 }
 
 export default ExcludeOutliersQuery;
