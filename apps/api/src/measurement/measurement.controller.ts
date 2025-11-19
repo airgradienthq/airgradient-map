@@ -10,6 +10,7 @@ import { MeasurementEntity } from './measurement.entity';
 import MeasurementClusterModel from './measurementCluster.model';
 import PaginationQuery from 'src/utils/paginationQuery';
 import ClusterQuery from './clusterQuery';
+import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
 
 @Controller('map/api/v1/measurements')
 @ApiTags('Measurements')
@@ -70,6 +71,7 @@ export class MeasurementController {
     @Query() { measure }: MeasureTypeQuery,
     @Query() area: AreaQuery,
     @Query() cluster: ClusterQuery,
+    @Query() { excludeOutliers }: ExcludeOutliersQuery,
   ): Promise<Pagination<MeasurementClusterModel>> {
     const measurementClusterModel = await this.measurementService.getLastMeasurementsByCluster(
       area.xmin,
@@ -77,6 +79,7 @@ export class MeasurementController {
       area.xmax,
       area.ymax,
       area.zoom,
+      excludeOutliers,
       measure,
       cluster.minPoints,
       cluster.radius,

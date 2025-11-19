@@ -11,7 +11,8 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     selectedHistoryPeriod: HISTORY_PERIODS[0],
     selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone.LOCAL,
     headless: false,
-    embedded: false
+    embedded: false,
+    excludeOutliers: true
   }),
   actions: {
     setSelectedMeasure(measure: MeasureNames) {
@@ -28,6 +29,9 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     },
     setEmbedded(embedded: boolean) {
       this.embedded = embedded;
+    },
+    setExcludeOutliers(excludeOutliers: boolean) {
+      this.excludeOutliers = excludeOutliers;
     }
   }
 });

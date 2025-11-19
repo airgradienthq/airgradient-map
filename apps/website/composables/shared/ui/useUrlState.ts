@@ -28,6 +28,7 @@ export const useUrlState = () => {
     wind_layer: String(DEFAULT_MAP_VIEW_CONFIG.wind_layer),
     org: DEFAULT_URL_CONFIG.org,
     embedded: String(DEFAULT_MAP_VIEW_CONFIG.embedded),
+    debug: route.query.debug ?? DEFAULT_MAP_VIEW_CONFIG.debug, // hide it at first
     ...route.query
   });
 

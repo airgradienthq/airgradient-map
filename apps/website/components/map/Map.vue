@@ -26,6 +26,27 @@
       </UiIconButton>
     </div>
 
+    <div v-if="isDebugMode" class="map-exclude-outliers-btn-box">
+      <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        :icon="generalConfigStore.excludeOutliers ? 'mdi-filter' : 'mdi-filter-off'"
+        :style="'light'"
+        :title="
+          generalConfigStore.excludeOutliers
+            ? 'Experimental: Outliers filtered'
+            : 'Show all data points'
+        "
+        @click="
+          () => {
+            generalConfigStore.setExcludeOutliers(!generalConfigStore.excludeOutliers);
+            updateMapData();
+          }
+        "
+      >
+      </UiIconButton>
+    </div>
+
     <UiProgressBar :show="loading && loaderShown"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
@@ -113,6 +134,24 @@
   const isLegendShown = useStorage('isLegendShown', true);
 
   const { urlState, setUrlState } = useUrlState();
+
+  const isDebugMode = computed(() => {
+    const debugValue = urlState.debug;
+
+    if (debugValue === undefined) {
+      return false;
+    }
+
+    if (debugValue === 'false') {
+      return false;
+    }
+
+    if (debugValue === 'true') {
+      return true;
+    }
+
+    return false;
+  });
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
@@ -268,7 +307,8 @@
           measure:
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
               ? MeasureNames.PM25
-              : generalConfigStore.selectedMeasure
+              : generalConfigStore.selectedMeasure,
+          excludeOutliers: generalConfigStore.excludeOutliers
         },
         retry: 1
       });
@@ -628,6 +668,13 @@
   .map-open-fullscreen-btn-box {
     position: absolute;
     top: 198px;
+    left: 10px;
+    z-index: 999;
+  }
+
+  .map-exclude-outliers-btn-box {
+    position: absolute;
+    top: 242px;
     left: 10px;
     z-index: 999;
   }

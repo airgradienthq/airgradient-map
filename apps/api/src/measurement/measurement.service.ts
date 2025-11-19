@@ -66,6 +66,7 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
+      true,
       measure,
     );
 
@@ -78,6 +79,7 @@ export class MeasurementService {
     xMax: number,
     yMax: number,
     zoom: number,
+    excludeOutliers: boolean,
     measure?: MeasureType,
     minPoints?: number,
     radius?: number,
@@ -92,6 +94,7 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
+      excludeOutliers,
       measure,
     );
 
