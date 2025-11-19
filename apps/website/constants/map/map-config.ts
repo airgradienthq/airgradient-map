@@ -8,5 +8,6 @@ export const DEFAULT_MAP_VIEW_CONFIG = {
   maxBoundsViscosity: 1,
   maxBounds: new LatLngBounds(new LatLng(-88, -230), new LatLng(88, 230)),
   wind_layer: false,
-  embedded: false
+  embedded: false,
+  debug: undefined // hide it at first
 };

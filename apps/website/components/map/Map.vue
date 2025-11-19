@@ -26,7 +26,7 @@
       </UiIconButton>
     </div>
 
-    <div class="map-exclude-outliers-btn-box">
+    <div v-if="isDebugMode" class="map-exclude-outliers-btn-box">
       <UiIconButton
         :ripple="false"
         :size="ButtonSize.NORMAL"
@@ -134,6 +134,24 @@
   const isLegendShown = useStorage('isLegendShown', true);
 
   const { urlState, setUrlState } = useUrlState();
+
+  const isDebugMode = computed(() => {
+    const debugValue = urlState.debug;
+
+    if (debugValue === undefined) {
+      return false;
+    }
+
+    if (debugValue === 'false') {
+      return false;
+    }
+
+    if (debugValue === 'true') {
+      return true;
+    }
+
+    return false;
+  });
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
