@@ -12,7 +12,7 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone.LOCAL,
     headless: false,
     embedded: false,
-    excludeOutliers: false
+    excludeOutliers: true
   }),
   actions: {
     setSelectedMeasure(measure: MeasureNames) {
