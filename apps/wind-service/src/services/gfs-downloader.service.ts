@@ -19,10 +19,8 @@ export class GFSDownloaderService {
   /**
    * Downloads GFS wind data from NOAA at 1° resolution
    * Tries latest available cycles in order: 18z, 12z, 06z, 00z
-   * GFS data is typically available 3-4 hours after model run time
+   * GFS data is typically available 3-5 hours after model run time
    *
-   * Uses 1.00 degree resolution to minimize download size and processing overhead
-   * 1° data is ~16x smaller than 0.25° resolution
    */
   async downloadGFSData(): Promise<string | null> {
     const today = new Date();

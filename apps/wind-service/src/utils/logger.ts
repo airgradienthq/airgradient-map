@@ -1,4 +1,3 @@
-// Create a simple logger utility - apps/wind-service/src/utils/logger.ts
 class SimpleLogger {
   private formatTimestamp(): string {
     return new Date().toISOString();

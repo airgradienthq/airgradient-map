@@ -201,7 +201,7 @@
       const ymax = bounds.getNorth();
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 50000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 50000);
 
       const apiUrl = config.public.apiUrl as string;
 

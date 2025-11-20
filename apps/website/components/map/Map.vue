@@ -1,6 +1,6 @@
 <template>
   <div class="map-wrapper">
-    <div class="map-info-btn-box">
+    <div class="map-extra-controls-box">
       <UiIconButton
         :ripple="false"
         :size="ButtonSize.NORMAL"
@@ -10,13 +10,9 @@
         @click="isLegendShown = !isLegendShown"
       >
       </UiIconButton>
-    </div>
 
-    <div class="map-geolocation-btn-box">
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
-    </div>
 
-    <div class="layer-selector-btn-box">
       <UiIconButton
         :ripple="false"
         :size="ButtonSize.NORMAL"
@@ -26,10 +22,9 @@
         @click="toggleWindLayer"
       >
       </UiIconButton>
-    </div>
 
-    <div v-if="generalConfigStore.embedded" class="map-open-fullscreen-btn-box">
       <UiIconButton
+        v-if="generalConfigStore.embedded"
         :ripple="false"
         :size="ButtonSize.NORMAL"
         icon="mdi-open-in-new"
@@ -37,10 +32,9 @@
         @click="handleOpenFullscreen"
       >
       </UiIconButton>
-    </div>
 
-    <div v-if="isDebugMode" class="map-exclude-outliers-btn-box">
       <UiIconButton
+        v-if="isDebugMode"
         :ripple="false"
         :size="ButtonSize.NORMAL"
         :icon="generalConfigStore.excludeOutliers ? 'mdi-filter' : 'mdi-filter-off'"
@@ -751,37 +745,13 @@
     width: 300px;
   }
 
-  .map-info-btn-box {
+  .map-extra-controls-box {
     position: absolute;
     top: 110px;
     left: 10px;
-    z-index: 999;
-  }
-
-  .map-geolocation-btn-box {
-    position: absolute;
-    top: 154px;
-    left: 10px;
-    z-index: 999;
-  }
-
-  .map-open-fullscreen-btn-box {
-    position: absolute;
-    top: 242px;
-    left: 10px;
-    z-index: 999;
-  }
-
-  .layer-selector-btn-box {
-    position: absolute;
-    top: 198px;
-    left: 10px;
-    z-index: 999;
-  }
-  .map-exclude-outliers-btn-box {
-    position: absolute;
-    top: 242px;
-    left: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
     z-index: 999;
   }
 

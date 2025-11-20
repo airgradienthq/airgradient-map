@@ -102,12 +102,8 @@ services:
       context: apps/wind-service
       dockerfile: Dockerfile
     restart: unless-stopped
-    environment:
-      - DATABASE_HOST=postgrex
-      - DATABASE_PORT=5432
-      - DATABASE_NAME=${DATABASE_NAME}
-      - DATABASE_USER=${DATABASE_USER}
-      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+    env_file:
+      - ./apps/api/.env.staging
     networks:
       - airgradient-map-staging
     depends_on:

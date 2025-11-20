@@ -4,28 +4,11 @@ import { WindDataRepositoryService } from './wind-data-repository.service';
 import { logger } from '../utils/logger';
 import { WIND_DATA_BATCH_SIZE } from '../config/database.config';
 
-/**
- * Service responsible for the complete wind data processing pipeline
- * Orchestrates: Download → Convert → Insert to Database (with historical data retention)
- */
 export class WindDataProcessingService {
   private downloader = new GFSDownloaderService();
   private converter = new GribConverterService();
   private repository = new WindDataRepositoryService();
 
-  /**
-   * Executes the full wind data processing pipeline
-   *
-   * Process flow:
-   * 1. Find grib2json converter tool
-   * 2. Download GFS GRIB2 data from NOAA at 1° resolution
-   * 3. Convert GRIB2 to JSON format
-   * 4. Transform and batch insert into PostgreSQL database
-   *    - All historical data retained in database
-   *    - Retention policy can be managed via periodic cleanup jobs
-   *
-   * @returns Promise that resolves when processing is complete
-   */
   async processWindData(): Promise<void> {
     const startTime = Date.now();
     logger.info('wind-data-processing', 'Wind data update started');

@@ -28,7 +28,7 @@ export async function up(knex: Knex): Promise<void> {
     'CREATE INDEX IF NOT EXISTS idx_wind_data_time_location ON public.wind_data(forecast_time, longitude, latitude)',
   );
 
-  // Optional: Index for spatial queries (if needed for bounded area queries in future)
+  // Index for spatial queries
   await knex.raw(
     'CREATE INDEX IF NOT EXISTS idx_wind_data_location ON public.wind_data(longitude, latitude)',
   );
