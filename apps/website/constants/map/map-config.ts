@@ -10,5 +10,6 @@ export const DEFAULT_MAP_VIEW_CONFIG = {
   wind_layer: false,
   light_map_style_url: 'https://tiles.openfreemap.org/styles/liberty',
   dark_map_style_url: 'https://tiles.openfreemap.org/styles/positron',
-  embedded: false
+  embedded: false,
+  debug: undefined // hide it at first
 };
