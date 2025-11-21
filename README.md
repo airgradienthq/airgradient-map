@@ -50,7 +50,7 @@ We have docker compose files that build and run containers:
 To spin them up, run from the root of this repo:
 
 ```bash
-
+docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml up
 ```
 
 **What happens automatically:**
