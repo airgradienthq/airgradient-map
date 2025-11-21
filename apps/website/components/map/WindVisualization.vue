@@ -29,6 +29,10 @@
   let isInitializing = false;
   const isLoadingWindData = ref(false);
 
+  // Store handler references for proper cleanup
+  let moveendHandler: (() => void) | null = null;
+  let zoomendHandler: (() => void) | null = null;
+
   // Debounced reload to prevent multiple API calls on zoom/pan
   const reloadWindLayerDebounced = createVueDebounce(reloadWindLayerForCurrentView, 500);
 
@@ -158,18 +162,24 @@
   function setupMapEventListeners() {
     if (!props.map) return;
 
+    // Remove any existing listeners first to prevent duplicates
+    removeMapEventListeners();
+
     // Hide wind layer when map starts moving to avoid visual lag
     props.map.on('movestart', hideWindLayer);
     props.map.on('zoomstart', hideWindLayer);
 
+    // Store handler references so we can remove only our specific listeners
     // Reload wind data when map stops moving (debounced to prevent multiple requests)
-    props.map.on('moveend', () => {
+    moveendHandler = () => {
       reloadWindLayerDebounced();
-    });
+    };
+    zoomendHandler = () => {
+      reloadWindLayerDebounced();
+    };
 
-    props.map.on('zoomend', () => {
-      reloadWindLayerDebounced();
-    });
+    props.map.on('moveend', moveendHandler);
+    props.map.on('zoomend', zoomendHandler);
   }
 
   function removeMapEventListeners() {
@@ -177,8 +187,16 @@
 
     props.map.off('movestart', hideWindLayer);
     props.map.off('zoomstart', hideWindLayer);
-    props.map.off('moveend');
-    props.map.off('zoomend');
+
+    // Remove only the specific handlers we added, preserving other listeners
+    if (moveendHandler) {
+      props.map.off('moveend', moveendHandler);
+      moveendHandler = null;
+    }
+    if (zoomendHandler) {
+      props.map.off('zoomend', zoomendHandler);
+      zoomendHandler = null;
+    }
   }
 
   async function loadWindData(forceReload = false) {
@@ -275,7 +293,9 @@
     try {
       removeWindLayer();
 
-      await loadWindData();
+      // Force reload to ensure wind data matches current map bounds
+      // This is especially important when the layer was disabled and map was moved
+      await loadWindData(true);
 
       if (!windData) {
         return;
@@ -313,5 +333,7 @@
     windData = null;
     libraryLoaded = false;
     isInitializing = false;
+    moveendHandler = null;
+    zoomendHandler = null;
   });
 </script>
