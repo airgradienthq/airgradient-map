@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { NotificationType, NotificationPMUnit } from './notification.model';
+import { NotificationType, NotificationDisplayUnit, NotificationParameter, MonitorType } from './notification.model';
 
 export class NotificationEntity {
   @ApiProperty()
@@ -24,11 +24,18 @@ export class NotificationEntity {
   })
   alarm_type: NotificationType;
 
+  @ApiProperty({
+    enum: NotificationParameter,
+    enumName: 'NotificationParameter',
+    description: 'Parameter being monitored (pm25, rco2, tvoc, nox_index, atmp, rhum)',
+  })
+  parameter: NotificationParameter;
+
   @ApiProperty()
   location_id: number;
 
-  @ApiProperty()
-  threshold_ug_m3: number | null;
+  @ApiProperty({ description: 'Threshold value for threshold-based notifications' })
+  threshold: number | null;
 
   @ApiProperty()
   threshold_cycle: string | null;
@@ -51,10 +58,24 @@ export class NotificationEntity {
   active: boolean;
 
   @ApiProperty({
-    enum: NotificationPMUnit,
-    enumName: 'NotificationPMUnit',
+    enum: NotificationDisplayUnit,
+    enumName: 'NotificationDisplayUnit',
+    description: 'Display unit for notification values',
   })
-  unit: NotificationPMUnit;
+  display_unit: NotificationDisplayUnit;
+
+  @ApiProperty({
+    enum: MonitorType,
+    enumName: 'MonitorType',
+    description: 'Type of monitor: owned (user device) or public (community monitor)',
+  })
+  monitor_type: MonitorType;
+
+  @ApiProperty({
+    description: 'Place ID for owned monitors (required when monitor_type is owned)',
+    nullable: true,
+  })
+  place_id: number | null;
 
   @ApiProperty()
   was_exceeded: boolean;

@@ -8,11 +8,14 @@ import {
 import { CreateNotificationDto } from './create-notification.dto';
 import { NotificationEntity } from './notification.entity';
 import {
-  NotificationPMUnit,
+  NotificationDisplayUnit,
   NotificationType,
   NotificationJob,
   BatchResult,
   LatestLocationMeasurementData,
+  NotificationParameter,
+  PARAMETER_VALID_UNITS,
+  MonitorType,
 } from './notification.model';
 import { UpdateNotificationDto } from './update-notification.dto';
 import { NotificationsRepository } from './notifications.repository';
@@ -36,10 +39,42 @@ export class NotificationsService {
     private readonly locationRepository: LocationRepository,
   ) {}
 
+  /**
+   * Normalize input DTO to use new field names internally
+   * Accepts both legacy (threshold_ug_m3, unit) and new (threshold, display_unit) field names
+   */
+  private normalizeCreateInput(dto: CreateNotificationDto): {
+    threshold: number | undefined;
+    display_unit: NotificationDisplayUnit | undefined;
+  } {
+    // New field takes precedence over legacy field
+    const threshold = dto.threshold ?? dto.threshold_ug_m3;
+    const display_unit = (dto.display_unit ?? dto.unit) as NotificationDisplayUnit | undefined;
+
+    return { threshold, display_unit };
+  }
+
+  /**
+   * Normalize update DTO to use new field names internally
+   */
+  private normalizeUpdateInput(dto: UpdateNotificationDto): {
+    threshold: number | undefined;
+    display_unit: NotificationDisplayUnit | undefined;
+  } {
+    // New field takes precedence over legacy field
+    const threshold = dto.threshold ?? dto.threshold_ug_m3;
+    const display_unit = (dto.display_unit ?? dto.unit) as NotificationDisplayUnit | undefined;
+
+    return { threshold, display_unit };
+  }
+
   public async createNotification(
     notification: CreateNotificationDto,
   ): Promise<NotificationEntity> {
-    this.validateNotificationData(notification);
+    // Normalize input to use new field names
+    const { threshold, display_unit } = this.normalizeCreateInput(notification);
+
+    this.validateNotificationData(notification, threshold, display_unit);
 
     // Verify location exists
     try {
@@ -53,25 +88,37 @@ export class NotificationsService {
       throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
     }
 
-    // Check for existing threshold notification for this player and location
+    // Check for existing threshold notification for this player, location, and parameter
     if (notification.alarm_type === NotificationType.THRESHOLD) {
       const existing =
         await this.notificationRepository.getThresholdNotificationByPlayerAndLocation(
           notification.player_id,
           notification.location_id,
+          notification.parameter,
         );
 
       if (existing) {
         throw new ConflictException(
-          `A threshold notification already exists for this location. Please update the existing notification (ID: ${existing.id}) or delete it first.`,
+          `A threshold notification already exists for this location and parameter. Please update the existing notification (ID: ${existing.id}) or delete it first.`,
         );
       }
     }
 
     const newNotification = new NotificationEntity({
-      ...notification,
-      active: notification.active ?? true,
+      player_id: notification.player_id,
+      user_id: notification.user_id,
+      alarm_type: notification.alarm_type,
+      location_id: notification.location_id,
+      parameter: notification.parameter,
+      threshold,
+      threshold_cycle: notification.threshold_cycle,
       scheduled_days: notification.scheduled_days || [],
+      scheduled_time: notification.scheduled_time,
+      scheduled_timezone: notification.scheduled_timezone,
+      active: notification.active ?? true,
+      display_unit,
+      monitor_type: notification.monitor_type ?? MonitorType.PUBLIC,
+      place_id: notification.place_id ?? null,
     });
 
     const result = await this.notificationRepository.createNotification(newNotification);
@@ -121,20 +168,29 @@ export class NotificationsService {
       throw new BadRequestException('Player ID does not match notification registration');
     }
 
+    // Normalize input to use new field names
+    const { threshold, display_unit } = this.normalizeUpdateInput(updateDto);
+
     // Prevent changes between scheduled and threshold alarm types
     // Check if trying to update fields that don't belong to the current alarm type
+    const hasThresholdFields =
+      threshold !== undefined ||
+      updateDto.threshold !== undefined ||
+      updateDto.threshold_ug_m3 !== undefined ||
+      updateDto.threshold_cycle !== undefined;
+    const hasScheduledFields =
+      updateDto.scheduled_days !== undefined ||
+      updateDto.scheduled_time !== undefined ||
+      updateDto.scheduled_timezone !== undefined;
+
     if (notification.alarm_type === NotificationType.SCHEDULED) {
-      if (updateDto.threshold_ug_m3 !== undefined || updateDto.threshold_cycle !== undefined) {
+      if (hasThresholdFields) {
         throw new BadRequestException(
           'Cannot set threshold fields on a scheduled notification. Create a new notification instead.',
         );
       }
     } else if (notification.alarm_type === NotificationType.THRESHOLD) {
-      if (
-        updateDto.scheduled_days !== undefined ||
-        updateDto.scheduled_time !== undefined ||
-        updateDto.scheduled_timezone !== undefined
-      ) {
+      if (hasScheduledFields) {
         throw new BadRequestException(
           'Cannot set scheduled fields on a threshold notification. Create a new notification instead.',
         );
@@ -158,12 +214,65 @@ export class NotificationsService {
       }
     }
 
-    // Only update fields that are actually provided in updateDto
+    // Build update object with normalized field names
+    const updateFields: Partial<NotificationEntity> = {};
+
+    if (updateDto.parameter !== undefined) {
+      updateFields.parameter = updateDto.parameter;
+    }
+    if (threshold !== undefined) {
+      updateFields.threshold = threshold;
+    }
+    if (display_unit !== undefined) {
+      updateFields.display_unit = display_unit;
+    }
+    if (updateDto.threshold_cycle !== undefined) {
+      updateFields.threshold_cycle = updateDto.threshold_cycle;
+    }
+    if (updateDto.scheduled_days !== undefined) {
+      updateFields.scheduled_days = updateDto.scheduled_days;
+    }
+    if (updateDto.scheduled_time !== undefined) {
+      updateFields.scheduled_time = updateDto.scheduled_time;
+    }
+    if (updateDto.scheduled_timezone !== undefined) {
+      updateFields.scheduled_timezone = updateDto.scheduled_timezone;
+    }
+    if (updateDto.active !== undefined) {
+      updateFields.active = updateDto.active;
+    }
+    if (updateDto.monitor_type !== undefined) {
+      updateFields.monitor_type = updateDto.monitor_type;
+    }
+    if (updateDto.place_id !== undefined) {
+      updateFields.place_id = updateDto.place_id;
+    }
+
     const updatedNotification = new NotificationEntity({
       ...notification,
-      ...Object.fromEntries(Object.entries(updateDto).filter(([, value]) => value !== undefined)),
+      ...updateFields,
       updated_at: new Date(),
     });
+
+    // Validate place_id is required when monitor_type is 'owned'
+    if (updatedNotification.monitor_type === MonitorType.OWNED && !updatedNotification.place_id) {
+      throw new BadRequestException(
+        'place_id is required when monitor_type is "owned"',
+      );
+    }
+
+    // Validate parameter/display_unit combination
+    const finalParameter = updatedNotification.parameter;
+    const finalDisplayUnit = updatedNotification.display_unit;
+    if (finalParameter && finalDisplayUnit) {
+      const validUnits = PARAMETER_VALID_UNITS[finalParameter as NotificationParameter];
+      if (validUnits && !validUnits.includes(finalDisplayUnit)) {
+        throw new BadRequestException(
+          `Invalid display_unit '${finalDisplayUnit}' for parameter '${finalParameter}'. ` +
+          `Valid units for ${finalParameter}: ${validUnits.join(', ')}`,
+        );
+      }
+    }
 
     const result = await this.notificationRepository.updateNotification(updatedNotification);
 
@@ -248,8 +357,8 @@ export class NotificationsService {
           playerId: notification.player_id,
           locationName: measurement.locationName,
           value: null,
-          unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
-          unit: notification.unit as NotificationPMUnit,
+          unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
+          unit: notification.display_unit as NotificationDisplayUnit,
           imageUrl: this.getImageUrlForAQI(measurement.pm25),
           androidAccentColor,
           isScheduledNotificationNoData: true,
@@ -262,7 +371,7 @@ export class NotificationsService {
       }
 
       const pmValueConvertedForUnit =
-        notification.unit === NotificationPMUnit.UG
+        notification.display_unit === NotificationDisplayUnit.UG
           ? measurement.pm25
           : convertPmToUsAqi(measurement.pm25);
 
@@ -272,8 +381,8 @@ export class NotificationsService {
           playerId: notification.player_id,
           locationName: measurement.locationName,
           value: pmValueConvertedForUnit,
-          unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
-          unit: notification.unit as NotificationPMUnit,
+          unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
+          unit: notification.display_unit as NotificationDisplayUnit,
           imageUrl: this.getImageUrlForAQI(measurement.pm25),
           androidAccentColor,
           title: {
@@ -297,8 +406,8 @@ export class NotificationsService {
             playerId: notification.player_id,
             locationName: measurement.locationName,
             value: pmValueConvertedForUnit,
-            unitLabel: NOTIFICATION_UNIT_LABELS[notification.unit],
-            unit: notification.unit as NotificationPMUnit,
+            unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
+            unit: notification.display_unit as NotificationDisplayUnit,
             imageUrl: this.getImageUrlForAQI(measurement.pm25),
             androidAccentColor,
           });
@@ -308,10 +417,9 @@ export class NotificationsService {
             reason:
               measurement.pm25 === null || measurement.pm25 === undefined
                 ? 'missing_pm_value'
-                : notification.threshold_ug_m3 === null ||
-                    notification.threshold_ug_m3 === undefined
+                : notification.threshold === null || notification.threshold === undefined
                   ? 'missing_threshold_setting'
-                  : measurement.pm25 <= notification.threshold_ug_m3
+                  : measurement.pm25 <= notification.threshold
                     ? 'below_threshold'
                     : 'conditions_not_met',
           });
@@ -344,7 +452,7 @@ export class NotificationsService {
     currentValue: number,
     now: Date,
   ): Promise<boolean> {
-    const thresholdValue = notification.threshold_ug_m3;
+    const thresholdValue = notification.threshold;
 
     // Handle "once" notifications
     if (notification.threshold_cycle === 'once') {
@@ -422,11 +530,17 @@ export class NotificationsService {
     return result;
   }
 
-  private validateNotificationData(data: Partial<CreateNotificationDto>): void {
+  private validateNotificationData(
+    data: Partial<CreateNotificationDto>,
+    threshold: number | undefined,
+    display_unit: NotificationDisplayUnit | undefined,
+  ): void {
     // Validate based on alarm type
     if (data.alarm_type === NotificationType.THRESHOLD) {
-      if (!data.threshold_ug_m3) {
-        throw new BadRequestException('Threshold notifications require threshold_ug_m3');
+      if (threshold === undefined || threshold === null) {
+        throw new BadRequestException(
+          'Threshold notifications require threshold (or threshold_ug_m3 for legacy clients)',
+        );
       }
 
       // Prevent scheduled fields on threshold notifications
@@ -445,7 +559,9 @@ export class NotificationsService {
       }
 
       // Prevent threshold fields on scheduled notifications
-      if (data.threshold_ug_m3 !== undefined || data.threshold_cycle !== undefined) {
+      const hasThresholdFields =
+        threshold !== undefined || data.threshold_cycle !== undefined;
+      if (hasThresholdFields) {
         throw new BadRequestException(
           'Cannot set threshold fields on a scheduled notification. Use alarm_type: "threshold" instead.',
         );
@@ -466,6 +582,34 @@ export class NotificationsService {
 
     if (!data.location_id || data.location_id <= 0) {
       throw new BadRequestException('Valid location_id is required');
+    }
+
+    // Validate that parameter is provided
+    if (!data.parameter) {
+      throw new BadRequestException('parameter is required');
+    }
+
+    // Validate that display_unit is provided (from either new or legacy field)
+    if (display_unit === undefined || display_unit === null) {
+      throw new BadRequestException(
+        'display_unit (or unit for legacy clients) is required',
+      );
+    }
+
+    // Validate that display_unit is valid for the given parameter
+    const validUnits = PARAMETER_VALID_UNITS[data.parameter as NotificationParameter];
+    if (validUnits && !validUnits.includes(display_unit)) {
+      throw new BadRequestException(
+        `Invalid display_unit '${display_unit}' for parameter '${data.parameter}'. ` +
+        `Valid units for ${data.parameter}: ${validUnits.join(', ')}`,
+      );
+    }
+
+    // Validate place_id is required when monitor_type is 'owned'
+    if (data.monitor_type === MonitorType.OWNED && !data.place_id) {
+      throw new BadRequestException(
+        'place_id is required when monitor_type is "owned"',
+      );
     }
   }
 

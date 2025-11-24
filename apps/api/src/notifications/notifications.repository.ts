@@ -12,24 +12,27 @@ export class NotificationsRepository {
     try {
       const result = await this.databaseService.runQuery(
         `INSERT INTO notifications (
-          player_id, user_id, alarm_type, location_id,
-          threshold_ug_m3, threshold_cycle,
+          player_id, user_id, alarm_type, location_id, parameter,
+          threshold, threshold_cycle,
           scheduled_days, scheduled_time, scheduled_timezone,
-          active, unit
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          active, display_unit, monitor_type, place_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         RETURNING *`,
         [
           notification.player_id,
           notification.user_id,
           notification.alarm_type,
           notification.location_id,
-          notification.threshold_ug_m3,
+          notification.parameter,
+          notification.threshold,
           notification.threshold_cycle,
           notification.scheduled_days,
           notification.scheduled_time,
           notification.scheduled_timezone,
           notification.active,
-          notification.unit,
+          notification.display_unit,
+          notification.monitor_type,
+          notification.place_id,
         ],
       );
       return result.rows[0];
@@ -88,19 +91,27 @@ export class NotificationsRepository {
   async updateNotification(notification: NotificationEntity): Promise<NotificationEntity> {
     try {
       const result = await this.databaseService.runQuery(
-        'UPDATE notifications SET player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, threshold_ug_m3 = $5, threshold_cycle = $6, scheduled_days = $7, scheduled_time = $8, scheduled_timezone = $9, active = $10, unit = $11 WHERE id = $12 RETURNING *',
+        `UPDATE notifications SET
+          player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, parameter = $5,
+          threshold = $6, threshold_cycle = $7,
+          scheduled_days = $8, scheduled_time = $9, scheduled_timezone = $10,
+          active = $11, display_unit = $12, monitor_type = $13, place_id = $14
+        WHERE id = $15 RETURNING *`,
         [
           notification.player_id,
           notification.user_id,
           notification.alarm_type,
           notification.location_id,
-          notification.threshold_ug_m3,
+          notification.parameter,
+          notification.threshold,
           notification.threshold_cycle,
           notification.scheduled_days,
           notification.scheduled_time,
           notification.scheduled_timezone,
           notification.active,
-          notification.unit,
+          notification.display_unit,
+          notification.monitor_type,
+          notification.place_id,
           notification.id,
         ],
       );
@@ -215,21 +226,29 @@ export class NotificationsRepository {
   async getThresholdNotificationByPlayerAndLocation(
     playerId: string,
     locationId: number,
+    parameter?: string,
   ): Promise<NotificationEntity | null> {
     try {
-      const result = await this.databaseService.runQuery(
-        `SELECT * FROM notifications
+      let query = `SELECT * FROM notifications
          WHERE player_id = $1
            AND location_id = $2
-           AND alarm_type = 'threshold'
-         LIMIT 1`,
-        [playerId, locationId],
-      );
+           AND alarm_type = 'threshold'`;
+      const params: (string | number)[] = [playerId, locationId];
+
+      if (parameter) {
+        query += ` AND parameter = $3`;
+        params.push(parameter);
+      }
+
+      query += ' LIMIT 1';
+
+      const result = await this.databaseService.runQuery(query, params);
       return result.rows[0] || null;
     } catch (error) {
       this.logger.error('Failed to check for existing threshold notification', {
         playerId,
         locationId,
+        parameter,
         error: error.message,
       });
       throw error;
