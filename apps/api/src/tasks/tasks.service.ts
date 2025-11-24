@@ -10,8 +10,8 @@ import { NotificationsService } from 'src/notifications/notifications.service';
 import {
   DataSource,
   UpsertLocationOwnerInput,
-  PluginDataSource,
   InsertLatestMeasuresInput,
+  PluginDataSourceOutput,
 } from 'src/types';
 
 @Injectable()
@@ -56,12 +56,12 @@ export class TasksService {
       this.logger.log(`Run job sync ${fileName} locations`);
 
       // Execute plugin in worker thread
-      const result = await this.piscina.run({
+      const result = (await this.piscina.run({
         folder,
         fileName,
         method: 'location',
         args,
-      });
+      })) as PluginDataSourceOutput;
 
       // Validate results
       if (!result.success) {
@@ -100,12 +100,12 @@ export class TasksService {
       this.logger.log(`Run job get ${fileName} latest`);
 
       // Execute plugin in worker thread
-      const result = await this.piscina.run({
+      const result = (await this.piscina.run({
         folder,
         fileName,
         method: 'latest',
         args,
-      });
+      })) as PluginDataSourceOutput;
 
       // Validate results
       if (!result.success) {
