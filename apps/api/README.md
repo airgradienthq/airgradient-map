@@ -14,7 +14,16 @@ The AirGradient Map API includes a task scheduler that runs periodic jobs (simil
 
 #### Sensor locations and measurements data
 
-Since not all external platforms providing sensor data are publicly accessible, a plugin-based architecture for flexible data retrieval is implemented. Each scheduled task imports a standalone .js plugin file and calls standardized functions (latest and location) that return data in a consistent format.
+Since not all external platforms providing sensor data are publicly accessible, a plugin-based architecture for flexible data retrieval is implemented. Each scheduled task executes a standalone .js plugin file in a **worker thread** via a generic worker ([plugin-worker.js](./data-source/plugin-worker.js)), which calls standardized functions (latest and location) that return data in a consistent format.
+
+**Worker Thread Architecture:**
+
+To prevent CPU-intensive data processing from blocking the main API thread, plugins are executed in worker threads using [Piscina](https://github.com/piscinajs/piscina), a worker thread pool library. The [tasks.service.ts](./src/tasks/tasks.service.ts) delegates plugin execution to the worker pool, which:
+- Keeps the main thread responsive during data processing
+- Utilizes multiple CPU cores for parallel processing
+- Automatically manages worker lifecycle and job queuing
+
+The generic worker dynamically loads and executes any plugin method, making it compatible with all data source plugins without requiring plugin-specific worker code.
 
 **Plugin Structure:**
 
@@ -51,10 +60,12 @@ module.exports = { latest, location };
 To create new data source, please follow these steps:
 
 1. Create plugin file using [template.js](./data-source/public/template.js) as starting point
-2. Add two task functions in [tasks.service.ts](./src/tasks/tasks.service.ts) that import the new plugin:
-    - One task for retrieving latest measurements
-    - One task for syncing location information
+2. Add two task functions in [tasks.service.ts](./src/tasks/tasks.service.ts) that call the generic worker with your plugin:
+    - One task for retrieving latest measurements (uses `this.getLatest()`)
+    - One task for syncing location information (uses `this.syncLocations()`)
 3. Register the data source by adding a new enum value in [data-source.ts](./src/types/shared/data-source.ts)
+
+**Note:** The generic worker ([plugin-worker.js](./data-source/plugin-worker.js)) automatically handles worker thread execution for all plugins. No additional worker-specific code is needed.
 
 *For complete implementation examples, see this [folder](./data-source/public/).*
 
