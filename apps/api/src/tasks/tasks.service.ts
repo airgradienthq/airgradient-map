@@ -2,6 +2,7 @@ import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { Piscina } from 'piscina';
 
 import { TasksRepository } from './tasks.repository';
 import { NotificationsService } from 'src/notifications/notifications.service';
@@ -19,6 +20,7 @@ export class TasksService {
   private readonly logger = new Logger(TasksService.name);
   private isAirgradientLatestJobRunning = false;
   private dataSourcePath = '';
+  private piscina: Piscina;
 
   constructor(
     private readonly tasksRepository: TasksRepository,
@@ -31,6 +33,13 @@ export class TasksService {
     }
 
     this.dataSourcePath = path.resolve(process.cwd(), 'data-source');
+
+    // Initialize Piscina worker pool
+    this.piscina = new Piscina({
+      filename: path.resolve(this.dataSourcePath, 'plugin-worker.js'),
+      maxThreads: 4,
+      minThreads: 1, // always keep 1 worker alive
+    });
   }
 
   private async syncLocations(
@@ -40,13 +49,19 @@ export class TasksService {
     args?: Record<string, any>,
   ): Promise<void> {
     try {
+      this.logger.debug(
+        `Piscina queue: ${this.piscina.queueSize}, active workers: ${this.piscina.threads.length}`,
+      );
       const before = Date.now();
       this.logger.log(`Run job sync ${fileName} locations`);
 
-      // load file and run
-      const filePath = path.join(this.dataSourcePath, folder, fileName);
-      const plugin = (await import(filePath)) as PluginDataSource;
-      const result = await plugin.location(args);
+      // Execute plugin in worker thread
+      const result = await this.piscina.run({
+        folder,
+        fileName,
+        method: 'location',
+        args,
+      });
 
       // Validate results
       if (!result.success) {
@@ -78,13 +93,19 @@ export class TasksService {
     args?: Record<string, any>,
   ): Promise<void> {
     try {
+      this.logger.debug(
+        `Piscina queue: ${this.piscina.queueSize}, active workers: ${this.piscina.threads.length}`,
+      );
       const before = Date.now();
       this.logger.log(`Run job get ${fileName} latest`);
 
-      // load file and run
-      const filePath = path.join(this.dataSourcePath, folder, fileName);
-      const plugin = (await import(filePath)) as PluginDataSource;
-      const result = await plugin.latest(args);
+      // Execute plugin in worker thread
+      const result = await this.piscina.run({
+        folder,
+        fileName,
+        method: 'latest',
+        args,
+      });
 
       // Validate results
       if (!result.success) {
@@ -110,7 +131,7 @@ export class TasksService {
     }
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   async syncAirgradientLocations(): Promise<void> {
     return await this.syncLocations('public', 'airgradient.js', DataSource.AIRGRADIENT);
   }
@@ -136,7 +157,7 @@ export class TasksService {
     this.isAirgradientLatestJobRunning = false;
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async getOpenAQLatest(): Promise<void> {
     try {
       const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
