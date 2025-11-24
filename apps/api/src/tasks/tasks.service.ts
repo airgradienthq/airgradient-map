@@ -131,7 +131,7 @@ export class TasksService {
     }
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_HOUR)
   async syncAirgradientLocations(): Promise<void> {
     return await this.syncLocations('public', 'airgradient.js', DataSource.AIRGRADIENT);
   }
@@ -157,7 +157,7 @@ export class TasksService {
     this.isAirgradientLatestJobRunning = false;
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_HOUR)
   async getOpenAQLatest(): Promise<void> {
     try {
       const referenceIdToIdMap = await this.tasksRepository.retrieveLocationIds(DataSource.OPENAQ);
