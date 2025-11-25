@@ -5,6 +5,7 @@ import DatabaseService from 'src/database/database.service';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
 import { OutlierService } from 'src/outlier/outlier.service';
 import { DataSource, InsertLatestMeasuresInput, UpsertLocationOwnerInput } from 'src/types';
+import { batchConcurrent } from 'src/utils/batch-concurrent.util';
 
 @Injectable()
 export class TasksRepository {
@@ -15,6 +16,7 @@ export class TasksRepository {
 
   private readonly logger = new Logger(TasksRepository.name);
   private readonly batchSize = 1000;
+  private readonly concurrencyLimit = 48; // Limit concurrent DB operations to avoid pool exhaustion
 
   async upsertLocationsAndOwners(
     dataSource: string,
@@ -247,7 +249,7 @@ export class TasksRepository {
 
       // Small delay between batches to reduce contention
       if (i + this.batchSize < latestMeasuresInput.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setImmediate(resolve));
       }
     }
   }
@@ -259,20 +261,19 @@ export class TasksRepository {
   ): Promise<void> {
     try {
       // Map into values query while set if value outlier or not
+      // Process in batches to avoid overwhelming the database connection pool
       const latestValues = (
-        await Promise.all(
-          latestMeasuresInput.map(async dataPoint => {
-            const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
-              dataPoint;
-            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(
-              locationReferenceId,
-              pm25,
-              measuredAt,
-            );
-            const locId = locationIdAvailable ? locationId : locationReferenceId;
-            return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
-          }),
-        )
+        await batchConcurrent(latestMeasuresInput, this.concurrencyLimit, async dataPoint => {
+          const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
+            dataPoint;
+          const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(
+            locationReferenceId,
+            pm25,
+            measuredAt,
+          );
+          const locId = locationIdAvailable ? locationId : locationReferenceId;
+          return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
+        })
       ).join(', ');
 
       // Prepare query based on if locationId available or not

@@ -23,6 +23,9 @@ import DatabaseOptions from './databaseOptions';
           user: databaseOptions.user,
           password: databaseOptions.password,
           database: databaseOptions.database,
+          max: databaseOptions.max,
+          idleTimeoutMillis: databaseOptions.idleTimeoutMillis,
+          connectionTimeoutMillis: databaseOptions.connectionTimeoutMillis,
         });
       },
     },
