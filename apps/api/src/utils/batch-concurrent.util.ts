@@ -24,6 +24,12 @@ export async function batchConcurrent<T, R>(
     const batch = items.slice(i, i + concurrencyLimit);
     const batchResults = await Promise.all(batch.map(processFn));
     results.push(...batchResults);
+
+    // Yield control back to event loop between sub-batches
+    // This allows other I/O operations to proceed and prevents blocking
+    if (i + concurrencyLimit < items.length) {
+      await new Promise(resolve => setImmediate(resolve));
+    }
   }
 
   return results;
