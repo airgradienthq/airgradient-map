@@ -8,6 +8,7 @@ export const DEFAULT_MAP_VIEW_CONFIG = {
   maxBoundsViscosity: 1,
   maxBounds: new LatLngBounds(new LatLng(-88, -180), new LatLng(88, 179)),
   wind_layer: false,
+  fires_layer: false,
   light_map_style_url: 'https://tiles.openfreemap.org/styles/bright',
   dark_map_style_url: 'https://tiles.openfreemap.org/styles/positron',
   embedded: false,

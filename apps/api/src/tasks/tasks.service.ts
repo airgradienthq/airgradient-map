@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { TasksRepository } from './tasks.repository';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { FiresDataService } from 'src/fires-data/fires-data.service';
 
 import {
   DataSource,
@@ -24,6 +25,7 @@ export class TasksService {
     private readonly tasksRepository: TasksRepository,
     private readonly configService: ConfigService,
     private readonly notificationsService: NotificationsService,
+    private readonly firesDataService: FiresDataService,
   ) {
     const apiKey = this.configService.get<string>('API_KEY_OPENAQ');
     if (apiKey) {
@@ -182,6 +184,15 @@ export class TasksService {
       }
     } catch (error) {
       this.logger.error('Notification job failed:', error);
+    }
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async syncFirmsFiresData(): Promise<void> {
+    try {
+      await this.firesDataService.syncFirmsData();
+    } catch (error) {
+      this.logger.error(`FIRMS fires sync job failed: ${error}`);
     }
   }
 }

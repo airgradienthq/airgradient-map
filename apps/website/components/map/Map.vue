@@ -24,6 +24,16 @@
       </UiIconButton>
 
       <UiIconButton
+        :ripple="false"
+        :size="ButtonSize.NORMAL"
+        customIcon="fire-icon.svg"
+        :active="firesLayerEnabled"
+        title="Toggle Wildfire Layer"
+        @click="toggleFiresLayer"
+      >
+      </UiIconButton>
+
+      <UiIconButton
         v-if="generalConfigStore.embedded"
         :ripple="false"
         :size="ButtonSize.NORMAL"
@@ -54,7 +64,7 @@
       </UiIconButton>
     </div>
 
-    <UiProgressBar :show="(loading && loaderShown) || windLoading"></UiProgressBar>
+    <UiProgressBar :show="(loading && loaderShown) || windLoading || firesLoading"></UiProgressBar>
     <div id="map">
       <div class="map-controls">
         <UiDropdownControl
@@ -85,6 +95,13 @@
         :map="mapInstance"
         :enabled="windLayerEnabled"
         @loading-change="handleWindLoadingChange"
+      />
+
+      <FiresVisualization
+        v-if="mapInstance && isMapFullyReady"
+        :map="mapInstance"
+        :enabled="firesLayerEnabled"
+        @loading-change="handleFiresLoadingChange"
       />
 
       <div v-if="isLegendShown" class="legend-overlay">
@@ -131,12 +148,14 @@
   import UiMapMarkersLegend from '~/components/ui/MapMarkersLegend.vue';
   import UiGeolocationButton from '~/components/ui/GeolocationButton.vue';
   import WindVisualization from '~/components/map/WindVisualization.vue';
+  import FiresVisualization from '~/components/map/FiresVisualization.vue';
   import { useStorage } from '@vueuse/core';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { createVueDebounce } from '~/utils/debounce';
   import { useNuxtApp } from '#imports';
   const loading = ref<boolean>(false);
   const windLoading = ref<boolean>(false);
+  const firesLoading = ref<boolean>(false);
   const isMapFullyReady = ref<boolean>(false);
   const loaderShown = ref<boolean>(true);
   const map = ref<typeof LMap>();
@@ -179,6 +198,7 @@
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
   const windLayerEnabled = computed(() => urlState.wind_layer === 'true');
+  const firesLayerEnabled = computed(() => urlState.fires_layer === 'true');
 
   const measureSelectOptions: DropdownOption[] = [
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
@@ -200,6 +220,10 @@
 
   function handleWindLoadingChange(isLoading: boolean): void {
     windLoading.value = isLoading;
+  }
+
+  function handleFiresLoadingChange(isLoading: boolean): void {
+    firesLoading.value = isLoading;
   }
 
   const onMapReady = async () => {
@@ -271,6 +295,10 @@
 
   function toggleWindLayer(): void {
     setUrlState({ wind_layer: String(!windLayerEnabled.value) });
+  }
+
+  function toggleFiresLayer(): void {
+    setUrlState({ fires_layer: String(!firesLayerEnabled.value) });
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {

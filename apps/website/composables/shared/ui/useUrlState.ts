@@ -26,6 +26,7 @@ export const useUrlState = () => {
     lat: DEFAULT_MAP_VIEW_CONFIG.center[0],
     meas: DEFAULT_URL_CONFIG.meas,
     wind_layer: String(DEFAULT_MAP_VIEW_CONFIG.wind_layer),
+    fires_layer: String(DEFAULT_MAP_VIEW_CONFIG.fires_layer ?? false),
     org: DEFAULT_URL_CONFIG.org,
     embedded: String(DEFAULT_MAP_VIEW_CONFIG.embedded),
     debug: route.query.debug ?? DEFAULT_MAP_VIEW_CONFIG.debug, // hide it at first
