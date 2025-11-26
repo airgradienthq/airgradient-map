@@ -31,14 +31,14 @@ import { IsValidTimezone } from './validators/timezone.validator';
  *
  * Each parameter only accepts specific display units:
  *
- * | Parameter   | Valid Display Units       |
- * |-------------|---------------------------|
- * | `pm25`      | `ug`, `us_aqi`            |
- * | `rco2`      | `ppm`                     |
- * | `tvoc`      | `index`                   |
- * | `nox_index` | `index`                   |
- * | `atmp`      | `celsius`, `fahrenheit`   |
- * | `rhum`      | `percent`                 |
+ * | Parameter    | Valid Display Units       |
+ * |--------------|---------------------------|
+ * | `pm25`       | `ug`, `us_aqi`            |
+ * | `rco2`       | `ppm`                     |
+ * | `tvoc_index` | `index`                   |
+ * | `nox_index`  | `index`                   |
+ * | `atmp`       | `celsius`, `fahrenheit`   |
+ * | `rhum`       | `percent`                 |
  *
  * ## Important Notes
  *

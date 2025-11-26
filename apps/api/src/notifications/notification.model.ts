@@ -16,7 +16,7 @@ export enum NotificationDisplayUnit {
 export enum NotificationParameter {
   PM25 = 'pm25',
   RCO2 = 'rco2',
-  TVOC = 'tvoc',
+  TVOC_INDEX = 'tvoc_index',
   NOX_INDEX = 'nox_index',
   ATMP = 'atmp',
   RHUM = 'rhum',
@@ -33,7 +33,7 @@ export enum MonitorType {
 export const PARAMETER_VALID_UNITS: Record<NotificationParameter, NotificationDisplayUnit[]> = {
   [NotificationParameter.PM25]: [NotificationDisplayUnit.UG, NotificationDisplayUnit.US_AQI],
   [NotificationParameter.RCO2]: [NotificationDisplayUnit.PPM],
-  [NotificationParameter.TVOC]: [NotificationDisplayUnit.INDEX],
+  [NotificationParameter.TVOC_INDEX]: [NotificationDisplayUnit.INDEX],
   [NotificationParameter.NOX_INDEX]: [NotificationDisplayUnit.INDEX],
   [NotificationParameter.ATMP]: [NotificationDisplayUnit.CELSIUS, NotificationDisplayUnit.FAHRENHEIT],
   [NotificationParameter.RHUM]: [NotificationDisplayUnit.PERCENT],

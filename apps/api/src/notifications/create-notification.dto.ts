@@ -32,14 +32,14 @@ import { IsValidTimezone } from './validators/timezone.validator';
  *
  * Each parameter only accepts specific display units:
  *
- * | Parameter   | Valid Display Units       |
- * |-------------|---------------------------|
- * | `pm25`      | `ug`, `us_aqi`            |
- * | `rco2`      | `ppm`                     |
- * | `tvoc`      | `index`                   |
- * | `nox_index` | `index`                   |
- * | `atmp`      | `celsius`, `fahrenheit`   |
- * | `rhum`      | `percent`                 |
+ * | Parameter    | Valid Display Units       |
+ * |--------------|---------------------------|
+ * | `pm25`       | `ug`, `us_aqi`            |
+ * | `rco2`       | `ppm`                     |
+ * | `tvoc_index` | `index`                   |
+ * | `nox_index`  | `index`                   |
+ * | `atmp`       | `celsius`, `fahrenheit`   |
+ * | `rhum`       | `percent`                 |
  */
 export class CreateNotificationDto {
   @ApiProperty({
@@ -84,7 +84,7 @@ export class CreateNotificationDto {
     examples: {
       pm25: { value: 'pm25', description: 'PM2.5 particulate matter' },
       rco2: { value: 'rco2', description: 'CO2 concentration' },
-      tvoc: { value: 'tvoc', description: 'Total Volatile Organic Compounds index' },
+      tvoc_index: { value: 'tvoc_index', description: 'Total Volatile Organic Compounds index' },
       nox_index: { value: 'nox_index', description: 'NOx index' },
       atmp: { value: 'atmp', description: 'Temperature' },
       rhum: { value: 'rhum', description: 'Relative humidity' },

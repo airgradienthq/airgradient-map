@@ -2,7 +2,7 @@
 // Changes:
 // 1. Rename threshold_ug_m3 -> threshold (generic name for multi-parameter support)
 // 2. Rename unit -> display_unit (more descriptive naming)
-// 3. Add parameter column (pm25, rco2, tvoc, nox_index, atmp, rhum)
+// 3. Add parameter column (pm25, rco2, tvoc_index, nox_index, atmp, rhum)
 //    - Default to 'pm25' for existing records
 // 4. Add monitor_type column (owned, public) - default 'public'
 // 5. Add place_id column (nullable, required when monitor_type is 'owned')
@@ -38,7 +38,7 @@ export async function up(knex: Knex): Promise<void> {
     DO $$
     BEGIN
       IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'valid_parameter_check') THEN
-        ALTER TABLE public.notifications ADD CONSTRAINT valid_parameter_check CHECK (parameter IN ('pm25', 'rco2', 'tvoc', 'nox_index', 'atmp', 'rhum'));
+        ALTER TABLE public.notifications ADD CONSTRAINT valid_parameter_check CHECK (parameter IN ('pm25', 'rco2', 'tvoc_index', 'nox_index', 'atmp', 'rhum'));
       END IF;
     END $$;
   `);
@@ -53,7 +53,7 @@ export async function up(knex: Knex): Promise<void> {
   `);
 
   await knex.raw(`
-    COMMENT ON COLUMN public.notifications.parameter IS 'Parameter to monitor: pm25, rco2, tvoc, nox_index, atmp, rhum'
+    COMMENT ON COLUMN public.notifications.parameter IS 'Parameter to monitor: pm25, rco2, tvoc_index, nox_index, atmp, rhum'
   `);
 
   // Create index for parameter-based queries

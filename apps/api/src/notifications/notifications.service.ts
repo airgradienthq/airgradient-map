@@ -25,9 +25,8 @@ import { convertPmToUsAqi } from 'src/utils/convert-pm-us-aqi';
 import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
 import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
-import { AQ_LEVELS_COLORS } from 'src/constants/aq-levels-colors';
-import { getAQIColor } from 'src/utils/get-aqi-color-by-value';
-import { AQILevels } from 'src/types/shared/aq-levels.types';
+import { getMascotImageUrl } from './notification-mascots.util';
+import { getAndroidAccentColor } from './notification-colors.util';
 
 @Injectable()
 export class NotificationsService {
@@ -256,9 +255,7 @@ export class NotificationsService {
 
     // Validate place_id is required when monitor_type is 'owned'
     if (updatedNotification.monitor_type === MonitorType.OWNED && !updatedNotification.place_id) {
-      throw new BadRequestException(
-        'place_id is required when monitor_type is "owned"',
-      );
+      throw new BadRequestException('place_id is required when monitor_type is "owned"');
     }
 
     // Validate parameter/display_unit combination
@@ -269,7 +266,7 @@ export class NotificationsService {
       if (validUnits && !validUnits.includes(finalDisplayUnit)) {
         throw new BadRequestException(
           `Invalid display_unit '${finalDisplayUnit}' for parameter '${finalParameter}'. ` +
-          `Valid units for ${finalParameter}: ${validUnits.join(', ')}`,
+            `Valid units for ${finalParameter}: ${validUnits.join(', ')}`,
         );
       }
     }
@@ -288,50 +285,158 @@ export class NotificationsService {
     const startTime = Date.now();
     this.logger.debug('Processing all notifications...');
 
-    // Get both types of notifications in parallel
-    const [scheduledNotifications, thresholdNotifications] = await Promise.all([
-      this.notificationRepository.getScheduledNotificationsForNow(),
-      this.notificationRepository.getActiveThresholdNotifications(),
-    ]);
-
-    const allNotifications = scheduledNotifications.concat(thresholdNotifications);
+    // 1. Fetch all active notifications
+    const { allNotifications, scheduledCount, thresholdCount } =
+      await this.fetchActiveNotifications();
 
     if (allNotifications.length === 0) {
       this.logger.debug('No notifications to process');
       return { successful: [], failed: [], totalTime: 0 };
     }
 
+    // 2. Split by monitor type (public vs owned)
+    const { publicNotifications, ownedNotifications } =
+      this.groupNotificationsByMonitorType(allNotifications);
+
+    // 3. Fetch measurement data based on monitor type
+    const measurementMap = await this.fetchMeasurementsByMonitorType(
+      publicNotifications,
+      ownedNotifications,
+    );
+
+    // 4. Build notification jobs
+    const jobs = await this.buildNotificationJobs(allNotifications, measurementMap, new Date());
+
+    if (jobs.length === 0) {
+      this.logger.debug('No notifications need to be sent');
+      return { successful: [], failed: [], totalTime: 0 };
+    }
+
+    // 5. Send notifications
+    const processingTime = Date.now() - startTime;
+    this.logger.log(`Sending ${jobs.length} notifications in batch...`, {
+      processingTimeMs: processingTime,
+      scheduledCount,
+      thresholdCount,
+      totalNotificationsEvaluated: allNotifications.length,
+      notificationsToSend: jobs.length,
+    });
+
+    return this.sendBatchNotifications(jobs);
+  }
+
+  /**
+   * Fetch all active notifications (scheduled and threshold)
+   */
+  private async fetchActiveNotifications(): Promise<{
+    allNotifications: NotificationEntity[];
+    scheduledCount: number;
+    thresholdCount: number;
+  }> {
+    const [scheduledNotifications, thresholdNotifications] = await Promise.all([
+      this.notificationRepository.getScheduledNotificationsForNow(),
+      this.notificationRepository.getActiveThresholdNotifications(),
+    ]);
+
     this.logger.log(
       `Found ${scheduledNotifications.length} scheduled and ${thresholdNotifications.length} threshold notifications`,
     );
 
-    // Fetch measurements for all unique locations at once
-    const locationIds = [...new Set(allNotifications.map(n => n.location_id))];
-    this.logger.debug(`Fetching measurements for ${locationIds.length} unique locations`);
+    return {
+      allNotifications: scheduledNotifications.concat(thresholdNotifications),
+      scheduledCount: scheduledNotifications.length,
+      thresholdCount: thresholdNotifications.length,
+    };
+  }
 
-    const measurements: LatestLocationMeasurementData[] =
-      await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
+  /**
+   * Group notifications by monitor type (public vs owned)
+   */
+  private groupNotificationsByMonitorType(notifications: NotificationEntity[]): {
+    publicNotifications: NotificationEntity[];
+    ownedNotifications: NotificationEntity[];
+  } {
+    const publicNotifications = notifications.filter(n => n.monitor_type === MonitorType.PUBLIC);
+    const ownedNotifications = notifications.filter(n => n.monitor_type === MonitorType.OWNED);
+
+    this.logger.debug(
+      `Split notifications: ${publicNotifications.length} public, ${ownedNotifications.length} owned`,
+    );
+
+    return { publicNotifications, ownedNotifications };
+  }
+
+  /**
+   * Fetch measurements based on monitor type
+   */
+  private async fetchMeasurementsByMonitorType(
+    publicNotifications: NotificationEntity[],
+    ownedNotifications: NotificationEntity[],
+  ): Promise<Map<number, LatestLocationMeasurementData>> {
+    const measurementMap = new Map<number, LatestLocationMeasurementData>();
+
+    // Fetch public monitor measurements from database
+    if (publicNotifications.length > 0) {
+      const publicMeasurements = await this.fetchPublicMeasurements(publicNotifications);
+      publicMeasurements.forEach(m => measurementMap.set(m.locationId, m));
+    }
+
+    // Fetch owned monitor measurements from external API
+    if (ownedNotifications.length > 0) {
+      const ownedMeasurements = await this.fetchOwnedMeasurements(ownedNotifications);
+      ownedMeasurements.forEach(m => measurementMap.set(m.locationId, m));
+    }
+
+    return measurementMap;
+  }
+
+  /**
+   * Fetch measurements for public monitors from database
+   */
+  private async fetchPublicMeasurements(
+    notifications: NotificationEntity[],
+  ): Promise<LatestLocationMeasurementData[]> {
+    const locationIds = [...new Set(notifications.map(n => n.location_id))];
+    this.logger.debug(`Fetching measurements for ${locationIds.length} public locations`);
+
+    const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
 
     // Apply EPA correction for AirGradient sensors to ensure consistency with display values
     measurements.forEach((measurement: LatestLocationMeasurementData) => {
-      if (measurement.pm25) {
-        if (measurement.dataSource === DataSource.AIRGRADIENT) {
-          measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
-        }
+      if (measurement.pm25 && measurement.dataSource === DataSource.AIRGRADIENT) {
+        measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
       }
     });
 
-    const measurementMap = new Map<number, LatestLocationMeasurementData>();
+    return measurements;
+  }
 
-    measurements.forEach((measurement: LatestLocationMeasurementData) => {
-      measurementMap.set(measurement.locationId, measurement);
-    });
+  /**
+   * Fetch measurements for owned monitors from external API
+   * TODO: This will be implemented to call the external API for owned monitors
+   */
+  private async fetchOwnedMeasurements(
+    notifications: NotificationEntity[],
+  ): Promise<LatestLocationMeasurementData[]> {
+    this.logger.debug(`Fetching measurements for ${notifications.length} owned monitors`);
+    // TODO: Implementation will be added later to call external API
+    return [];
+  }
 
+  /**
+   * Build notification jobs from notifications and measurements
+   */
+  private async buildNotificationJobs(
+    notifications: NotificationEntity[],
+    measurementMap: Map<number, LatestLocationMeasurementData>,
+    now: Date,
+  ): Promise<NotificationJob[]> {
     const jobs: NotificationJob[] = [];
-    const now = new Date();
 
-    for (const notification of allNotifications) {
+    for (const notification of notifications) {
       const measurement = measurementMap.get(notification.location_id);
+
+      // Validate measurement exists and has required data
       if (
         !measurement ||
         (!measurement?.pm25 && notification.alarm_type !== NotificationType.SCHEDULED)
@@ -342,106 +447,163 @@ export class NotificationsService {
         continue;
       }
 
-      let androidAccentColor: string =
-        AQ_LEVELS_COLORS[
-          measurement.pm25 === null ? AQILevels.NO_DATA : getAQIColor(measurement.pm25)
-        ];
-      androidAccentColor = androidAccentColor.replace('#', 'FF');
+      // Get Android accent color based on parameter type and value
+      const androidAccentColor = getAndroidAccentColor(notification.parameter, measurement.pm25);
 
-      if (
-        measurement &&
-        measurement.pm25 === null &&
-        notification.alarm_type === NotificationType.SCHEDULED
-      ) {
-        jobs.push({
-          playerId: notification.player_id,
-          locationName: measurement.locationName,
-          value: null,
-          unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
-          unit: notification.display_unit as NotificationDisplayUnit,
-          imageUrl: this.getImageUrlForAQI(measurement.pm25),
-          androidAccentColor,
-          isScheduledNotificationNoData: true,
-          title: {
-            en: 'Scheduled Notification: ' + measurement.locationName,
-            de: 'Geplante Benachrichtigung: ' + measurement.locationName,
-          },
-        });
+      // Get mascot image URL based on parameter type and value
+      const imageUrl = getMascotImageUrl(notification.parameter, measurement.pm25);
+
+      // Handle scheduled notification with no data
+      if (measurement.pm25 === null && notification.alarm_type === NotificationType.SCHEDULED) {
+        jobs.push(
+          this.buildScheduledNoDataJob(notification, measurement, androidAccentColor, imageUrl),
+        );
         continue;
       }
 
-      const pmValueConvertedForUnit =
-        notification.display_unit === NotificationDisplayUnit.UG
-          ? measurement.pm25
-          : convertPmToUsAqi(measurement.pm25);
+      // Convert value to display unit
+      const convertedValue = this.convertValueForDisplayUnit(
+        measurement.pm25,
+        notification.display_unit,
+      );
 
-      // For scheduled notifications, always send
+      // Handle scheduled notification with data
       if (notification.alarm_type === NotificationType.SCHEDULED) {
-        jobs.push({
-          playerId: notification.player_id,
-          locationName: measurement.locationName,
-          value: pmValueConvertedForUnit,
-          unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
-          unit: notification.display_unit as NotificationDisplayUnit,
-          imageUrl: this.getImageUrlForAQI(measurement.pm25),
-          androidAccentColor,
-          title: {
-            en: 'Scheduled Notification: ' + measurement.locationName,
-            de: 'Geplante Benachrichtigung: ' + measurement.locationName,
-          },
-        });
+        jobs.push(
+          this.buildScheduledJob(
+            notification,
+            measurement,
+            convertedValue,
+            androidAccentColor,
+            imageUrl,
+          ),
+        );
         continue;
       }
 
-      // For threshold notifications, check conditions
+      // Handle threshold notification
       if (notification.alarm_type === NotificationType.THRESHOLD) {
-        const shouldSend = await this.shouldSendThresholdNotification(
+        const job = await this.buildThresholdJob(
           notification,
-          measurement.pm25,
+          measurement,
+          convertedValue,
+          androidAccentColor,
+          imageUrl,
           now,
         );
-
-        if (shouldSend) {
-          jobs.push({
-            playerId: notification.player_id,
-            locationName: measurement.locationName,
-            value: pmValueConvertedForUnit,
-            unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
-            unit: notification.display_unit as NotificationDisplayUnit,
-            imageUrl: this.getImageUrlForAQI(measurement.pm25),
-            androidAccentColor,
-          });
-        } else {
-          this.logger.debug('Threshold notification skipped', {
-            notificationId: notification.id,
-            reason:
-              measurement.pm25 === null || measurement.pm25 === undefined
-                ? 'missing_pm_value'
-                : notification.threshold === null || notification.threshold === undefined
-                  ? 'missing_threshold_setting'
-                  : measurement.pm25 <= notification.threshold
-                    ? 'below_threshold'
-                    : 'conditions_not_met',
-          });
+        if (job) {
+          jobs.push(job);
         }
       }
     }
 
-    if (jobs.length === 0) {
-      this.logger.debug('No notifications need to be sent');
-      return { successful: [], failed: [], totalTime: 0 };
+    return jobs;
+  }
+
+  /**
+   * Convert measurement value to display unit
+   */
+  private convertValueForDisplayUnit(
+    pm25Value: number,
+    displayUnit: NotificationDisplayUnit,
+  ): number {
+    if (displayUnit === NotificationDisplayUnit.UG) {
+      return pm25Value;
+    }
+    return convertPmToUsAqi(pm25Value);
+  }
+
+  /**
+   * Build scheduled notification job (no data)
+   */
+  private buildScheduledNoDataJob(
+    notification: NotificationEntity,
+    measurement: LatestLocationMeasurementData,
+    androidAccentColor: string,
+    imageUrl: string,
+  ): NotificationJob {
+    return {
+      playerId: notification.player_id,
+      locationName: measurement.locationName,
+      value: null,
+      unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
+      unit: notification.display_unit as NotificationDisplayUnit,
+      imageUrl,
+      androidAccentColor,
+      isScheduledNotificationNoData: true,
+      title: {
+        en: 'Scheduled Notification: ' + measurement.locationName,
+        de: 'Geplante Benachrichtigung: ' + measurement.locationName,
+      },
+    };
+  }
+
+  /**
+   * Build scheduled notification job (with data)
+   */
+  private buildScheduledJob(
+    notification: NotificationEntity,
+    measurement: LatestLocationMeasurementData,
+    convertedValue: number,
+    androidAccentColor: string,
+    imageUrl: string,
+  ): NotificationJob {
+    return {
+      playerId: notification.player_id,
+      locationName: measurement.locationName,
+      value: convertedValue,
+      unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
+      unit: notification.display_unit as NotificationDisplayUnit,
+      imageUrl,
+      androidAccentColor,
+      title: {
+        en: 'Scheduled Notification: ' + measurement.locationName,
+        de: 'Geplante Benachrichtigung: ' + measurement.locationName,
+      },
+    };
+  }
+
+  /**
+   * Build threshold notification job
+   */
+  private async buildThresholdJob(
+    notification: NotificationEntity,
+    measurement: LatestLocationMeasurementData,
+    convertedValue: number,
+    androidAccentColor: string,
+    imageUrl: string,
+    now: Date,
+  ): Promise<NotificationJob | null> {
+    const shouldSend = await this.shouldSendThresholdNotification(
+      notification,
+      measurement.pm25,
+      now,
+    );
+
+    if (!shouldSend) {
+      this.logger.debug('Threshold notification skipped', {
+        notificationId: notification.id,
+        reason:
+          measurement.pm25 === null || measurement.pm25 === undefined
+            ? 'missing_pm_value'
+            : notification.threshold === null || notification.threshold === undefined
+              ? 'missing_threshold_setting'
+              : measurement.pm25 <= notification.threshold
+                ? 'below_threshold'
+                : 'conditions_not_met',
+      });
+      return null;
     }
 
-    const processingTime = Date.now() - startTime;
-    this.logger.log(`Sending ${jobs.length} notifications in batch...`, {
-      processingTimeMs: processingTime,
-      scheduledCount: scheduledNotifications.length,
-      thresholdCount: thresholdNotifications.length,
-      totalNotificationsEvaluated: allNotifications.length,
-      notificationsToSend: jobs.length,
-    });
-
-    return this.sendBatchNotifications(jobs);
+    return {
+      playerId: notification.player_id,
+      locationName: measurement.locationName,
+      value: convertedValue,
+      unitLabel: NOTIFICATION_UNIT_LABELS[notification.display_unit],
+      unit: notification.display_unit as NotificationDisplayUnit,
+      imageUrl,
+      androidAccentColor,
+    };
   }
 
   /**
@@ -559,8 +721,7 @@ export class NotificationsService {
       }
 
       // Prevent threshold fields on scheduled notifications
-      const hasThresholdFields =
-        threshold !== undefined || data.threshold_cycle !== undefined;
+      const hasThresholdFields = threshold !== undefined || data.threshold_cycle !== undefined;
       if (hasThresholdFields) {
         throw new BadRequestException(
           'Cannot set threshold fields on a scheduled notification. Use alarm_type: "threshold" instead.',
@@ -591,9 +752,7 @@ export class NotificationsService {
 
     // Validate that display_unit is provided (from either new or legacy field)
     if (display_unit === undefined || display_unit === null) {
-      throw new BadRequestException(
-        'display_unit (or unit for legacy clients) is required',
-      );
+      throw new BadRequestException('display_unit (or unit for legacy clients) is required');
     }
 
     // Validate that display_unit is valid for the given parameter
@@ -601,33 +760,21 @@ export class NotificationsService {
     if (validUnits && !validUnits.includes(display_unit)) {
       throw new BadRequestException(
         `Invalid display_unit '${display_unit}' for parameter '${data.parameter}'. ` +
-        `Valid units for ${data.parameter}: ${validUnits.join(', ')}`,
+          `Valid units for ${data.parameter}: ${validUnits.join(', ')}`,
       );
     }
 
     // Validate place_id is required when monitor_type is 'owned'
     if (data.monitor_type === MonitorType.OWNED && !data.place_id) {
-      throw new BadRequestException(
-        'place_id is required when monitor_type is "owned"',
-      );
+      throw new BadRequestException('place_id is required when monitor_type is "owned"');
     }
   }
 
+  /**
+   * Get mascot image URL based on parameter and value
+   * @deprecated Use getMascotImageUrl from notification-mascots.util.ts directly
+   */
   private getImageUrlForAQI(pm25: number): string {
-    if (pm25 === null) {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-no-data.png';
-    } else if (pm25 <= 9) {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-good.png';
-    } else if (pm25 <= 35.4) {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-moderate.png';
-    } else if (pm25 <= 55.4) {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy-sensitive.png';
-    } else if (pm25 <= 125.4) {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-unhealthy.png';
-    } else if (pm25 <= 225.4) {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-very-unhealthy.png';
-    } else {
-      return 'https://www.airgradient.com/images/alert-icons-mascot/aqi-hazardous.png';
-    }
+    return getMascotImageUrl(NotificationParameter.PM25, pm25);
   }
 }
