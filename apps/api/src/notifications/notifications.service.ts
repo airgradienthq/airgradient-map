@@ -27,6 +27,8 @@ import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { getMascotImageUrl } from './notification-mascots.util';
 import { getAndroidAccentColor } from './notification-colors.util';
+import { DashboardApiClient } from './dashboard-api.client';
+import { BatchMeasurementsRequestDto, PlaceLocationRequest } from './dto/batch-measurements.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -36,6 +38,7 @@ export class NotificationsService {
     private readonly notificationRepository: NotificationsRepository,
     private readonly batchProcessor: NotificationBatchProcessor,
     private readonly locationRepository: LocationRepository,
+    private readonly dashboardApiClient: DashboardApiClient,
   ) {}
 
   /**
@@ -75,16 +78,25 @@ export class NotificationsService {
 
     this.validateNotificationData(notification, threshold, display_unit);
 
-    // Verify location exists
-    try {
-      await this.locationRepository.retrieveLocationById(notification.location_id);
-    } catch (error) {
-      this.logger.warn('Location lookup failed during notification creation', {
-        locationId: notification.location_id,
-        playerId: notification.player_id,
-        error: error.message,
-      });
-      throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
+    if (notification.monitor_type === MonitorType.PUBLIC) {
+      // Public monitors only support PM2.5 notifications
+      if (notification.parameter !== NotificationParameter.PM25) {
+        throw new BadRequestException(
+          `Public monitors only support PM2.5 notifications. For other parameters (${notification.parameter}), use monitor_type='owned'.`,
+        );
+      }
+
+      // Verify location exists
+      try {
+        await this.locationRepository.retrieveLocationById(notification.location_id);
+      } catch (error) {
+        this.logger.warn('Location lookup failed during notification creation', {
+          locationId: notification.location_id,
+          playerId: notification.player_id,
+          error: error.message,
+        });
+        throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
+      }
     }
 
     // Check for existing threshold notification for this player, location, and parameter
@@ -392,11 +404,26 @@ export class NotificationsService {
 
   /**
    * Fetch measurements for public monitors from database
+   * NOTE: Public monitors currently only support PM2.5 notifications
    */
   private async fetchPublicMeasurements(
     notifications: NotificationEntity[],
   ): Promise<LatestLocationMeasurementData[]> {
-    const locationIds = [...new Set(notifications.map(n => n.location_id))];
+    // Filter out non-PM2.5 notifications for public monitors
+    const pm25Notifications = notifications.filter(n => n.parameter === NotificationParameter.PM25);
+
+    if (pm25Notifications.length < notifications.length) {
+      const skippedCount = notifications.length - pm25Notifications.length;
+      this.logger.warn(
+        `Skipping ${skippedCount} public monitor notification(s) - only PM2.5 is supported for public monitors`,
+      );
+    }
+
+    if (pm25Notifications.length === 0) {
+      return [];
+    }
+
+    const locationIds = [...new Set(pm25Notifications.map(n => n.location_id))];
     this.logger.debug(`Fetching measurements for ${locationIds.length} public locations`);
 
     const measurements = await this.locationRepository.retrieveLastPM25ByLocationsList(locationIds);
@@ -412,15 +439,106 @@ export class NotificationsService {
   }
 
   /**
-   * Fetch measurements for owned monitors from external API
-   * TODO: This will be implemented to call the external API for owned monitors
+   * Fetch measurements for owned monitors from external Dashboard API
    */
   private async fetchOwnedMeasurements(
     notifications: NotificationEntity[],
   ): Promise<LatestLocationMeasurementData[]> {
+    if (notifications.length === 0) {
+      return [];
+    }
+
     this.logger.debug(`Fetching measurements for ${notifications.length} owned monitors`);
-    // TODO: Implementation will be added later to call external API
-    return [];
+
+    // Group notifications by place_id and collect location_ids
+    const placeLocationMap = new Map<number, Set<number>>();
+
+    for (const notification of notifications) {
+      if (!notification.place_id) {
+        this.logger.warn(`Owned notification ${notification.id} missing place_id, skipping`);
+        continue;
+      }
+
+      if (!placeLocationMap.has(notification.place_id)) {
+        placeLocationMap.set(notification.place_id, new Set());
+      }
+      placeLocationMap.get(notification.place_id)!.add(notification.location_id);
+    }
+
+    // Build batch request
+    const locations: PlaceLocationRequest[] = Array.from(placeLocationMap.entries()).map(
+      ([place_id, location_ids]) => ({
+        place_id,
+        location_ids: Array.from(location_ids),
+      }),
+    );
+
+    const request: BatchMeasurementsRequestDto = { locations };
+
+    // Call external API
+    const response = await this.dashboardApiClient.fetchBatchMeasurements(request);
+
+    if (!response.success) {
+      this.logger.error(
+        `Dashboard API request failed: ${response.message}. ` +
+          `Affected: ${notifications.length} notification(s) across ${request.locations.length} place(s). ` +
+          `No owned monitor measurements available.`,
+      );
+      return [];
+    }
+
+    // Log errors from API
+    if (response.errors.length > 0) {
+      this.logger.warn(
+        `Dashboard API returned ${response.errors.length} error(s) out of ` +
+          `${response.data.length + response.errors.length} requested location(s):`,
+        response.errors,
+      );
+    }
+
+    // Transform response to LatestLocationMeasurementData format
+    const measurements: LatestLocationMeasurementData[] = response.data.map(item => ({
+      locationId: item.location_id,
+      pm25: item.measurements.pm25,
+      rco2: item.measurements.rco2,
+      tvoc_index: item.measurements.tvoc_index,
+      nox_index: item.measurements.nox_index,
+      atmp: item.measurements.atmp,
+      rhum: item.measurements.rhum,
+      measuredAt: new Date(item.timestamp),
+      locationName: item.location_name,
+      sensorType: 'ONE_INDOOR', // Owned monitors are indoor
+      dataSource: DataSource.AIRGRADIENT,
+    }));
+
+    this.logger.debug(`Successfully fetched ${measurements.length} owned monitor measurements`);
+
+    return measurements;
+  }
+
+  /**
+   * Get measurement value for a specific parameter
+   */
+  private getParameterValue(
+    measurement: LatestLocationMeasurementData,
+    parameter: NotificationParameter,
+  ): number | null {
+    switch (parameter) {
+      case NotificationParameter.PM25:
+        return measurement.pm25;
+      case NotificationParameter.RCO2:
+        return measurement.rco2;
+      case NotificationParameter.TVOC_INDEX:
+        return measurement.tvoc_index;
+      case NotificationParameter.NOX_INDEX:
+        return measurement.nox_index;
+      case NotificationParameter.ATMP:
+        return measurement.atmp;
+      case NotificationParameter.RHUM:
+        return measurement.rhum;
+      default:
+        return null;
+    }
   }
 
   /**
@@ -436,34 +554,43 @@ export class NotificationsService {
     for (const notification of notifications) {
       const measurement = measurementMap.get(notification.location_id);
 
-      // Validate measurement exists and has required data
-      if (
-        !measurement ||
-        (!measurement?.pm25 && notification.alarm_type !== NotificationType.SCHEDULED)
-      ) {
+      // Validate measurement exists
+      if (!measurement) {
         this.logger.warn(
           `No measurement for location ${notification.location_id} - skipping notification`,
         );
         continue;
       }
 
+      // Get the value for the specific parameter
+      const parameterValue = this.getParameterValue(measurement, notification.parameter);
+
       // Get Android accent color based on parameter type and value
-      const androidAccentColor = getAndroidAccentColor(notification.parameter, measurement.pm25);
+      const androidAccentColor = getAndroidAccentColor(notification.parameter, parameterValue);
 
       // Get mascot image URL based on parameter type and value
-      const imageUrl = getMascotImageUrl(notification.parameter, measurement.pm25);
+      const imageUrl = getMascotImageUrl(notification.parameter, parameterValue);
 
       // Handle scheduled notification with no data
-      if (measurement.pm25 === null && notification.alarm_type === NotificationType.SCHEDULED) {
+      if (parameterValue === null && notification.alarm_type === NotificationType.SCHEDULED) {
         jobs.push(
           this.buildScheduledNoDataJob(notification, measurement, androidAccentColor, imageUrl),
         );
         continue;
       }
 
+      // Skip threshold notifications if no data
+      if (parameterValue === null) {
+        this.logger.warn(
+          `No ${notification.parameter} data for location ${notification.location_id} - skipping notification`,
+        );
+        continue;
+      }
+
       // Convert value to display unit
       const convertedValue = this.convertValueForDisplayUnit(
-        measurement.pm25,
+        parameterValue,
+        notification.parameter,
         notification.display_unit,
       );
 
@@ -504,13 +631,28 @@ export class NotificationsService {
    * Convert measurement value to display unit
    */
   private convertValueForDisplayUnit(
-    pm25Value: number,
+    value: number,
+    parameter: NotificationParameter,
     displayUnit: NotificationDisplayUnit,
   ): number {
-    if (displayUnit === NotificationDisplayUnit.UG) {
-      return pm25Value;
+    // Only PM2.5 has unit conversion (ug/m3 to US AQI)
+    if (parameter === NotificationParameter.PM25) {
+      if (displayUnit === NotificationDisplayUnit.UG) {
+        return value;
+      }
+      return convertPmToUsAqi(value);
     }
-    return convertPmToUsAqi(pm25Value);
+
+    // Temperature conversion (Celsius to Fahrenheit)
+    if (parameter === NotificationParameter.ATMP) {
+      if (displayUnit === NotificationDisplayUnit.FAHRENHEIT) {
+        return (value * 9) / 5 + 32;
+      }
+      return value; // Return Celsius as-is
+    }
+
+    // All other parameters (CO2, TVOC, NOx, Humidity) - no conversion needed
+    return value;
   }
 
   /**

@@ -57,7 +57,7 @@ export class TasksService {
         this.logger.error(`Sync ${fileName} location error: no data available`);
         return;
       }
-      this.logger.debug(result.data[0]);
+      // this.logger.debug(result.data[0]);
 
       await this.tasksRepository.upsertLocationsAndOwners(
         dataSource,
@@ -95,7 +95,7 @@ export class TasksService {
         this.logger.error(`Get ${fileName} latest error: no data available`);
         return;
       }
-      this.logger.debug(result.data[0]);
+      // this.logger.debug(result.data[0]);
 
       await this.tasksRepository.insertLatestMeasures(
         dataSource,

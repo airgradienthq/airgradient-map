@@ -56,6 +56,10 @@ export interface NotificationJob {
 export interface LatestLocationMeasurementData {
   locationId: number;
   pm25: number | null;
+  rco2: number | null;
+  tvoc_index: number | null;
+  nox_index: number | null;
+  atmp: number | null;
   rhum: number | null;
   measuredAt: Date;
   locationName: string;
