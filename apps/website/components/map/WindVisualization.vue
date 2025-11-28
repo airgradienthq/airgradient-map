@@ -39,6 +39,7 @@
   onMounted(async () => {
     if (process.client) {
       try {
+        // @ts-ignore - leaflet-velocity is a client-only library without TypeScript definitions
         await import('leaflet-velocity');
         libraryLoaded = true;
 

@@ -129,7 +129,17 @@
     const frp = props.frp || 0;
 
     // Calculate marker size based on FRP
-    const radius = calculateFireMarkerSize(frp);
+    const baseFrpRadius = calculateFireMarkerSize(frp);
+
+    // Scale radius based on zoom level
+    // Low zoom (2-5): very small markers (0.2-0.5x)
+    // Medium zoom (6-10): normal markers (0.6-1.0x)
+    // High zoom (11+): larger markers (1.1x-2.0x+)
+    const currentZoom = props.map?.getZoom() || 5;
+    const zoomScale = currentZoom <= 5
+      ? 0.2 + (currentZoom * 0.06)  // Low zoom: 0.2 to 0.5
+      : 0.5 + ((currentZoom - 5) * 0.15);  // Medium/high zoom: 0.5 to 2.0+
+    const radius = baseFrpRadius * zoomScale;
 
     // Get color based on confidence level
     const fillColor = FIRE_CONFIDENCE_COLORS[confidence] || FIRE_CONFIDENCE_COLORS.nominal;
@@ -140,7 +150,7 @@
       color: '#fff',
       weight: 1,
       opacity: 0.9,
-      fillOpacity: 0.7,
+      fillOpacity: 0.9,
     });
 
     // Create popup with fire details

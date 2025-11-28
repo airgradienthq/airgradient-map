@@ -7,9 +7,10 @@
  */
 export const FIRMS_API = {
   BASE_URL: 'https://firms.modaps.eosdis.nasa.gov/api/area/csv',
-  DEFAULT_DATA_SOURCE: 'VIIRS_NOAA20_NRT',
-  DEFAULT_DAY_RANGE: 1,
+  DEFAULT_DATA_SOURCE: 'MODIS_NRT',  // MODIS has more frequent updates than VIIRS
+  DEFAULT_DAY_RANGE: 1,    // Back to 1 day since MODIS has current data
   REQUEST_TIMEOUT: 30000, // 30 seconds
+  SYNC_WINDOW_HOURS: 24,  // Sync fires from last 24 hours
 } as const;
 
 /**

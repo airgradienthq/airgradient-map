@@ -16,8 +16,7 @@ export default defineNuxtConfig({
     '@mdi/font/css/materialdesignicons.min.css',
     '@/assets/styles/bootstrap.min.css',
     '@/assets/styles/main.scss',
-    'leaflet-geosearch/dist/geosearch.css',
-    'leaflet-velocity/dist/leaflet-velocity.css'
+    'leaflet-geosearch/dist/geosearch.css'
   ],
   build: {
     transpile: ['vuetify']
