@@ -37,7 +37,7 @@
     "@mdi/font": "^7.4.47",
     "@nuxtjs/i18n": "^10.0.3",
     "@pinia/nuxt": "^0.11.0",
-    "@types/node": "^22.15.19",
+    "@types/node": "^24.10.1",
     "@vueuse/core": "^13.2.0",
     "chart.js": "^4.4.9",
     "chartjs-adapter-date-fns": "^3.0.0",
