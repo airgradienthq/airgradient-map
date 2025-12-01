@@ -30,7 +30,7 @@
     "node": ">=19.0.0"
   },
   "dependencies": {
-    "@capacitor/android": "^7.2.0",
+    "@capacitor/android": "^7.4.4",
     "@capacitor/core": "^7.2.0",
     "@capacitor/ios": "^7.2.0",
     "@maplibre/maplibre-gl-leaflet": "^0.1.0",
