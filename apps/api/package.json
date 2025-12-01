@@ -46,7 +46,7 @@
     "supercluster": "^8.0.1"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.0",
+    "@nestjs/cli": "^11.0.14",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
     "@types/express": "^5.0.0",
