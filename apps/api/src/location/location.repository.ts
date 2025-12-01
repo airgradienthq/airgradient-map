@@ -94,6 +94,9 @@ class LocationRepository {
 
       return new LocationEntity(location);
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(error);
       throw new InternalServerErrorException({
         message: 'LOC_003: Failed to retrieve location by id',
@@ -190,6 +193,9 @@ class LocationRepository {
       }
       return lastMeasurements;
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(error);
       throw new InternalServerErrorException({
         message: 'LOC_005: Failed to retrieve last measures by location id',
@@ -417,6 +423,34 @@ class LocationRepository {
         parameters: { id },
         error: error.message,
         code: 'LOC_008',
+      });
+    }
+  }
+
+  async isLocationIdExist(id: number): Promise<void> {
+    try {
+      const query = 'SELECT 1 FROM location WHERE id = $1';
+      const result = await this.databaseService.runQuery(query, [id]);
+      const location = result.rows[0];
+      if (!location) {
+        throw new NotFoundException({
+          message: 'LOC_009: Location not found',
+          operation: 'isLocationIdExist',
+          parameters: { id },
+          code: 'LOC_009',
+        });
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_010: Failed to retrieve location',
+        operation: 'isLocationIdExist',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_010',
       });
     }
   }
