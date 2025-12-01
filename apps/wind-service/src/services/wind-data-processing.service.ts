@@ -35,7 +35,32 @@ export class WindDataProcessingService {
         return;
       }
 
-      // Step 4: Transform and insert into database (historical data retained)
+      // Step 4: Check if downloaded data is fresh (compare forecast_time)
+      const forecastTime = windData[0]?.header?.refTime
+        ? new Date(windData[0].header.refTime)
+        : null;
+
+      if (!forecastTime) {
+        logger.error('wind-data-processing', 'Could not extract forecast_time from GRIB data');
+        return;
+      }
+
+      const isFresh = await this.isDataFresh(forecastTime);
+
+      if (!isFresh) {
+        const duration = Date.now() - startTime;
+        logger.info('wind-data-processing', 'Downloaded data is not fresher than database, skipping insert', {
+          downloadedForecastTime: forecastTime.toISOString(),
+          duration: `${duration}ms`,
+        });
+        return;
+      }
+
+      logger.info('wind-data-processing', 'Downloaded data is fresh, proceeding with database insert', {
+        forecastTime: forecastTime.toISOString(),
+      });
+
+      // Step 5: Transform and insert into database (historical data retained)
       await this.insertToDatabase(windData, startTime);
 
     } catch (error) {
@@ -109,10 +134,18 @@ export class WindDataProcessingService {
   }
 
   /**
-   * Checks if new wind data should be fetched
+   * Checks if initial wind data fetch should run (used on system startup/reload)
    * Delegates to repository service
    */
-  async shouldFetchNewData(): Promise<boolean> {
-    return this.repository.shouldFetchNewData();
+  async shouldInitialFetchRun(): Promise<boolean> {
+    return this.repository.shouldInitialFetchRun();
+  }
+
+  /**
+   * Checks if downloaded data is fresh compared to database
+   * Delegates to repository service
+   */
+  async isDataFresh(forecastTime: Date): Promise<boolean> {
+    return this.repository.isDataFresh(forecastTime);
   }
 }

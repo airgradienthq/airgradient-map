@@ -7,7 +7,7 @@ import { WindDataProcessingService } from './services/wind-data-processing.servi
  * Wind Service - Main orchestrator for scheduled wind data processing
  * Responsibilities:
  * - Database connection management
- * - Cron scheduling (every 6 hours at 05:05, 11:05, 17:05, 23:05 UTC)
+ * - Cron scheduling (every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00, 23:00 UTC)
  * - Conditional startup execution
  * - Error handling for unhandled exceptions
  */
@@ -33,7 +33,7 @@ class WindService {
     };
 
     schedulerLogger.info(
-      'Wind Service Starting - Every 6 hours at 05:05, 11:05, 17:05, 23:05 UTC (5h after model runs)'
+      'Wind Service Starting - Every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00, 23:00 UTC'
     );
 
     // Conditionally run initial fetch if needed
@@ -64,7 +64,7 @@ class WindService {
    * Conditionally fetches wind data on startup if new data is available
    */
   private async conditionalStartupFetch(runSafe: () => Promise<void>): Promise<void> {
-    const shouldFetch = await this.processor.shouldFetchNewData();
+    const shouldFetch = await this.processor.shouldInitialFetchRun();
 
     if (shouldFetch) {
       schedulerLogger.info('Running initial wind data fetch (startup trigger - new data available)');
@@ -76,12 +76,22 @@ class WindService {
 
   /**
    * Sets up cron schedule for wind data updates
-   * Runs at 05:05, 11:05, 17:05, 23:05 UTC (5 hours after GFS model runs)
+   * Runs every 3 hours at 02:00, 05:00, 08:00, 11:00, 14:00, 17:00, 20:00, 23:00 UTC
+   * Smart checking prevents redundant downloads when forecast hasn't changed
    */
   private scheduleCronJob(runSafe: () => Promise<void>): void {
-    cron.schedule('5 5,11,17,23 * * *', () => {
-      schedulerLogger.info('Scheduled wind data fetch triggered');
-      runSafe();
+    cron.schedule('0 2,5,8,11,14,17,20,23 * * *', async () => {
+      schedulerLogger.info('Scheduled wind data check triggered');
+
+      // Check if new data might be available before downloading
+      const shouldFetch = await this.processor.shouldInitialFetchRun();
+
+      if (shouldFetch) {
+        schedulerLogger.info('Potential new GFS data available, proceeding with fetch');
+        await runSafe();
+      } else {
+        schedulerLogger.info('Wind data is still fresh, skipping fetch');
+      }
     });
   }
 }

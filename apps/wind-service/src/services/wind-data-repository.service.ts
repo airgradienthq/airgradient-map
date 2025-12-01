@@ -5,7 +5,7 @@ import { WindDataRecord, WindDataInsertResult } from '../types';
 export class WindDataRepositoryService {
 
   /**
-   * Checks if new wind data should be fetched
+   * Checks if initial wind data fetch should run (used on system startup/reload)
    * Returns true if:
    * - Database is empty (no wind data yet)
    * - More than 6 hours have passed since the last forecast data became available
@@ -13,7 +13,7 @@ export class WindDataRepositoryService {
    * Logic: (now - (forecast_time + 5 hours)) >= 6 hours
    * The 5-hour delay accounts for GFS data availability after model run
    */
-  async shouldFetchNewData(): Promise<boolean> {
+  async shouldInitialFetchRun(): Promise<boolean> {
     const client = await pool.connect();
 
     try {
@@ -55,6 +55,52 @@ export class WindDataRepositoryService {
         error: error instanceof Error ? error.message : 'Unknown error'
       });
       // On error, fetch to be safe
+      return true;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Checks if the freshly downloaded wind data is newer than what's in the database
+   * Compares the forecast_time from the downloaded GRIB2 data against the latest in DB
+   *
+   * @param downloadedForecastTime - The refTime from the freshly downloaded GRIB2 file
+   * @returns true if downloaded data is newer (should be saved), false if it's the same or older
+   */
+  async isDataFresh(downloadedForecastTime: Date): Promise<boolean> {
+    const client = await pool.connect();
+
+    try {
+      const query = `
+        SELECT MAX(forecast_time) as latest_forecast
+        FROM wind_data
+      `;
+
+      const result = await client.query(query);
+      const latestForecast = result.rows[0]?.latest_forecast;
+
+      if (!latestForecast) {
+        logger.info('wind-data-repository', 'Database is empty, data is fresh');
+        return true;
+      }
+
+      const dbForecastTime = new Date(latestForecast);
+      const isFresh = downloadedForecastTime > dbForecastTime;
+
+      logger.info('wind-data-repository', 'Checked if downloaded data is fresh', {
+        downloadedForecastTime: downloadedForecastTime.toISOString(),
+        dbForecastTime: dbForecastTime.toISOString(),
+        isFresh
+      });
+
+      return isFresh;
+
+    } catch (error) {
+      logger.error('wind-data-repository', 'Error checking if data is fresh', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      // On error, assume data is fresh to be safe
       return true;
     } finally {
       client.release();
