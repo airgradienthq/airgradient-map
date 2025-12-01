@@ -24,10 +24,15 @@ export class LocationService {
   }
 
   async getLocationById(id: number): Promise<LocationByIdResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id);
     return await this.locationRepository.retrieveLocationById(id);
   }
 
   async getLocationLastMeasures(id: number): Promise<LocationMeasuresResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id);
+
     const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
     if (results.dataSource === DataSource.AIRGRADIENT) {
       results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
@@ -36,6 +41,9 @@ export class LocationService {
   }
 
   async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id);
+
     const timeframes = [
       { label: 'last24hours', days: 1 },
       { label: 'last7days', days: 7 },
@@ -92,6 +100,9 @@ export class LocationService {
     excludeOutliers: boolean,
     measure?: MeasureType,
   ) {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id);
+
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
 
@@ -149,6 +160,9 @@ export class LocationService {
     measure: MeasureType,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id);
+
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
 
