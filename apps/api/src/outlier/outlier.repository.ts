@@ -42,6 +42,7 @@ export class OutlierRepository {
   }
 
   public async getBatchLast24HoursPm25Measurements(
+    dataSource: string,
     locationReferenceIds: number[],
     measuredAts: string[],
   ): Promise<Map<number, PM25DataPointEntity[]>> {
@@ -50,8 +51,9 @@ export class OutlierRepository {
        * Batch query to fetch historical PM2.5 data for multiple locations at once.
        *
        * 1. Use ANY($1::int[]) to match all locations in one WHERE clause
-       * 2. Find the earliest timestamp and fetch data from (earliest - 24h) onwards
-       * 3. Return all data grouped by reference_id for in-memory filtering per measurement
+       * 2. Filter by data_source to ensure locationReferenceId uniqueness
+       * 3. Find the earliest timestamp and fetch data from (earliest - 24h) onwards
+       * 4. Return all data grouped by reference_id for in-memory filtering per measurement
        *
        * Trade-off: Fetches slightly more data than needed, but reduces bunch of queries to 1.
        */
@@ -62,14 +64,16 @@ export class OutlierRepository {
           m.pm25
         FROM public.measurement m
         JOIN public.location l ON m.location_id = l.id
-        WHERE l.reference_id = ANY($1::int[])
+        WHERE l.data_source = $1
+          AND l.reference_id = ANY($2::int[])
           AND m.measured_at >= (
             SELECT MIN(ts)::timestamp - INTERVAL '24 HOURS'
-            FROM unnest($2::text[]) AS ts
+            FROM unnest($3::text[]) AS ts
           )
         ORDER BY l.reference_id, m.measured_at;
       `;
       const result = await this.databaseService.runQuery(query, [
+        dataSource,
         locationReferenceIds,
         measuredAts,
       ]);
@@ -96,6 +100,7 @@ export class OutlierRepository {
         message: 'OUT_003: Failed to retrieve batch last 24 Hours pm25',
         operation: 'getBatchLast24HoursPm25Measurements',
         parameters: {
+          dataSource,
           locationCount: locationReferenceIds.length,
           timestampCount: measuredAts.length,
         },
@@ -164,6 +169,7 @@ export class OutlierRepository {
   }
 
   public async getBatchSpatialZScoreStats(
+    dataSource: string,
     locationReferenceIds: number[],
     measuredAts: string[],
     radiusMeters: number,
@@ -177,8 +183,9 @@ export class OutlierRepository {
        * Strategy: Uses LATERAL JOIN to execute spatial analysis for each pair in one query:
        * 1. unnest() creates a virtual table of (locationReferenceId, measuredAt) pairs
        * 2. LATERAL processes each pair: finds nearby locations within radius, gets closest measurement per location
-       * 3. Calculates mean & stddev for each pair's neighborhood
-       * 4. Returns all results in one round-trip
+       * 3. Filter by data_source to ensure locationReferenceId uniqueness
+       * 4. Calculates mean & stddev for each pair's neighborhood
+       * 5. Returns all results in one round-trip
        *
        * This reduces individual spatial queries to 1 LATERAL JOIN query.
        */
@@ -194,25 +201,27 @@ export class OutlierRepository {
             SELECT DISTINCT ON (l2.id) m.pm25
             FROM location l1
             JOIN location l2
-              ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $3)
+              ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
             JOIN measurement m
               ON m.location_id = l2.id
-            WHERE l1.reference_id = input.reference_id
+            WHERE l1.data_source = $3
+              AND l1.reference_id = input.reference_id
               AND m.is_pm25_outlier = false
-              AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $4::int)
-                                  AND input.measured_at::timestamp + make_interval(hours => $4::int)
+              AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)
+                                  AND input.measured_at::timestamp + make_interval(hours => $5::int)
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
           )
           SELECT
             AVG(pm25) AS mean,
             STDDEV_SAMP(pm25) AS stddev
           FROM nearby
-          WHERE (SELECT COUNT(*) FROM nearby) >= $5
+          WHERE (SELECT COUNT(*) FROM nearby) >= $6
         ) AS stats;
       `;
       const value = [
         locationReferenceIds,
         measuredAts,
+        dataSource,
         radiusMeters,
         measuredAtIntervalHours,
         minNearbyCount,
@@ -233,6 +242,7 @@ export class OutlierRepository {
         message: 'OUT_004: Failed to calculate batch spatial Z Score stats',
         operation: 'getBatchSpatialZScoreStats',
         parameters: {
+          dataSource,
           locationCount: locationReferenceIds.length,
           timestampCount: measuredAts.length,
           radiusMeters,

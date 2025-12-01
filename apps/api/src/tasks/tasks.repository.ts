@@ -260,6 +260,7 @@ export class TasksRepository {
     try {
       // Calculate outlier status for all measurements in batch
       const outlierResults = await this.outlierService.calculateBatchIsPm25Outlier(
+        dataSource,
         latestMeasuresInput.map(dp => ({
           locationReferenceId: dp.locationReferenceId,
           pm25: dp.pm25,

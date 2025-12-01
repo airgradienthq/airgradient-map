@@ -102,6 +102,7 @@ export class OutlierService {
   }
 
   public async calculateBatchIsPm25Outlier(
+    dataSource: string,
     dataPoints: Array<{ locationReferenceId: number; pm25: number; measuredAt: string }>,
   ): Promise<Map<string, boolean>> {
     // Extract unique location reference IDs and measured_at timestamps
@@ -110,12 +111,14 @@ export class OutlierService {
 
     // Fetch all historical data in one query
     const historicalDataMap = await this.outlierRepository.getBatchLast24HoursPm25Measurements(
+      dataSource,
       locationReferenceIds,
       measuredAts,
     );
 
     // Fetch all spatial stats in one query
     const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
+      dataSource,
       locationReferenceIds,
       measuredAts,
       this.RADIUS_METERS,
