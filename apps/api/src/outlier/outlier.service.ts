@@ -100,4 +100,70 @@ export class OutlierService {
 
     return false;
   }
+
+  public async calculateBatchIsPm25Outlier(
+    dataPoints: Array<{ locationReferenceId: number; pm25: number; measuredAt: string }>,
+  ): Promise<Map<string, boolean>> {
+    // Extract unique location reference IDs and measured_at timestamps
+    const locationReferenceIds = dataPoints.map(dp => dp.locationReferenceId);
+    const measuredAts = dataPoints.map(dp => dp.measuredAt);
+
+    // Fetch all historical data in one query
+    const historicalDataMap = await this.outlierRepository.getBatchLast24HoursPm25Measurements(
+      locationReferenceIds,
+      measuredAts,
+    );
+
+    // Fetch all spatial stats in one query
+    const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
+      locationReferenceIds,
+      measuredAts,
+      this.RADIUS_METERS,
+      this.MEASURED_AT_INTERVAL_HOURS,
+      this.MIN_NEARBY_COUNT,
+    );
+
+    // Calculate outlier status for each data point
+    const resultsMap = new Map<string, boolean>();
+
+    for (const dataPoint of dataPoints) {
+      const { locationReferenceId, pm25, measuredAt } = dataPoint;
+      const key = `${locationReferenceId}_${measuredAt}`;
+
+      // Filter historical data to last 24 hours from this specific measurement
+      const measuredAtDate = new Date(measuredAt);
+      const cutoffDate = new Date(measuredAtDate.getTime() - 24 * 60 * 60 * 1000);
+      const last24HoursPm25Measurements = (historicalDataMap.get(locationReferenceId) || []).filter(
+        m => m.measuredAt >= cutoffDate && m.measuredAt < measuredAtDate,
+      );
+
+      // Check 1: Same value for 24 hours
+      if (await this.isSameValueFor24Hours(last24HoursPm25Measurements, pm25)) {
+        resultsMap.set(key, true);
+        continue;
+      }
+
+      // Check 2: Spatial Z-score outlier
+      const stats = spatialStatsMap.get(key);
+      if (!stats || stats.mean === null || stats.stddev === null) {
+        // No data available, hence not outlier
+        resultsMap.set(key, false);
+        continue;
+      }
+
+      const { mean, stddev } = stats;
+      let isOutlier = false;
+
+      if (mean >= 50) {
+        const zScore = (pm25 - mean) / stddev;
+        isOutlier = Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
+      } else {
+        isOutlier = Math.abs(pm25 - mean) > this.ABSOLUTE_THRESHOLD;
+      }
+
+      resultsMap.set(key, isOutlier);
+    }
+
+    return resultsMap;
+  }
 }
