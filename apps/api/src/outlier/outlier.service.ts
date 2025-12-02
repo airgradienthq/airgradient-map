@@ -42,65 +42,6 @@ export class OutlierService {
     );
   }
 
-  private async isSameValueFor24Hours(
-    last24HoursPm25Measurements: PM25DataPointEntity[],
-    newPm25: number,
-  ): Promise<boolean> {
-    return (
-      newPm25 !== 0 && // It's not an outlier if the weather condition is good (0) for a long time
-      last24HoursPm25Measurements.length >= 3 &&
-      last24HoursPm25Measurements.every(m => m.pm25 === newPm25)
-    );
-  }
-
-  private async isSpatialZscoreOutlier(
-    locationReferenceId: number,
-    pm25: number,
-    measuredAt: string,
-  ): Promise<boolean> {
-    const result = await this.outlierRepository.getSpatialZScoreStats(
-      locationReferenceId,
-      measuredAt,
-      this.RADIUS_METERS,
-      this.MEASURED_AT_INTERVAL_HOURS,
-      this.MIN_NEARBY_COUNT,
-    );
-
-    const { mean, stddev } = result;
-
-    if (mean === null || stddev === null) {
-      return false;
-    }
-
-    if (mean >= 50) {
-      const zScore = (pm25 - mean) / stddev;
-      return Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
-    } else {
-      return Math.abs(pm25 - mean) > this.ABSOLUTE_THRESHOLD;
-    }
-  }
-
-  public async calculateIsPm25Outlier(
-    locationReferenceId: number,
-    pm25: number,
-    measuredAt: string,
-  ): Promise<boolean> {
-    const last24HoursPm25Measurements = await this.outlierRepository.getLast24HoursPm25Measurements(
-      locationReferenceId,
-      measuredAt,
-    );
-
-    if (await this.isSameValueFor24Hours(last24HoursPm25Measurements, pm25)) {
-      return true;
-    }
-
-    if (await this.isSpatialZscoreOutlier(locationReferenceId, pm25, measuredAt)) {
-      return true;
-    }
-
-    return false;
-  }
-
   public async calculateBatchIsPm25Outlier(
     dataSource: string,
     dataPoints: Array<{ locationReferenceId: number; pm25: number; measuredAt: string }>,
