@@ -14,7 +14,7 @@ export class TasksRepository {
   ) {}
 
   private readonly logger = new Logger(TasksRepository.name);
-  private readonly batchSize = 1000;
+  private readonly batchSize = 500;
 
   async upsertLocationsAndOwners(
     dataSource: string,
