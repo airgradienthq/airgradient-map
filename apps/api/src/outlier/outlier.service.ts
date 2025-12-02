@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OutlierRepository } from './outlier.repository';
-import { PM25DataPointEntity } from './pm25-data-point.entity';
 import { ConfigService } from '@nestjs/config';
 import { OUTLIER_CONFIG } from 'src/constants/outlier.constants';
 
