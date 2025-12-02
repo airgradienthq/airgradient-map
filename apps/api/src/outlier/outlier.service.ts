@@ -105,18 +105,20 @@ export class OutlierService {
     dataSource: string,
     dataPoints: Array<{ locationReferenceId: number; pm25: number; measuredAt: string }>,
   ): Promise<Map<string, boolean>> {
-    // Extract unique location reference IDs and measured_at timestamps
+    // Extract arrays for batch processing
     const locationReferenceIds = dataPoints.map(dp => dp.locationReferenceId);
     const measuredAts = dataPoints.map(dp => dp.measuredAt);
+    const pm25Values = dataPoints.map(dp => dp.pm25);
 
-    // Fetch all historical data in one query
-    const historicalDataMap = await this.outlierRepository.getBatchLast24HoursPm25Measurements(
+    // Check 1: Same value for 24 hours (computed in database)
+    const sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
       dataSource,
       locationReferenceIds,
       measuredAts,
+      pm25Values,
     );
 
-    // Fetch all spatial stats in one query
+    // Check 2: Fetch all spatial stats in one query
     const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
       dataSource,
       locationReferenceIds,
@@ -126,22 +128,16 @@ export class OutlierService {
       this.MIN_NEARBY_COUNT,
     );
 
-    // Calculate outlier status for each data point
+    // Combine results for each data point
     const resultsMap = new Map<string, boolean>();
 
     for (const dataPoint of dataPoints) {
       const { locationReferenceId, pm25, measuredAt } = dataPoint;
       const key = `${locationReferenceId}_${measuredAt}`;
 
-      // Filter historical data to last 24 hours from this specific measurement
-      const measuredAtDate = new Date(measuredAt);
-      const cutoffDate = new Date(measuredAtDate.getTime() - 24 * 60 * 60 * 1000);
-      const last24HoursPm25Measurements = (historicalDataMap.get(locationReferenceId) || []).filter(
-        m => m.measuredAt >= cutoffDate && m.measuredAt < measuredAtDate,
-      );
-
-      // Check 1: Same value for 24 hours
-      if (await this.isSameValueFor24Hours(last24HoursPm25Measurements, pm25)) {
+      // Check 1: Same value for 24 hours (already computed in DB)
+      const isSameValue = sameValueCheckMap.get(key);
+      if (isSameValue === true) {
         resultsMap.set(key, true);
         continue;
       }

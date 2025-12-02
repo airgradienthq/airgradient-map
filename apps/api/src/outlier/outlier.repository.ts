@@ -41,64 +41,66 @@ export class OutlierRepository {
     }
   }
 
-  public async getBatchLast24HoursPm25Measurements(
+  public async getBatchSameValue24hCheck(
     dataSource: string,
     locationReferenceIds: number[],
     measuredAts: string[],
-  ): Promise<Map<number, PM25DataPointEntity[]>> {
+    pm25Values: number[],
+  ): Promise<Map<string, boolean>> {
     try {
       /**
-       * Batch query to fetch historical PM2.5 data for multiple locations at once.
+       * Batch query to check if PM2.5 value has been the same for 24 hours (database-level computation).
        *
-       * 1. Use ANY($1::int[]) to match all locations in one WHERE clause
-       * 2. Filter by data_source to ensure locationReferenceId uniqueness
-       * 3. Find the earliest timestamp and fetch data from (earliest - 24h) onwards
-       * 4. Return all data grouped by reference_id for in-memory filtering per measurement
+       * Strategy: Instead of fetching all historical data to JavaScript:
+       * 1. unnest() creates virtual table of (referenceId, measuredAt, pm25) input tuples
+       * 2. For each tuple, subquery checks if last 24h has same value (COUNT(DISTINCT pm25) = 1)
+       * 3. Returns only boolean results - massive memory savings (200 bools vs 57,600+ rows)
        *
-       * Trade-off: Fetches slightly more data than needed, but reduces bunch of queries to 1.
+       * This eliminates the memory issue by doing computation in PostgreSQL instead of Node.js.
        */
       const query = `
         SELECT
-          l.reference_id,
-          m.measured_at,
-          m.pm25
-        FROM public.measurement m
-        JOIN public.location l ON m.location_id = l.id
-        WHERE l.data_source = $1
-          AND l.reference_id = ANY($2::int[])
-          AND m.measured_at >= (
-            SELECT MIN(ts)::timestamp - INTERVAL '24 HOURS'
-            FROM unnest($3::text[]) AS ts
-          )
-        ORDER BY l.reference_id, m.measured_at;
+          input.reference_id,
+          input.measured_at,
+          CASE
+            WHEN input.pm25 != 0
+              AND (
+                SELECT COUNT(*) >= 3
+                  AND COUNT(DISTINCT m.pm25) = 1
+                  AND MIN(m.pm25) = input.pm25
+                FROM measurement m
+                JOIN location l ON m.location_id = l.id
+                WHERE l.data_source = $1
+                  AND l.reference_id = input.reference_id
+                  AND m.measured_at >= input.measured_at::timestamp - INTERVAL '24 HOURS'
+                  AND m.measured_at < input.measured_at::timestamp
+              )
+            THEN true
+            ELSE false
+          END as is_same_value_outlier
+        FROM unnest($2::int[], $3::text[], $4::numeric[])
+          AS input(reference_id, measured_at, pm25);
       `;
       const result = await this.databaseService.runQuery(query, [
         dataSource,
         locationReferenceIds,
         measuredAts,
+        pm25Values,
       ]);
 
-      // Group results by reference_id
-      const dataMap = new Map<number, PM25DataPointEntity[]>();
+      // Build map keyed by "referenceId_measuredAt"
+      const resultMap = new Map<string, boolean>();
       result.rows.forEach((r: any) => {
-        const refId = Number(r.reference_id);
-        if (!dataMap.has(refId)) {
-          dataMap.set(refId, []);
-        }
-        dataMap.get(refId).push(
-          new PM25DataPointEntity({
-            measuredAt: new Date(r.measured_at),
-            pm25: Number(r.pm25),
-          }),
-        );
+        const key = `${r.reference_id}_${r.measured_at}`;
+        resultMap.set(key, r.is_same_value_outlier);
       });
 
-      return dataMap;
+      return resultMap;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({
-        message: 'OUT_003: Failed to retrieve batch last 24 Hours pm25',
-        operation: 'getBatchLast24HoursPm25Measurements',
+        message: 'OUT_003: Failed to check batch same value for 24 hours',
+        operation: 'getBatchSameValue24hCheck',
         parameters: {
           dataSource,
           locationCount: locationReferenceIds.length,
