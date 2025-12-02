@@ -68,21 +68,43 @@ export class LocationService {
           MeasureType.PM25,
         );
 
-        let results = rows.map((row: any) => ({
-          timebucket: row.timebucket,
-          value:
-            row.dataSource === DataSource.AIRGRADIENT
-              ? getEPACorrectedPM(row.pm25, row.rhum)
-              : row.pm25,
-        }));
+        let results: { timebucket: string; value: number }[] = rows.map(
+          (row: {
+            timebucket: string;
+            value: number;
+            dataSource: DataSource;
+            pm25: number;
+            rhum: number;
+          }) => ({
+            timebucket: row.timebucket,
+            value:
+              row.dataSource === DataSource.AIRGRADIENT
+                ? getEPACorrectedPM(row.pm25, row.rhum)
+                : row.pm25,
+          }),
+        );
 
-        results = results.filter(result => result.pm25 !== null);
+        results = results.filter(result => result.value !== null && result.value !== undefined);
 
+        console.log(results);
         if (results.length === 0) {
           cigaretteData[timeframe.label] = null;
         } else {
-          const sum = results.reduce((acc, result) => acc + parseFloat(result.value), 0);
-          cigaretteData[timeframe.label] = Math.round((sum / 22) * 100) / 100;
+          // Calculate average daily PM2.5 from available data
+          const sum = results.reduce(
+            (acc: number, result: { value: number }) => acc + result.value,
+            0,
+          );
+          const averageDailyPM25 = sum / results.length;
+
+          // Apply average to full timeframe and convert to cigarettes
+          // Missing days are assumed to have the same average pollution as days with data
+          // This projects the average exposure to the entire timeframe period
+          // Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day
+          // Formula: (average_daily_PM25 × timeframe_days) / 22
+          const cigarettesForTimeframe = (averageDailyPM25 * timeframe.days) / 22;
+
+          cigaretteData[timeframe.label] = Math.round(cigarettesForTimeframe * 100) / 100;
         }
       }
       return cigaretteData;
