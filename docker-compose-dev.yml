@@ -1,4 +1,3 @@
-# API
 services:
   postgrex:
     container_name: postgrex-mono
@@ -99,11 +98,30 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=development
+  wind-service:
+    container_name: wind-service-mono
+    build:
+      context: apps/wind-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # Database
+      - DATABASE_HOST=postgrex
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
 
+    networks:
+      - dev
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
 networks:
   dev:
     driver: bridge
 
 volumes:
-  pgdata:
-
+  pgdata: 

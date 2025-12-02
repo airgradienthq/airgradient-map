@@ -4,6 +4,7 @@ import DatabaseModule from './database/database.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
+import { WindDataModule } from './wind-data/wind-data.module';
 import { NotificationModule } from './notifications/notification.module';
 
 @Module({
@@ -26,6 +27,7 @@ import { NotificationModule } from './notifications/notification.module';
     }),
     MeasurementModule,
     LocationModule,
+    WindDataModule,
     NotificationModule,
   ],
   controllers: [],
