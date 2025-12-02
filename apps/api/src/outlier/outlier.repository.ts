@@ -51,10 +51,12 @@ export class OutlierRepository {
       /**
        * Batch query to check if PM2.5 value has been the same for 24 hours (database-level computation).
        *
-       * Strategy: Instead of fetching all historical data to app:
+       * Strategy: Instead of fetching all historical data to JavaScript:
        * 1. unnest() creates virtual table of (referenceId, measuredAt, pm25) input tuples
        * 2. For each tuple, subquery checks if last 24h has same value (COUNT(DISTINCT pm25) = 1)
        * 3. Returns only boolean results - massive memory savings (200 bools vs 57,600+ rows)
+       *
+       * This eliminates the memory issue by doing computation in PostgreSQL instead of Node.js.
        */
       const query = `
         SELECT
@@ -178,33 +180,33 @@ export class OutlierRepository {
   ): Promise<Map<string, NearbyPm25Stats>> {
     try {
       /**
-       * Optimized batch query to get spatial statistics (mean/stddev) for Z-score calculation.
+       * Batch query to calculate spatial statistics for multiple location/timestamp pairs.
        *
-       * Strategy: Calculate stats in database, do threshold logic in app:
-       * 1. unnest() creates virtual table of (referenceId, measuredAt) pairs
-       * 2. LATERAL JOIN finds nearby locations and calculates mean/stddev
-       * 3. Uses CTE with COUNT to avoid duplicate spatial searches
-       * 4. JavaScript applies Z-score threshold (simple, fast, less DB load)
+       * Strategy: Uses LATERAL JOIN to execute spatial analysis for each pair in one query:
+       * 1. unnest() creates a virtual table of (locationReferenceId, measuredAt) pairs
+       * 2. LATERAL processes each pair: finds nearby locations within radius, gets closest measurement per location
+       * 3. Filter by data_source to ensure locationReferenceId uniqueness
+       * 4. Calculates mean & stddev for each pair's neighborhood
+       * 5. Returns all results in one round-trip
        *
+       * This reduces individual spatial queries to 1 LATERAL JOIN query.
        */
       const query = `
         SELECT
           input.reference_id,
           input.measured_at,
-          spatial_stats.mean,
-          spatial_stats.stddev
-        FROM unnest($2::int[], $3::text[]) AS input(reference_id, measured_at)
+          stats.mean,
+          stats.stddev
+        FROM unnest($1::int[], $2::text[]) AS input(reference_id, measured_at)
         CROSS JOIN LATERAL (
-          WITH nearby_measurements AS (
-            SELECT DISTINCT ON (l2.id)
-              l2.id,
-              m.pm25
+          WITH nearby AS (
+            SELECT DISTINCT ON (l2.id) m.pm25
             FROM location l1
             JOIN location l2
               ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
             JOIN measurement m
               ON m.location_id = l2.id
-            WHERE l1.data_source = $1
+            WHERE l1.data_source = $3
               AND l1.reference_id = input.reference_id
               AND m.is_pm25_outlier = false
               AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)
@@ -212,15 +214,16 @@ export class OutlierRepository {
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
           )
           SELECT
-            CASE WHEN COUNT(*) >= $6 THEN AVG(pm25) ELSE NULL END as mean,
-            CASE WHEN COUNT(*) >= $6 THEN STDDEV_SAMP(pm25) ELSE NULL END as stddev
-          FROM nearby_measurements
-        ) AS spatial_stats;
+            AVG(pm25) AS mean,
+            STDDEV_SAMP(pm25) AS stddev
+          FROM nearby
+          WHERE (SELECT COUNT(*) FROM nearby) >= $6
+        ) AS stats;
       `;
       const value = [
-        dataSource,
         locationReferenceIds,
         measuredAts,
+        dataSource,
         radiusMeters,
         measuredAtIntervalHours,
         minNearbyCount,
