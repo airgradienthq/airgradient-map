@@ -121,30 +121,27 @@ export class OutlierService {
       measuredAts,
       pm25Values,
     );
-    this.logger.debug(`24 hours check spend ${Date.now() - before}`);
+    this.logger.debug(`24 hours check spend ${Date.now() - before}ms`);
 
     before = Date.now();
 
-    // Check 2: Spatial outlier check (computed in database)
-    this.logger.debug('Perform spatial outlier check');
-    const spatialOutlierCheckMap = await this.outlierRepository.getBatchSpatialOutlierCheck(
+    // Check 2: Get spatial statistics (computed in database)
+    this.logger.debug('Fetch spatial statistics');
+    const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
       dataSource,
       locationReferenceIds,
       measuredAts,
-      pm25Values,
       this.RADIUS_METERS,
       this.MEASURED_AT_INTERVAL_HOURS,
       this.MIN_NEARBY_COUNT,
-      this.Z_SCORE_THRESHOLD,
-      this.ABSOLUTE_THRESHOLD,
     );
-    this.logger.debug(`Spatial outlier check spend ${Date.now() - before}`);
+    this.logger.debug(`Spatial stats fetch spend ${Date.now() - before}ms`);
 
     // Combine results for each data point
     const resultsMap = new Map<string, boolean>();
 
     for (const dataPoint of dataPoints) {
-      const { locationReferenceId, measuredAt } = dataPoint;
+      const { locationReferenceId, pm25, measuredAt } = dataPoint;
       const key = `${locationReferenceId}_${measuredAt}`;
 
       // Check 1: Same value for 24 hours (already computed in DB)
@@ -154,9 +151,28 @@ export class OutlierService {
         continue;
       }
 
-      // Check 2: Spatial outlier (already computed in DB)
-      const isSpatialOutlier = spatialOutlierCheckMap.get(key) ?? false;
-      resultsMap.set(key, isSpatialOutlier);
+      // Check 2: Spatial Z-score outlier (calculate in JavaScript)
+      const stats = spatialStatsMap.get(key);
+      if (!stats || stats.mean === null || stats.stddev === null) {
+        // No spatial data available, not an outlier
+        resultsMap.set(key, false);
+        continue;
+      }
+
+      const { mean, stddev } = stats;
+      let isOutlier = false;
+
+      // Apply threshold based on mean PM2.5 level
+      if (mean >= 50) {
+        // High pollution area: use Z-score
+        const zScore = (pm25 - mean) / stddev;
+        isOutlier = Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
+      } else {
+        // Low pollution area: use absolute threshold
+        isOutlier = Math.abs(pm25 - mean) > this.ABSOLUTE_THRESHOLD;
+      }
+
+      resultsMap.set(key, isOutlier);
     }
 
     return resultsMap;

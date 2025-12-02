@@ -51,12 +51,10 @@ export class OutlierRepository {
       /**
        * Batch query to check if PM2.5 value has been the same for 24 hours (database-level computation).
        *
-       * Strategy: Instead of fetching all historical data to JavaScript:
+       * Strategy: Instead of fetching all historical data to app:
        * 1. unnest() creates virtual table of (referenceId, measuredAt, pm25) input tuples
        * 2. For each tuple, subquery checks if last 24h has same value (COUNT(DISTINCT pm25) = 1)
        * 3. Returns only boolean results - massive memory savings (200 bools vs 57,600+ rows)
-       *
-       * This eliminates the memory issue by doing computation in PostgreSQL instead of Node.js.
        */
       const query = `
         SELECT
@@ -170,100 +168,78 @@ export class OutlierRepository {
     }
   }
 
-  public async getBatchSpatialOutlierCheck(
+  public async getBatchSpatialZScoreStats(
     dataSource: string,
     locationReferenceIds: number[],
     measuredAts: string[],
-    pm25Values: number[],
     radiusMeters: number,
     measuredAtIntervalHours: number,
     minNearbyCount: number,
-    zScoreThreshold: number,
-    absoluteThreshold: number,
-  ): Promise<Map<string, boolean>> {
+  ): Promise<Map<string, NearbyPm25Stats>> {
     try {
       /**
-       * Batch query to check spatial outliers entirely in database (no LATERAL JOIN).
+       * Optimized batch query to get spatial statistics (mean/stddev) for Z-score calculation.
        *
-       * Strategy: Do ALL computation in PostgreSQL instead of fetching stats to JavaScript:
-       * 1. unnest() creates virtual table of input (referenceId, measuredAt, pm25) tuples
-       * 2. For each tuple, correlated subquery calculates mean/stddev from nearby locations
-       * 3. CASE statement applies Z-score or absolute threshold logic directly in SQL
-       * 4. Returns only boolean results - massive performance gain
+       * Strategy: Calculate stats in database, do threshold logic in app:
+       * 1. unnest() creates virtual table of (referenceId, measuredAt) pairs
+       * 2. LATERAL JOIN finds nearby locations and calculates mean/stddev
+       * 3. Uses CTE with COUNT to avoid duplicate spatial searches
+       * 4. JavaScript applies Z-score threshold (simple, fast, less DB load)
        *
-       * This eliminates LATERAL JOIN complexity and memory issues.
        */
       const query = `
         SELECT
           input.reference_id,
           input.measured_at,
-          CASE
-            WHEN spatial_stats.mean IS NULL OR spatial_stats.stddev IS NULL THEN false
-            WHEN spatial_stats.mean >= 50 THEN
-              ABS((input.pm25 - spatial_stats.mean) / NULLIF(spatial_stats.stddev, 0)) > $7
-            ELSE
-              ABS(input.pm25 - spatial_stats.mean) > $8
-          END as is_spatial_outlier
-        FROM unnest($2::int[], $3::text[], $4::numeric[]) AS input(reference_id, measured_at, pm25)
+          spatial_stats.mean,
+          spatial_stats.stddev
+        FROM unnest($2::int[], $3::text[]) AS input(reference_id, measured_at)
         CROSS JOIN LATERAL (
-          SELECT
-            AVG(nearby_pm25) as mean,
-            STDDEV_SAMP(nearby_pm25) as stddev
-          FROM (
-            SELECT DISTINCT ON (l2.id) m.pm25 as nearby_pm25
+          WITH nearby_measurements AS (
+            SELECT DISTINCT ON (l2.id)
+              l2.id,
+              m.pm25
             FROM location l1
             JOIN location l2
-              ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $5)
+              ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
             JOIN measurement m
               ON m.location_id = l2.id
             WHERE l1.data_source = $1
               AND l1.reference_id = input.reference_id
               AND m.is_pm25_outlier = false
-              AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $6::int)
-                                  AND input.measured_at::timestamp + make_interval(hours => $6::int)
+              AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)
+                                  AND input.measured_at::timestamp + make_interval(hours => $5::int)
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
-          ) nearby_data
-          WHERE (SELECT COUNT(*) FROM (
-            SELECT DISTINCT ON (l2.id) l2.id
-            FROM location l1
-            JOIN location l2
-              ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $5)
-            JOIN measurement m
-              ON m.location_id = l2.id
-            WHERE l1.data_source = $1
-              AND l1.reference_id = input.reference_id
-              AND m.is_pm25_outlier = false
-              AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $6::int)
-                                  AND input.measured_at::timestamp + make_interval(hours => $6::int)
-          ) count_check) >= $9
+          )
+          SELECT
+            CASE WHEN COUNT(*) >= $6 THEN AVG(pm25) ELSE NULL END as mean,
+            CASE WHEN COUNT(*) >= $6 THEN STDDEV_SAMP(pm25) ELSE NULL END as stddev
+          FROM nearby_measurements
         ) AS spatial_stats;
       `;
       const value = [
         dataSource,
         locationReferenceIds,
         measuredAts,
-        pm25Values,
         radiusMeters,
         measuredAtIntervalHours,
-        zScoreThreshold,
-        absoluteThreshold,
         minNearbyCount,
       ];
       const result = await this.databaseService.runQuery(query, value);
 
       // Build map keyed by "referenceId_measuredAt"
-      const resultMap = new Map<string, boolean>();
+      const statsMap = new Map<string, NearbyPm25Stats>();
       result.rows.forEach((r: any) => {
         const key = `${r.reference_id}_${r.measured_at}`;
-        resultMap.set(key, r.is_spatial_outlier);
+        statsMap.set(key, new NearbyPm25Stats(r.mean, r.stddev));
       });
 
-      return resultMap;
+      return statsMap;
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({
-        message: 'OUT_004: Failed to check batch spatial outliers',
-        operation: 'getBatchSpatialOutlierCheck',
+        message: 'OUT_004: Failed to calculate batch spatial Z Score stats',
+        operation: 'getBatchSpatialZScoreStats',
         parameters: {
           dataSource,
           locationCount: locationReferenceIds.length,
