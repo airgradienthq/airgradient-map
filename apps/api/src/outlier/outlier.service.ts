@@ -50,15 +50,22 @@ export class OutlierService {
     const measuredAts = dataPoints.map(dp => dp.measuredAt);
     const pm25Values = dataPoints.map(dp => dp.pm25);
 
+    let before = Date.now();
+
     // Check 1: Same value for 24 hours (computed in database)
+    this.logger.debug('Check same value for 24 hours');
     const sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
       dataSource,
       locationReferenceIds,
       measuredAts,
       pm25Values,
     );
+    this.logger.debug(`24 hours check spend ${Date.now() - before}ms`);
+
+    before = Date.now();
 
     // Check 2: Fetch all spatial stats in one query
+    this.logger.debug('Fetch spatial statistics');
     const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
       dataSource,
       locationReferenceIds,
@@ -67,6 +74,8 @@ export class OutlierService {
       this.MEASURED_AT_INTERVAL_HOURS,
       this.MIN_NEARBY_COUNT,
     );
+
+    this.logger.debug(`Spatial stats fetch spend ${Date.now() - before}ms`);
 
     // Combine results for each data point
     const resultsMap = new Map<string, boolean>();
