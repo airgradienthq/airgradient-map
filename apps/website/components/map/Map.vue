@@ -140,7 +140,11 @@
   const isMapFullyReady = ref<boolean>(false);
   const loaderShown = ref<boolean>(true);
   const map = ref<typeof LMap>();
-  const apiUrl = useRuntimeConfig().public.apiUrl;
+
+  const runtimeConfig = useRuntimeConfig();
+  const apiUrl = runtimeConfig.public.apiUrl as string;
+  const apiKey = runtimeConfig.public.trustedClientApiKey as string;
+
   const generalConfigStore = useGeneralConfigStore();
   const { handleApiError } = useApiErrorHandler();
 
@@ -212,7 +216,13 @@
       return;
     }
 
-    mapInstance = map.value.leafletObject;
+    const leafletObject = map.value.leafletObject as L.Map | undefined;
+
+    if (!leafletObject) {
+      return;
+    }
+
+    mapInstance = leafletObject;
 
     disableScrollWheelZoomForHeadless();
 
@@ -339,7 +349,8 @@
               : generalConfigStore.selectedMeasure,
           excludeOutliers: generalConfigStore.excludeOutliers
         },
-        retry: 1
+        retry: 1,
+        headers: { 'x-api-key': apiKey }
       });
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);

@@ -95,6 +95,7 @@ services:
       - APP_ENV=production
       - HOST=0.0.0.0
       - PORT=80
+      - TRUSTED_CLIENT_API_KEY=${TRUSTED_CLIENT_API_KEY}
 
   wind-service:
     image: "wind-service-mono:${IMAGE_TAG}"

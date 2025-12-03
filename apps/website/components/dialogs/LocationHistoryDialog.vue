@@ -174,7 +174,10 @@
     dialog: DialogInstance<{ location: AGMapLocationData }>;
   }>();
 
-  const apiUrl = useRuntimeConfig().public.apiUrl;
+  const runtimeConfig = useRuntimeConfig();
+  const apiUrl = runtimeConfig.public.apiUrl as string;
+  const apiKey = runtimeConfig.public.trustedClientApiKey as string;
+
   const generalConfigStore = useGeneralConfigStore();
   const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
   const { handleApiError } = useApiErrorHandler();
@@ -286,7 +289,8 @@
     detailsLoading.value = true;
     try {
       const response = await $fetch<LocationDetails>(`${apiUrl}/locations/${locationId}`, {
-        retry: 1
+        retry: 1,
+        headers: { 'x-api-key': apiKey }
       });
       locationDetails.value = response;
     } catch (error) {
@@ -320,7 +324,8 @@
             measure,
             excludeOutliers: generalConfigStore.excludeOutliers
           },
-          retry: 1
+          retry: 1,
+          headers: { 'x-api-key': apiKey }
         }
       );
       locationHistoryData.value = response;
