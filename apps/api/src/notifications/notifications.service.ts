@@ -38,12 +38,13 @@ export class NotificationsService {
 
   public async createNotification(
     notification: CreateNotificationDto,
+    hasFullAccess: boolean,
   ): Promise<NotificationEntity> {
     this.validateNotificationData(notification);
 
     // Verify location exists
     try {
-      await this.locationRepository.retrieveLocationById(notification.location_id);
+      await this.locationRepository.retrieveLocationById(notification.location_id, hasFullAccess);
     } catch (error) {
       this.logger.warn('Location lookup failed during notification creation', {
         locationId: notification.location_id,

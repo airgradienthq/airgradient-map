@@ -21,6 +21,7 @@ import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
 import { MeasurementAveragesDto } from './averages.dto';
 import { AveragesQueryDto } from './averagesQuery.dto';
 import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
+import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 
 @Controller('map/api/v1/locations')
 @ApiTags('Locations')
@@ -37,8 +38,11 @@ export class LocationController {
   })
   @ApiPaginatedResponse(LocationEntity, 'Successfully retrieved all locations', '')
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getLocations(@Query() { page, pagesize }: PaginationQuery) {
-    const locationsEntity = await this.locationService.getLocations(page, pagesize);
+  async getLocations(
+    @Query() { page, pagesize }: PaginationQuery,
+    @HasFullAccess() hasFullAccess: boolean,
+  ) {
+    const locationsEntity = await this.locationService.getLocations(hasFullAccess, page, pagesize);
     return new Pagination(locationsEntity, page, pagesize);
   }
 
@@ -61,8 +65,8 @@ export class LocationController {
   @ApiNotFoundResponse({ description: 'Location not found' })
   @ApiBadRequestResponse({ description: 'Invalid location ID format' })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getLocationById(@Param() { id }: FindOneParams) {
-    return await this.locationService.getLocationById(id);
+  async getLocationById(@Param() { id }: FindOneParams, @HasFullAccess() hasFullAccess: boolean) {
+    return await this.locationService.getLocationById(id, hasFullAccess);
   }
 
   @Get(':id/measures/current')
@@ -82,8 +86,11 @@ export class LocationController {
   })
   @ApiNotFoundResponse({ description: 'Location not found or no recent measurements available' })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getLastmeasuresByLocationId(@Param() { id }: FindOneParams): Promise<LocationMeasuresDto> {
-    const result = await this.locationService.getLocationLastMeasures(id);
+  async getLastmeasuresByLocationId(
+    @Param() { id }: FindOneParams,
+    @HasFullAccess() hasFullAccess: boolean,
+  ): Promise<LocationMeasuresDto> {
+    const result = await this.locationService.getLocationLastMeasures(id, hasFullAccess);
     return new LocationMeasuresDto(result);
   }
 
@@ -106,8 +113,11 @@ export class LocationController {
   @ApiNotFoundResponse({ description: 'Location not found or no PM2.5 data available' })
   @ApiBadRequestResponse({ description: 'Invalid location ID format' })
   @UsePipes(new ValidationPipe({ transform: true }))
-  async getCigarettesSmoked(@Param() { id }: FindOneParams): Promise<CigarettesSmokedDto> {
-    const result = await this.locationService.getCigarettesSmoked(id);
+  async getCigarettesSmoked(
+    @Param() { id }: FindOneParams,
+    @HasFullAccess() hasFullAccess: boolean,
+  ): Promise<CigarettesSmokedDto> {
+    const result = await this.locationService.getCigarettesSmoked(id, hasFullAccess);
     return new CigarettesSmokedDto(result);
   }
 
@@ -137,8 +147,14 @@ export class LocationController {
     @Param() { id }: FindOneParams,
     @Query() { measure }: MeasureTypeQuery,
     @Query() { periods }: AveragesQueryDto,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<MeasurementAveragesDto> {
-    const result = await this.locationService.getLocationAverages(id, measure, periods);
+    const result = await this.locationService.getLocationAverages(
+      id,
+      measure,
+      hasFullAccess,
+      periods,
+    );
     return new MeasurementAveragesDto(result);
   }
 
@@ -162,6 +178,7 @@ export class LocationController {
     @Query() { measure }: MeasureTypeQuery,
     @Query() timeseries: TimeseriesQuery,
     @Query() { excludeOutliers }: ExcludeOutliersQuery,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<Pagination<TimeseriesDto>> {
     const history = await this.locationService.getLocationMeasuresHistory(
       id,
@@ -169,6 +186,7 @@ export class LocationController {
       timeseries.end,
       timeseries.bucketSize,
       excludeOutliers,
+      hasFullAccess,
       measure,
     );
     const timeseriesDto = history.map(

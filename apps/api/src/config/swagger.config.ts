@@ -33,7 +33,13 @@ All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to 
       'AirGradient Support',
       'https://www.airgradient.com/support/',
       'support@airgradient.com',
-    );
+    )
+    .addSecurity('api-key', {
+      type: 'apiKey',
+      in: 'header',
+      name: 'x-api-key',
+    })
+    .addSecurityRequirements('api-key');
 
   if (isProduction) {
     builder.addServer('https://map-data-int.airgradient.com', 'Integration Server');
