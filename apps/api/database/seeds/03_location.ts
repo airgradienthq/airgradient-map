@@ -37,7 +37,7 @@ export async function seed(knex: Knex): Promise<void> {
       `
       INSERT INTO location (
         id, owner_id, reference_id, sensor_type, location_name, 
-        timezone, coordinate, deteted_at, licenses, data_source, provider
+        timezone, coordinate, deteted_at, licenses, data_source_id, provider
       ) VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?, ?, ?, ?)
     `,
       [
@@ -50,7 +50,7 @@ export async function seed(knex: Knex): Promise<void> {
         row.coordinate,
         row.deteted_at ? new Date(row.deteted_at) : null,
         licenses,
-        row.data_source || 'AirGradient',
+        Number(row.data_source_id) || 1,
         row.provider || null,
       ],
     );
