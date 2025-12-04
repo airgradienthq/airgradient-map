@@ -9,7 +9,7 @@ export default defineNuxtConfig({
           : process.env.APP_ENV === 'staging'
             ? 'https://map-data-int.airgradient.com/map/api/v1'
             : 'http://localhost:3001/map/api/v1',
-      trustedClientApiKey: process.env.TRUSTED_CLIENT_API_KEY || ''
+      trustedContext: process.env.DATA_PERMISSION_CONTEXT_HEADER || ''
     }
   },
   css: [

@@ -17,12 +17,16 @@ export class SoftAuthGuard implements CanActivate {
   }
 
   private detectAccessLevel(request: Request): ClientAccessLevel {
-    // CURRENT: API key
-    const providedKey = request.headers['x-api-key'] as string;
+    /*
+      AirGradient has some special agreements with some data providers that allow us to display their data, but not expose it through the public API. 
+      For this reason, AirGradient uses the `data-permission-context` header.
+      PLEASE DO NOT USE THIS HEADER FOR YOUR OWN APPS.
+    */
+    const providedContext = request.headers['data-permission-context'] as string;
 
-    const trustedClientApiKey = this.configService.get<string>('TRUSTED_CLIENT_API_KEY');
+    const trustedContext = this.configService.get<string>('DATA_PERMISSION_CONTEXT_HEADER');
 
-    if (trustedClientApiKey && providedKey === trustedClientApiKey) {
+    if (trustedContext && providedContext === trustedContext) {
       return ClientAccessLevel.TRUSTED;
     }
 

@@ -176,7 +176,7 @@
 
   const runtimeConfig = useRuntimeConfig();
   const apiUrl = runtimeConfig.public.apiUrl as string;
-  const apiKey = runtimeConfig.public.trustedClientApiKey as string;
+  const headers = { 'data-permission-context': runtimeConfig.public.trustedContext as string };
 
   const generalConfigStore = useGeneralConfigStore();
   const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
@@ -290,7 +290,7 @@
     try {
       const response = await $fetch<LocationDetails>(`${apiUrl}/locations/${locationId}`, {
         retry: 1,
-        headers: { 'x-api-key': apiKey }
+        headers: headers
       });
       locationDetails.value = response;
     } catch (error) {
@@ -325,7 +325,7 @@
             excludeOutliers: generalConfigStore.excludeOutliers
           },
           retry: 1,
-          headers: { 'x-api-key': apiKey }
+          headers: headers
         }
       );
       locationHistoryData.value = response;

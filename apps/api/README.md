@@ -96,6 +96,12 @@ Database is PostgreSQL with 2 extensions [PostGIS](https://postgis.net/) and [pg
   - `provider` ➝ which instances/entity that provide the sensor 
 - measurement ➝ store sensors measurements data 
 
+## Important Note
+AirGradient has some special agreements with some data providers that allow us to display their data, but not expose it through the public API.
+For this reason, AirGradient uses the `data-permission-context` header.
+
+**PLEASE DO NOT USE THIS HEADER FOR YOUR OWN APPS.**
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 (GPL-3.0).

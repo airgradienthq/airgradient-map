@@ -143,7 +143,7 @@
 
   const runtimeConfig = useRuntimeConfig();
   const apiUrl = runtimeConfig.public.apiUrl as string;
-  const apiKey = runtimeConfig.public.trustedClientApiKey as string;
+  const headers = { 'data-permission-context': runtimeConfig.public.trustedContext as string };
 
   const generalConfigStore = useGeneralConfigStore();
   const { handleApiError } = useApiErrorHandler();
@@ -216,13 +216,7 @@
       return;
     }
 
-    const leafletObject = map.value.leafletObject as L.Map | undefined;
-
-    if (!leafletObject) {
-      return;
-    }
-
-    mapInstance = leafletObject;
+    mapInstance = map.value.leafletObject;
 
     disableScrollWheelZoomForHeadless();
 
@@ -350,7 +344,7 @@
           excludeOutliers: generalConfigStore.excludeOutliers
         },
         retry: 1,
-        headers: { 'x-api-key': apiKey }
+        headers: headers
       });
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);

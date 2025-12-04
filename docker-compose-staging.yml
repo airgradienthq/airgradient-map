@@ -94,7 +94,7 @@ services:
       - APP_ENV=staging
       - HOST=0.0.0.0
       - PORT=80
-      - TRUSTED_CLIENT_API_KEY=${TRUSTED_CLIENT_API_KEY}
+      - DATA_PERMISSION_CONTEXT_HEADER=${DATA_PERMISSION_CONTEXT_HEADER}
 
   wind-service:
     image: "wind-service-mono:${IMAGE_TAG}"
