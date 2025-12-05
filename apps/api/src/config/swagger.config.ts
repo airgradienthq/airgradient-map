@@ -23,8 +23,8 @@ export const createSwaggerConfig = () => {
 All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to +90°)
 
 ## Data Sources
-- AirGradient community sensors (CC-BY-SA 4.0)
-- OpenAQ integration (CC-BY 4.0)
+- AirGradient community sensors (CC BY-SA 4.0)
+- OpenAQ integration (CC BY 4.0)
 - Updates every 5-15 minutes
 `,
     )
