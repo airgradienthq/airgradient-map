@@ -124,6 +124,11 @@ export class TasksService {
     });
   }
 
+  @Cron('10 0 * * *') // 10 minutes after midnight EVERY DAY
+  async syncDustBoyLocations(): Promise<void> {
+    return await this.syncLocations('private', 'dustboy.js', DataSource.DUSTBOY);
+  }
+
   @Cron(CronExpression.EVERY_MINUTE)
   async getAirgradientLatest(): Promise<void> {
     if (this.isAirgradientLatestJobRunning) {
@@ -162,6 +167,11 @@ export class TasksService {
     } catch (err) {
       this.logger.error(`Get openaq.js latest job failed: ${err}`);
     }
+  }
+
+  @Cron('10 * * * *') // At minute 10 EVERY HOUR
+  async getDustBoyLatest(): Promise<void> {
+    await this.getLatest('private', 'dustboy.js', DataSource.DUSTBOY);
   }
 
   @Cron(CronExpression.EVERY_MINUTE)

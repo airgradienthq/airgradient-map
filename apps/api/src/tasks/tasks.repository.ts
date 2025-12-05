@@ -17,7 +17,7 @@ export class TasksRepository {
   private readonly batchSize = 1000;
 
   async upsertLocationsAndOwners(
-    dataSource: string,
+    dataSource: DataSource,
     allowApiAccess: boolean,
     dataSourceUrl: string,
     locationOwnerInput: UpsertLocationOwnerInput[],
@@ -38,7 +38,7 @@ export class TasksRepository {
   }
 
   private async _upsertLocationsAndOwners(
-    dataSource: string,
+    dataSource: DataSource,
     allowApiAccess: boolean,
     dataSourceUrl: string,
     locationOwnerInput: UpsertLocationOwnerInput[],
@@ -73,11 +73,7 @@ export class TasksRepository {
           // Restructure and collect data for each column
           acc.ownerNames.push(r.ownerName || null);
           acc.ownerUrls.push(r.ownerUrl || null);
-          const prefixedOwnerId =
-            dataSource === DataSource.AIRGRADIENT
-              ? `${OWNER_REFERENCE_ID_PREFIXES.AIRGRADIENT}${r.ownerReferenceId}`
-              : `${OWNER_REFERENCE_ID_PREFIXES.OPENAQ}${r.ownerReferenceId}`;
-          acc.ownerRefIds.push(prefixedOwnerId);
+          acc.ownerRefIds.push(`${OWNER_REFERENCE_ID_PREFIXES[dataSource]}${r.ownerReferenceId}`);
           acc.locationNames.push(r.locationName);
           acc.locationRefIds.push(r.locationReferenceId);
           acc.sensorTypes.push(r.sensorType);
@@ -246,7 +242,7 @@ export class TasksRepository {
     }
   }
 
-  async retrieveLocationIds(dataSource: string): Promise<Record<string, number>> {
+  async retrieveLocationIds(dataSource: DataSource): Promise<Record<string, number>> {
     try {
       const query = `
         SELECT json_object_agg(l.reference_id::TEXT, l.id) 
@@ -266,7 +262,7 @@ export class TasksRepository {
   }
 
   async insertLatestMeasures(
-    dataSource: string,
+    dataSource: DataSource,
     locationIdAvailable: boolean,
     latestMeasuresInput: InsertLatestMeasuresInput[],
   ): Promise<void> {
@@ -286,7 +282,7 @@ export class TasksRepository {
   }
 
   private async _insertLatestMeasures(
-    dataSource: string,
+    dataSource: DataSource,
     locationIdAvailable: boolean,
     latestMeasuresInput: InsertLatestMeasuresInput[],
   ): Promise<void> {
@@ -337,11 +333,11 @@ export class TasksRepository {
           )
           SELECT
             loc.id AS location_id,
-            m.pm25,
-            m.pm10,
-            m.atmp,
-            m.rhum,
-            m.rco2,
+            m.pm25::float8,
+            m.pm10::float8,
+            m.atmp::float8,
+            m.rhum::float8,
+            m.rco2::int4,
             m.measured_at::timestamp,
             m.is_pm25_outlier::boolean
           FROM ds

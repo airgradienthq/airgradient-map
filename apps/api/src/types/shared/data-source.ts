@@ -3,6 +3,7 @@
 export enum DataSource {
   AIRGRADIENT = 'AirGradient',
   OPENAQ = 'OpenAQ',
+  DUSTBOY = 'DustBoy',
 }
 
 export type DataSourceType = `${DataSource}`;

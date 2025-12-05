@@ -37,5 +37,9 @@ export const DATA_SOURCE_MAP = {
   OpenAQ: {
     label: 'OpenAQ',
     url: 'https://openaq.org/'
+  },
+  DustBoy: {
+    label: 'DustBoy',
+    url: 'https://www.cmuccdc.org'
   }
 } as const;
