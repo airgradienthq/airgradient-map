@@ -41,5 +41,9 @@ export const DATA_SOURCE_MAP = {
   DustBoy: {
     label: 'DustBoy',
     url: 'https://www.cmuccdc.org'
+  },
+  SensorCommunity: {
+    label: 'Sensor.Community',
+    url: 'https://sensor.community/'
   }
 } as const;
