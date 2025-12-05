@@ -258,22 +258,27 @@ export class TasksRepository {
     latestMeasuresInput: InsertLatestMeasuresInput[],
   ): Promise<void> {
     try {
-      // Map into values query while set if value outlier or not
-      const latestValues = (
-        await Promise.all(
-          latestMeasuresInput.map(async dataPoint => {
-            const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
-              dataPoint;
-            const isPm25Outlier = await this.outlierService.calculateIsPm25Outlier(
-              locationReferenceId,
-              pm25,
-              measuredAt,
-            );
-            const locId = locationIdAvailable ? locationId : locationReferenceId;
-            return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
-          }),
-        )
-      ).join(', ');
+      // Calculate outlier status for all measurements in batch
+      const outlierResults = await this.outlierService.calculateBatchIsPm25Outlier(
+        dataSource,
+        latestMeasuresInput.map(dp => ({
+          locationReferenceId: dp.locationReferenceId,
+          pm25: dp.pm25,
+          measuredAt: dp.measuredAt,
+        })),
+      );
+
+      // Map into values query with pre-calculated outlier status
+      const latestValues = latestMeasuresInput
+        .map(dataPoint => {
+          const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
+            dataPoint;
+          const key = `${locationReferenceId}_${measuredAt}`;
+          const isPm25Outlier = outlierResults.get(key) ?? false;
+          const locId = locationIdAvailable ? locationId : locationReferenceId;
+          return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
+        })
+        .join(', ');
 
       // Prepare query based on if locationId available or not
       let query = '';

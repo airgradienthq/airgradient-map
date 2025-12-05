@@ -95,6 +95,23 @@ services:
       - HOST=0.0.0.0
       - PORT=80
 
+  wind-service:
+    image: "wind-service-mono:${IMAGE_TAG}"
+    container_name: wind-service-mono
+    build:
+      context: apps/wind-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./apps/api/.env.staging
+    networks:
+      - airgradient-map-staging
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
+
 networks:
   airgradient-map-staging:
     driver: bridge
