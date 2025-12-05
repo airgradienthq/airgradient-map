@@ -1,4 +1,6 @@
-export function getEPACorrectedPM(rawPM: number, rawRhum: number): number {
+import { DataSource } from 'src/types';
+
+function getEPACorrectedPM(rawPM: number, rawRhum: number): number {
   let result = 0;
 
   if ([undefined, null].includes(rawPM)) {
@@ -49,4 +51,16 @@ export function getEPACorrectedPM(rawPM: number, rawRhum: number): number {
   }
 
   return Math.max(Number(result.toFixed(1)), 0);
+}
+
+const DATA_SOURCES_REQUIRING_EPA_PM_CORRECTION = new Set<DataSource>([DataSource.AIRGRADIENT]);
+
+export function getPMWithEPACorrectionIfNeeded(
+  dataSource: DataSource,
+  rawPM: number,
+  rawRhum: number,
+): number {
+  return DATA_SOURCES_REQUIRING_EPA_PM_CORRECTION.has(dataSource)
+    ? getEPACorrectedPM(rawPM, rawRhum)
+    : rawPM;
 }
