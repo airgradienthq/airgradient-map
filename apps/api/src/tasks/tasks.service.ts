@@ -129,6 +129,11 @@ export class TasksService {
     return await this.syncLocations('private', 'dustboy.js', DataSource.DUSTBOY);
   }
 
+  @Cron('20 * * * *') // At minute 20 EVERY HOUR
+  async syncSensorCommunityLocations(): Promise<void> {
+    return await this.syncLocations('public', 'sensorcommunity.js', DataSource.SENSORCOMMUNITY);
+  }
+
   @Cron(CronExpression.EVERY_MINUTE)
   async getAirgradientLatest(): Promise<void> {
     if (this.isAirgradientLatestJobRunning) {
@@ -172,6 +177,11 @@ export class TasksService {
   @Cron('10 * * * *') // At minute 10 EVERY HOUR
   async getDustBoyLatest(): Promise<void> {
     await this.getLatest('private', 'dustboy.js', DataSource.DUSTBOY);
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async getSensorCommunityLatest(): Promise<void> {
+    await this.getLatest('public', 'sensorcommunity.js', DataSource.SENSORCOMMUNITY);
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
