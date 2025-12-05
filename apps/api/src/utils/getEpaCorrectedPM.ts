@@ -53,7 +53,10 @@ function getEPACorrectedPM(rawPM: number, rawRhum: number): number {
   return Math.max(Number(result.toFixed(1)), 0);
 }
 
-const DATA_SOURCES_REQUIRING_EPA_PM_CORRECTION = new Set<DataSource>([DataSource.AIRGRADIENT]);
+const DATA_SOURCES_REQUIRING_EPA_PM_CORRECTION = new Set<DataSource>([
+  DataSource.AIRGRADIENT,
+  DataSource.DUSTBOY,
+]);
 
 export function getPMWithEPACorrectionIfNeeded(
   dataSource: DataSource,

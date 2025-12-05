@@ -1,8 +1,7 @@
-export const OWNER_REFERENCE_ID_PREFIXES = {
-  AIRGRADIENT: 'ag_',
-  OPENAQ: 'oaq_',
-  UNKNOWN: 'unknown_',
-} as const;
+import { DataSource } from 'src/types';
 
-export type OwnerReferenceIdPrefix =
-  (typeof OWNER_REFERENCE_ID_PREFIXES)[keyof typeof OWNER_REFERENCE_ID_PREFIXES];
+export const OWNER_REFERENCE_ID_PREFIXES: Record<DataSource, string> = {
+  [DataSource.AIRGRADIENT]: 'ag_',
+  [DataSource.OPENAQ]: 'oaq_',
+  [DataSource.DUSTBOY]: 'db_',
+};
