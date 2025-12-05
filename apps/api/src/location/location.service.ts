@@ -1,6 +1,6 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import LocationRepository from './location.repository';
-import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { getPMWithEPACorrectionIfNeeded } from 'src/utils/getEpaCorrectedPM';
 import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';
 import { DateTime } from 'luxon';
 import {
@@ -44,9 +44,11 @@ export class LocationService {
       id,
       hasFullAccess,
     );
-    if (results.dataSource === DataSource.AIRGRADIENT) {
-      results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
-    }
+    results.pm25 = getPMWithEPACorrectionIfNeeded(
+      results.dataSource as DataSource,
+      results.pm25,
+      results.rhum,
+    );
     return results;
   }
 
@@ -88,10 +90,7 @@ export class LocationService {
             rhum: number;
           }) => ({
             timebucket: row.timebucket,
-            value:
-              row.dataSource === DataSource.AIRGRADIENT
-                ? getEPACorrectedPM(row.pm25, row.rhum)
-                : row.pm25,
+            value: getPMWithEPACorrectionIfNeeded(row.dataSource as DataSource, row.pm25, row.rhum),
           }),
         );
 
@@ -180,10 +179,7 @@ export class LocationService {
     if (measureType === MeasureType.PM25) {
       return results.map((row: any) => ({
         timebucket: row.timebucket,
-        value:
-          row.dataSource === DataSource.AIRGRADIENT
-            ? getEPACorrectedPM(row.pm25, row.rhum)
-            : row.pm25,
+        value: getPMWithEPACorrectionIfNeeded(row.dataSource as DataSource, row.pm25, row.rhum),
       }));
     }
 
