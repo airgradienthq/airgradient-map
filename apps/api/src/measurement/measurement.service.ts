@@ -44,12 +44,18 @@ export class MeasurementService {
   }
 
   async getLastMeasurements(
+    hasFullAccess: boolean,
     measure?: MeasureType,
     page = 1,
     pagesize = 100,
   ): Promise<MeasurementServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    const measurements = await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
+    const measurements = await this.measurementRepository.retrieveLatest(
+      hasFullAccess,
+      offset,
+      pagesize,
+      measure,
+    );
 
     return this.setEPACorrectedPM(measurements);
   }
@@ -59,6 +65,7 @@ export class MeasurementService {
     yMin: number,
     xMax: number,
     yMax: number,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementsByAreaResult> {
     const measurements = await this.measurementRepository.retrieveLatestByArea(
@@ -67,6 +74,7 @@ export class MeasurementService {
       xMax,
       yMax,
       true,
+      hasFullAccess,
       measure,
     );
 
@@ -80,6 +88,7 @@ export class MeasurementService {
     yMax: number,
     zoom: number,
     excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
     minPoints?: number,
     radius?: number,
@@ -95,6 +104,7 @@ export class MeasurementService {
       xMax,
       yMax,
       excludeOutliers,
+      hasFullAccess,
       measure,
     );
 

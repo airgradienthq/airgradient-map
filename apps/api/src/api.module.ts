@@ -6,6 +6,8 @@ import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
 import { WindDataModule } from './wind-data/wind-data.module';
 import { NotificationModule } from './notifications/notification.module';
+import { APP_GUARD } from '@nestjs/core';
+import { SoftAuthGuard } from './auth/guards/soft-auth.guard';
 
 @Module({
   imports: [
@@ -31,6 +33,11 @@ import { NotificationModule } from './notifications/notification.module';
     NotificationModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: SoftAuthGuard,
+    },
+  ],
 })
 export class ApiModule {}

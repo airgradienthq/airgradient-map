@@ -98,6 +98,8 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=development
+      - DATA_PERMISSION_CONTEXT_HEADER=${DATA_PERMISSION_CONTEXT_HEADER}
+
   wind-service:
     container_name: wind-service-mono
     build:
@@ -111,7 +113,6 @@ services:
       - DATABASE_NAME=${DATABASE_NAME}
       - DATABASE_USER=${DATABASE_USER}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD}
-
     networks:
       - dev
     depends_on:
@@ -119,9 +120,10 @@ services:
         condition: service_completed_successfully
       postgrex:
         condition: service_healthy
+    
 networks:
   dev:
     driver: bridge
 
 volumes:
-  pgdata: 
+  pgdata:

@@ -140,7 +140,11 @@
   const isMapFullyReady = ref<boolean>(false);
   const loaderShown = ref<boolean>(true);
   const map = ref<typeof LMap>();
-  const apiUrl = useRuntimeConfig().public.apiUrl;
+
+  const runtimeConfig = useRuntimeConfig();
+  const apiUrl = runtimeConfig.public.apiUrl as string;
+  const headers = { 'data-permission-context': runtimeConfig.public.trustedContext as string };
+
   const generalConfigStore = useGeneralConfigStore();
   const { handleApiError } = useApiErrorHandler();
 
@@ -339,7 +343,8 @@
               : generalConfigStore.selectedMeasure,
           excludeOutliers: generalConfigStore.excludeOutliers
         },
-        retry: 1
+        retry: 1,
+        headers: headers
       });
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);

@@ -61,6 +61,8 @@ export class TasksService {
 
       await this.tasksRepository.upsertLocationsAndOwners(
         dataSource,
+        result.metadata.allowApiAccess,
+        result.metadata.dataSourceUrl,
         result.data as UpsertLocationOwnerInput[],
       );
       this.logger.log(
