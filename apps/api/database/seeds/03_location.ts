@@ -23,12 +23,16 @@ export async function seed(knex: Knex): Promise<void> {
     // Simple licenses parsing - just store as array of strings
     let licenses = null;
     if (row.licenses && row.licenses.trim()) {
-      // Extract content between quotes and create array
-      const match = row.licenses.match(/"([^"]+)"/);
-      if (match) {
-        licenses = [match[1]]; // e.g., ["CC BY-SA 4.0"]
+      if (row.licenses.trim() === '{}') {
+        licenses = [];
       } else {
-        licenses = [row.licenses]; // fallback
+        // Extract content between quotes and create array
+        const match = row.licenses.match(/"([^"]+)"/);
+        if (match) {
+          licenses = [match[1]]; // e.g., ["CC BY-SA 4.0"]
+        } else {
+          licenses = [row.licenses]; // fallback
+        }
       }
     }
 
