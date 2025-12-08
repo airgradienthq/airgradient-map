@@ -98,7 +98,7 @@ services:
       - HOST=0.0.0.0
       - PORT=3000
       - NODE_ENV=development
-      - DATA_PERMISSION_CONTEXT_HEADER=${DATA_PERMISSION_CONTEXT_HEADER}
+      - NUXT_PUBLIC_TRUSTED_CONTEXT=${DATA_PERMISSION_CONTEXT_HEADER}
 
   wind-service:
     container_name: wind-service-mono
