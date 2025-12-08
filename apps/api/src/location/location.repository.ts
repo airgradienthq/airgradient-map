@@ -362,7 +362,7 @@ class LocationRepository {
       measureType === MeasureType.PM25 ? 'AND is_pm25_outlier = false' : '';
 
     return `
-      SELECT 
+      SELECT
         $1::integer as location_id,
         ${periodCases}
       FROM measurement
@@ -372,6 +372,84 @@ class LocationRepository {
         ${excludeOutliersQuery}
         ${validationQuery}
       GROUP BY location_id
+    `;
+  }
+
+  private buildAveragesQueryWithEPA(measureType: MeasureType, periods?: string[]): string {
+    // Use default predefined periods if none specified
+    const defaultPeriods = Object.values(PM25Period);
+    const requestedPeriods = periods || defaultPeriods;
+
+    // EPA correction formula as inline CASE statement
+    const epaCorrection = `
+      CASE
+        WHEN l.data_source != 'AirGradient' THEN m.pm25
+        WHEN m.pm25 IS NULL OR m.rhum IS NULL THEN NULL
+        WHEN m.pm25 = 0 THEN 0
+        WHEN m.pm25 < 30 THEN
+          GREATEST(ROUND((0.524 * m.pm25 - 0.0862 * m.rhum + 5.75)::NUMERIC, 1), 0)
+        WHEN m.pm25 < 50 THEN
+          GREATEST(ROUND((
+            (0.786 * (m.pm25 / 20.0 - 1.5) + 0.524 * (1 - (m.pm25 / 20.0 - 1.5))) * m.pm25
+            - 0.0862 * m.rhum
+            + 5.75
+          )::NUMERIC, 1), 0)
+        WHEN m.pm25 < 210 THEN
+          GREATEST(ROUND((0.786 * m.pm25 - 0.0862 * m.rhum + 5.75)::NUMERIC, 1), 0)
+        WHEN m.pm25 < 260 THEN
+          GREATEST(ROUND((
+            (0.69 * (m.pm25 / 50.0 - 4.2) + 0.786 * (1 - (m.pm25 / 50.0 - 4.2))) * m.pm25
+            - 0.0862 * m.rhum * (1 - (m.pm25 / 50.0 - 4.2))
+            + 2.966 * (m.pm25 / 50.0 - 4.2)
+            + 5.75 * (1 - (m.pm25 / 50.0 - 4.2))
+            + 0.000884 * m.pm25 * m.pm25 * (m.pm25 / 50.0 - 4.2)
+          )::NUMERIC, 1), 0)
+        ELSE
+          GREATEST(ROUND((2.966 + 0.69 * m.pm25 + 0.000884 * m.pm25 * m.pm25)::NUMERIC, 1), 0)
+      END
+    `;
+
+    const periodCases = requestedPeriods
+      .map(period => {
+        const interval = periods
+          ? this.convertPeriodToInterval(period)
+          : PM25PeriodConfig[period as PM25Period].interval;
+
+        // For PM25, use EPA correction; for other measures, use raw value
+        const measureColumn = measureType === MeasureType.PM25 ? epaCorrection : `m.${measureType}`;
+
+        return `AVG(CASE WHEN m.measured_at >= NOW() - INTERVAL '${interval}' THEN ${measureColumn} END) as "${period}"`;
+      })
+      .join(',\n      ');
+
+    // Find the longest interval to optimize the query
+    let longestInterval: string;
+    if (periods) {
+      longestInterval = this.findLongestInterval(periods);
+    } else {
+      longestInterval = PM25PeriodConfig[PM25Period.DAYS_90].interval;
+    }
+
+    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
+    const validationQuery = hasValidation
+      ? `AND m.${measureType} BETWEEN ${minVal} AND ${maxVal}`
+      : '';
+
+    const excludeOutliersQuery =
+      measureType === MeasureType.PM25 ? 'AND m.is_pm25_outlier = false' : '';
+
+    return `
+      SELECT
+        $1::integer as location_id,
+        ${periodCases}
+      FROM measurement m
+      JOIN location l ON m.location_id = l.id
+      WHERE m.location_id = $1
+        AND m.${measureType} IS NOT NULL
+        AND m.measured_at >= NOW() - INTERVAL '${longestInterval}'
+        ${excludeOutliersQuery}
+        ${validationQuery}
+      GROUP BY m.location_id
     `;
   }
 
@@ -423,6 +501,58 @@ class LocationRepository {
         parameters: { id },
         error: error.message,
         code: 'LOC_008',
+      });
+    }
+  }
+
+  async retrieveEPACorrectedAveragesByLocationId(
+    id: number,
+    measureType: MeasureType,
+    periods?: string[],
+  ): Promise<MeasurementAveragesResult> {
+    const query = this.buildAveragesQueryWithEPA(measureType, periods);
+
+    // Debug logging
+    this.logger.debug(`Generated EPA-corrected query for periods ${JSON.stringify(periods)}:`);
+
+    try {
+      const result = await this.databaseService.runQuery(query, [id]);
+
+      if (result.rows.length === 0) {
+        throw new NotFoundException({
+          message: 'LOC_011: No data found for location',
+          operation: 'retrieveEPACorrectedAveragesByLocationId',
+          parameters: { id },
+          code: 'LOC_011',
+        });
+      }
+
+      const row = result.rows[0];
+      const averages: Record<string, number | null> = {};
+
+      // Use requested periods or default predefined periods if none specified
+      const defaultPeriods = Object.values(PM25Period);
+      const requestedPeriods = periods || defaultPeriods;
+
+      requestedPeriods.forEach(period => {
+        averages[period] = row[period] !== null ? Math.round(row[period] * 10) / 10 : null;
+      });
+
+      return {
+        locationId: id,
+        averages: averages,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_012: Failed to retrieve EPA-corrected averages',
+        operation: 'retrieveEPACorrectedAveragesByLocationId',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_012',
       });
     }
   }

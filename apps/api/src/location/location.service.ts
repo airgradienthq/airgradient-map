@@ -44,69 +44,42 @@ export class LocationService {
     // make sure this location id exist
     await this.locationRepository.isLocationIdExist(id);
 
-    const timeframes = [
-      { label: 'last24hours', days: 1 },
-      { label: 'last7days', days: 7 },
-      { label: 'last30days', days: 30 },
-      { label: 'last365days', days: 365 },
-    ];
-
     try {
-      const now = new Date();
+      // Define periods for cigarette calculation
+      const periods = ['1d', '7d', '30d', '365d'];
+
+      // Fetch EPA-corrected PM2.5 averages for all periods in a single optimized query
+      const result = await this.locationRepository.retrieveEPACorrectedAveragesByLocationId(
+        id,
+        MeasureType.PM25,
+        periods,
+      );
+
+      // Map periods to cigarette labels and days
+      const periodMapping = {
+        '1d': { label: 'last24hours', days: 1 },
+        '7d': { label: 'last7days', days: 7 },
+        '30d': { label: 'last30days', days: 30 },
+        '365d': { label: 'last365days', days: 365 },
+      };
+
       const cigaretteData: Record<string, number | null> = {};
 
-      for (const timeframe of timeframes) {
-        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
-        const end = now.toISOString();
+      // Convert PM2.5 averages to cigarettes smoked
+      for (const period of periods) {
+        const { label, days } = periodMapping[period];
+        const avgPM25 = result.averages[period];
 
-        const rows = await this.locationRepository.retrieveLocationMeasuresHistory(
-          id,
-          start,
-          end,
-          BucketSize.OneDay,
-          true,
-          MeasureType.PM25,
-        );
-
-        let results: { timebucket: string; value: number }[] = rows.map(
-          (row: {
-            timebucket: string;
-            value: number;
-            dataSource: DataSource;
-            pm25: number;
-            rhum: number;
-          }) => ({
-            timebucket: row.timebucket,
-            value:
-              row.dataSource === DataSource.AIRGRADIENT
-                ? getEPACorrectedPM(row.pm25, row.rhum)
-                : row.pm25,
-          }),
-        );
-
-        results = results.filter(result => result.value !== null && result.value !== undefined);
-
-        console.log(results);
-        if (results.length === 0) {
-          cigaretteData[timeframe.label] = null;
+        if (avgPM25 === null || avgPM25 === undefined) {
+          cigaretteData[label] = null;
         } else {
-          // Calculate average daily PM2.5 from available data
-          const sum = results.reduce(
-            (acc: number, result: { value: number }) => acc + result.value,
-            0,
-          );
-          const averageDailyPM25 = sum / results.length;
-
-          // Apply average to full timeframe and convert to cigarettes
-          // Missing days are assumed to have the same average pollution as days with data
-          // This projects the average exposure to the entire timeframe period
           // Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day
           // Formula: (average_daily_PM25 × timeframe_days) / 22
-          const cigarettesForTimeframe = (averageDailyPM25 * timeframe.days) / 22;
-
-          cigaretteData[timeframe.label] = Math.round(cigarettesForTimeframe * 100) / 100;
+          const cigarettesForTimeframe = (avgPM25 * days) / 22;
+          cigaretteData[label] = Math.round(cigarettesForTimeframe * 100) / 100;
         }
       }
+
       return cigaretteData;
     } catch (error) {
       this.logger.error(error);
