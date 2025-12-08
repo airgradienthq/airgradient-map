@@ -60,7 +60,7 @@ export class DashboardApiService {
       throw new Error(`Dashboard API error: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   /**
@@ -92,7 +92,7 @@ export class DashboardApiService {
       throw new Error(`Dashboard API error: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   /**
@@ -124,7 +124,7 @@ export class DashboardApiService {
       throw new Error(`Dashboard API error: ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   /**

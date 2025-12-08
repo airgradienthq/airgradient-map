@@ -31,6 +31,7 @@ import { NotificationEntity } from './notification.entity';
 import { CreateNotificationDto } from './create-notification.dto';
 import { UpdateNotificationDto } from './update-notification.dto';
 import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
+import { DashboardApiService } from 'src/utils/dashboard-api.service';
 
 @Controller('map/api/v1/notifications')
 @ApiTags('Notifications')
@@ -39,7 +40,10 @@ import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 export class NotificationsController {
   private readonly logger = new Logger(NotificationsController.name);
 
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly dashboardApiService: DashboardApiService,
+  ) {}
 
   @Post('registrations')
   @ApiOkResponse({
@@ -67,7 +71,25 @@ export class NotificationsController {
       this.logger.warn('⚠️  No cookies received from iOS app');
     }
 
-    return await this.notificationsService.createNotification(notification, hasFullAccess);
+    const result = await this.notificationsService.createNotification(notification, hasFullAccess);
+
+    // 🧪 TEST: Forward cookies to Dashboard API
+    if (cookies) {
+      try {
+        this.logger.log('🧪 TEST: Forwarding cookies to Dashboard API /places/133/admin/alarms');
+        const dashboardResponse = await this.dashboardApiService.get<any>(
+          req,
+          '/places/133/admin/alarms',
+        );
+        this.logger.log(
+          `✅ Dashboard API Response: ${JSON.stringify(dashboardResponse).substring(0, 200)}...`,
+        );
+      } catch (error) {
+        this.logger.error(`❌ Dashboard API Test Failed: ${error.message}`);
+      }
+    }
+
+    return result;
   }
 
   @Get('players/:playerId/registrations')
@@ -93,7 +115,27 @@ export class NotificationsController {
       this.logger.warn('⚠️  GET registrations - No cookies received');
     }
 
-    return await this.notificationsService.getRegisteredNotifications(playerId, locationId);
+    const result = await this.notificationsService.getRegisteredNotifications(playerId, locationId);
+
+    // 🧪 TEST: Forward cookies to Dashboard API after 5 second delay
+    if (cookies) {
+      setTimeout(async () => {
+        try {
+          this.logger.log('🧪 TEST: Forwarding cookies to Dashboard API /places/133/admin/alarms');
+          const dashboardResponse = await this.dashboardApiService.get<any>(
+            req,
+            '/places/133/admin/alarms',
+          );
+          this.logger.log(
+            `✅ Dashboard API Response: ${JSON.stringify(dashboardResponse).substring(0, 200)}...`,
+          );
+        } catch (error) {
+          this.logger.error(`❌ Dashboard API Test Failed: ${error.message}`);
+        }
+      }, 5000);
+    }
+
+    return result;
   }
 
   @Patch('players/:playerId/registrations/:id')
