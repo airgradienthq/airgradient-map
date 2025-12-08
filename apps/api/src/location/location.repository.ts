@@ -16,7 +16,11 @@ class LocationRepository {
   constructor(private readonly databaseService: DatabaseService) {}
   private readonly logger = new Logger(LocationRepository.name);
 
-  async retrieveLocations(offset: number = 0, limit: number = 100): Promise<LocationEntity[]> {
+  async retrieveLocations(
+    hasFullAccess: boolean,
+    offset: number = 0,
+    limit: number = 100,
+  ): Promise<LocationEntity[]> {
     const query = `
             SELECT
                 l.id AS "locationId",
@@ -29,12 +33,14 @@ class LocationRepository {
                 l.sensor_type AS "sensorType",
                 l.licenses,
                 l.provider,
-                l.data_source AS "dataSource",
+                d.name AS "dataSource",
                 l.timezone
             FROM 
-                location l
+                ${hasFullAccess ? 'location' : 'vw_location_public'} l
             JOIN
                 owner o ON l.owner_id = o.id
+            JOIN
+                data_source d ON l.data_source_id = d.id
             ORDER BY 
                 l.id
             OFFSET $1 LIMIT $2; 
@@ -56,7 +62,7 @@ class LocationRepository {
     }
   }
 
-  async retrieveLocationById(id: number): Promise<LocationEntity> {
+  async retrieveLocationById(id: number, hasFullAccess: boolean): Promise<LocationEntity> {
     const query = `
             SELECT
                 l.id AS "locationId",
@@ -69,12 +75,14 @@ class LocationRepository {
                 l.sensor_type AS "sensorType",
                 l.licenses,
                 l.provider,
-                l.data_source AS "dataSource",
+                d.name AS "dataSource",
                 l.timezone
             FROM 
-                location l
+                ${hasFullAccess ? 'location' : 'vw_location_public'} l
             JOIN
                 owner o ON l.owner_id = o.id
+            JOIN
+                data_source d ON l.data_source_id = d.id
             WHERE
                 l.id = $1;
         `;
@@ -119,18 +127,19 @@ class LocationRepository {
           l.id AS "locationId",
           l.location_name AS "locationName",
           l.sensor_type AS "sensorType",
-          l.data_source AS "dataSource",
+          d.name AS "dataSource",
           m.pm25,
           m.rhum,
           m.measured_at AS "measuredAt"
         FROM location l
+        JOIN data_source d ON l.data_source_id = d.id
         LEFT JOIN LATERAL (
           SELECT m.pm25, m.rhum, m.measured_at
           FROM measurement m
             WHERE m.location_id = l.id
               AND (m.is_pm25_outlier = false)
               AND m.measured_at >= NOW() - (
-                CASE WHEN l.data_source = 'AirGradient'
+                CASE WHEN d.name = 'AirGradient'
                      THEN INTERVAL '30 minutes'
                      ELSE INTERVAL '90 minutes'
                 END
@@ -145,11 +154,11 @@ class LocationRepository {
     return results.rows;
   }
 
-  async retrieveLastMeasuresByLocationId(id: number) {
+  async retrieveLastMeasuresByLocationId(id: number, hasFullAccess: boolean) {
     const query = `
             WITH latest_measurement AS (
               SELECT *
-              FROM measurement
+              FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'}
               WHERE location_id = $1
               ORDER BY measured_at DESC
               LIMIT 1
@@ -165,9 +174,10 @@ class LocationRepository {
                 m.no2,
                 m.measured_at AS "measuredAt",
                 l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
+                d.name AS "dataSource"
             FROM latest_measurement m
             JOIN location l ON m.location_id = l.id
+            JOIN data_source d ON l.data_source_id = d.id
             WHERE (
                 (m.is_pm25_outlier = false AND m.pm25 IS NOT NULL)  -- pm25 must be present
                 OR m.pm10 IS NOT NULL
@@ -229,6 +239,7 @@ class LocationRepository {
     bucketSize: BucketSize,
     excludeOutliers: boolean,
     measureType: MeasureType,
+    hasFullAccess: boolean,
   ) {
     const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
 
@@ -251,10 +262,11 @@ class LocationRepository {
                 ${binClause} AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
                 l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource",
+                d.name AS "dataSource",
                 $4::text AS unused_bucket_param -- Make sure that $4 always be used
-            FROM measurement m
+            FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'} m
             JOIN location l on m.location_id = l.id
+            JOIN data_source d ON l.data_source_id = d.id
             WHERE 
                 m.location_id = $1 AND 
                 m.measured_at BETWEEN $2 AND $3
@@ -330,7 +342,11 @@ class LocationRepository {
     return this.convertPeriodToInterval(periods[longestIndex]);
   }
 
-  private buildAveragesQuery(measureType: MeasureType, periods?: string[]): string {
+  private buildAveragesQuery(
+    measureType: MeasureType,
+    hasFullAccess: boolean,
+    periods?: string[],
+  ): string {
     // Use default predefined periods if none specified
     const defaultPeriods = Object.values(PM25Period);
     const requestedPeriods = periods || defaultPeriods;
@@ -365,7 +381,7 @@ class LocationRepository {
       SELECT
         $1::integer as location_id,
         ${periodCases}
-      FROM measurement
+      FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'}
       WHERE location_id = $1
         AND ${measureType} IS NOT NULL
         AND measured_at >= NOW() - INTERVAL '${longestInterval}'
@@ -456,9 +472,10 @@ class LocationRepository {
   async retrieveAveragesByLocationId(
     id: number,
     measureType: MeasureType,
+    hasFullAccess: boolean,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
-    const query = this.buildAveragesQuery(measureType, periods);
+    const query = this.buildAveragesQuery(measureType, hasFullAccess, periods);
 
     // Debug logging
     this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);
@@ -557,9 +574,9 @@ class LocationRepository {
     }
   }
 
-  async isLocationIdExist(id: number): Promise<void> {
+  async isLocationIdExist(id: number, hasFullAccess: boolean): Promise<void> {
     try {
-      const query = 'SELECT 1 FROM location WHERE id = $1';
+      const query = `SELECT 1 FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l WHERE id = $1`;
       const result = await this.databaseService.runQuery(query, [id]);
       const location = result.rows[0];
       if (!location) {

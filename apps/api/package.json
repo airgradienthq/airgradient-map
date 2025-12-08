@@ -33,6 +33,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/schedule": "^5.0.0",
     "@nestjs/swagger": "^11.0.3",
+    "@photostructure/tz-lookup": "^11.3.0",
     "@types/papaparse": "^5.3.16",
     "axios": "^1.7.9",
     "class-transformer": "^0.5.1",

@@ -37,7 +37,8 @@ export class OutlierRepository {
                   AND MIN(m.pm25) = input.pm25
                 FROM measurement m
                 JOIN location l ON m.location_id = l.id
-                WHERE l.data_source = $1
+                JOIN data_source ds ON l.data_source_id = ds.id
+                WHERE ds.name = $1
                   AND l.reference_id = input.reference_id
                   AND m.measured_at >= input.measured_at::timestamp - INTERVAL '24 HOURS'
                   AND m.measured_at < input.measured_at::timestamp
@@ -115,7 +116,9 @@ export class OutlierRepository {
               ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
             JOIN measurement m
               ON m.location_id = l2.id
-            WHERE l1.data_source = $3
+            JOIN data_source ds 
+              ON l1.data_source_id = ds.id
+            WHERE ds.name = $3
               AND l1.reference_id = input.reference_id
               AND m.is_pm25_outlier = false
               AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)

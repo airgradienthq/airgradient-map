@@ -106,22 +106,33 @@
               </a>
             </span>
             via
-            <span v-if="locationDetails?.dataSource === 'OpenAQ'">
-              {{ locationDetails?.provider }} and
-              <a href="https://openaq.org/" target="_blank">
-                OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a
-              >
-            </span>
-
-            <span v-if="locationDetails?.dataSource === 'AirGradient'">
-              <a href="https://www.airgradient.com/" target="_blank">
-                AirGradient
-                <v-icon size="16">mdi-open-in-new</v-icon>
-              </a>
+            <span v-if="dataSourceAttribution">
+              <span v-if="locationDetails?.provider !== locationDetails?.dataSource">
+                {{ locationDetails?.provider }} and
+              </span>
+              <template v-if="dataSourceAttribution.url">
+                <a :href="dataSourceAttribution.url" target="_blank">
+                  {{ dataSourceAttribution.label }}
+                  <v-icon size="16">mdi-open-in-new</v-icon>
+                </a>
+              </template>
+              <template v-else>
+                {{ dataSourceAttribution.label }}
+              </template>
             </span>
 
             {{ $t('under') }}
-            {{ locationDetails?.licenses[0] }}
+            <span v-if="licenseAttribution">
+              <template v-if="licenseAttribution.url">
+                <a :href="licenseAttribution.url" target="_blank">
+                  {{ licenseAttribution.label }}
+                  <v-icon size="16">mdi-open-in-new</v-icon>
+                </a>
+              </template>
+              <template v-else>
+                {{ licenseAttribution.label }}
+              </template>
+            </span>
           </small>
         </p>
       </div>
@@ -169,12 +180,16 @@
   import { DateTime } from 'luxon';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { useNuxtApp } from '#imports';
+  import { LICENSE_MAP, DATA_SOURCE_MAP } from '~/constants/map/attribution';
 
   const props = defineProps<{
     dialog: DialogInstance<{ location: AGMapLocationData }>;
   }>();
 
-  const apiUrl = useRuntimeConfig().public.apiUrl;
+  const runtimeConfig = useRuntimeConfig();
+  const apiUrl = runtimeConfig.public.apiUrl as string;
+  const headers = { 'data-permission-context': runtimeConfig.public.trustedContext as string };
+
   const generalConfigStore = useGeneralConfigStore();
   const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
   const { handleApiError } = useApiErrorHandler();
@@ -182,6 +197,27 @@
   const mapLocationData: Ref<AGMapLocationData> = ref(null);
   const locationHistoryData: Ref<LocationHistoryData> = ref(null);
   const locationDetails: Ref<LocationDetails> = ref(null);
+  const dataSourceAttribution = computed(() => {
+    const sourceKey = locationDetails.value?.dataSource as keyof typeof DATA_SOURCE_MAP | undefined;
+    if (sourceKey && DATA_SOURCE_MAP[sourceKey]) {
+      return DATA_SOURCE_MAP[sourceKey];
+    }
+    if (locationDetails.value?.dataSource) {
+      return { label: locationDetails.value.dataSource, url: null };
+    }
+    return null;
+  });
+  const licenseAttribution = computed(() => {
+    const license = locationDetails.value?.licenses?.[0];
+    if (!license) {
+      return locationDetails.value ? { label: 'unknown license', url: null } : null;
+    }
+    const licenseKey = license as keyof typeof LICENSE_MAP;
+    if (LICENSE_MAP[licenseKey]) {
+      return LICENSE_MAP[licenseKey];
+    }
+    return { label: license, url: null };
+  });
   const chartData: Ref<ChartData<'bar'>> = ref(null);
   const chartOptions: Ref<ChartOptions<'bar'>> = ref(null);
   const historyLoading: Ref<boolean> = ref(false);
@@ -286,7 +322,8 @@
     detailsLoading.value = true;
     try {
       const response = await $fetch<LocationDetails>(`${apiUrl}/locations/${locationId}`, {
-        retry: 1
+        retry: 1,
+        headers: headers
       });
       locationDetails.value = response;
     } catch (error) {
@@ -320,7 +357,8 @@
             measure,
             excludeOutliers: generalConfigStore.excludeOutliers
           },
-          retry: 1
+          retry: 1,
+          headers: headers
         }
       );
       locationHistoryData.value = response;

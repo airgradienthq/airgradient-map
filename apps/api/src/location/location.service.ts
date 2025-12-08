@@ -1,6 +1,6 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import LocationRepository from './location.repository';
-import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { getPMWithEPACorrectionIfNeeded } from 'src/utils/getEpaCorrectedPM';
 import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';
 import { DateTime } from 'luxon';
 import {
@@ -18,31 +18,43 @@ export class LocationService {
   constructor(private readonly locationRepository: LocationRepository) {}
   private readonly logger = new Logger(LocationService.name);
 
-  async getLocations(page = 1, pagesize = 100): Promise<LocationServiceResult> {
+  async getLocations(
+    hasFullAccess: boolean,
+    page = 1,
+    pagesize = 100,
+  ): Promise<LocationServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    return await this.locationRepository.retrieveLocations(offset, pagesize);
+    return await this.locationRepository.retrieveLocations(hasFullAccess, offset, pagesize);
   }
 
-  async getLocationById(id: number): Promise<LocationByIdResult> {
+  async getLocationById(id: number, hasFullAccess: boolean): Promise<LocationByIdResult> {
     // make sure this location id exist
-    await this.locationRepository.isLocationIdExist(id);
-    return await this.locationRepository.retrieveLocationById(id);
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+    return await this.locationRepository.retrieveLocationById(id, hasFullAccess);
   }
 
-  async getLocationLastMeasures(id: number): Promise<LocationMeasuresResult> {
+  async getLocationLastMeasures(
+    id: number,
+    hasFullAccess: boolean,
+  ): Promise<LocationMeasuresResult> {
     // make sure this location id exist
-    await this.locationRepository.isLocationIdExist(id);
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
 
-    const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
-    if (results.dataSource === DataSource.AIRGRADIENT) {
-      results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
-    }
+    const results = await this.locationRepository.retrieveLastMeasuresByLocationId(
+      id,
+      hasFullAccess,
+    );
+    results.pm25 = getPMWithEPACorrectionIfNeeded(
+      results.dataSource as DataSource,
+      results.pm25,
+      results.rhum,
+    );
     return results;
   }
 
-  async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
+  async getCigarettesSmoked(id: number, hasFullAccess: boolean): Promise<CigarettesSmokedResult> {
     // make sure this location id exist
-    await this.locationRepository.isLocationIdExist(id);
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
 
     try {
       // Define periods for cigarette calculation
@@ -93,10 +105,11 @@ export class LocationService {
     end: string,
     bucketSize: BucketSize,
     excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ) {
     // make sure this location id exist
-    await this.locationRepository.isLocationIdExist(id);
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
 
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
@@ -135,15 +148,13 @@ export class LocationService {
       bucketSize,
       excludeOutliers,
       measureType,
+      hasFullAccess,
     );
 
     if (measureType === MeasureType.PM25) {
       return results.map((row: any) => ({
         timebucket: row.timebucket,
-        value:
-          row.dataSource === DataSource.AIRGRADIENT
-            ? getEPACorrectedPM(row.pm25, row.rhum)
-            : row.pm25,
+        value: getPMWithEPACorrectionIfNeeded(row.dataSource as DataSource, row.pm25, row.rhum),
       }));
     }
 
@@ -153,14 +164,20 @@ export class LocationService {
   async getLocationAverages(
     id: number,
     measure: MeasureType,
+    hasFullAccess: boolean,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
     // make sure this location id exist
-    await this.locationRepository.isLocationIdExist(id);
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
 
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
 
-    return await this.locationRepository.retrieveAveragesByLocationId(id, measureType, periods);
+    return await this.locationRepository.retrieveAveragesByLocationId(
+      id,
+      measureType,
+      hasFullAccess,
+      periods,
+    );
   }
 }
