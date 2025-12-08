@@ -41,7 +41,7 @@ export function getPM25Color(
 
   return {
     bgColor: getAQColorByShade(result, shade),
-    textColorClass: 'text-light'
+    textColorClass: getTextColorClass(result)
   };
 }
 
@@ -59,6 +59,20 @@ function getAQColorByShade(color: ChartColorsType, shade: 500 | 700 | 300 | 100 
 }
 
 /**
+ * Gets the appropriate text color class based on the background color.
+ * Yellow colors need dark text for better contrast, all others use light text.
+ *
+ * @param {ChartColorsType} color - The background color type
+ * @returns {string} CSS class for text color
+ */
+function getTextColorClass(color: ChartColorsType): string {
+  if (color === ChartColorsType.YELLOW) {
+    return 'text-yellow-dark';
+  }
+  return 'text-light';
+}
+
+/**
  * Gets the color representation for CO2 values.
  *
  * @param {number} rco2Value - The CO2 value in ppm (parts per million)
@@ -72,15 +86,6 @@ export function getCO2Color(
   shade: 500 | 700 | 300 | 100 = 500
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
-// <<<<<<< HEAD
-// =======
-//   const configuration = [
-//     { index: 1, color: ChartColorsType.GREEN, max: 449, label: 'excellent' },
-//     { index: 2, color: ChartColorsType.YELLOW, max: 499, label: 'good' },
-//     { index: 3, color: ChartColorsType.ORANGE, max: 799, label: 'moderate' },
-//     { index: 4, color: ChartColorsType.GRAY, max: 10000, label: 'incorrect' }
-//   ];
-// >>>>>>> ef67d2e3adadb48ebad298f8f304b73b6905e4f2
 
   const level = getMeasurementLevel(MeasureNames.RCO2, rco2Value);
 
@@ -96,7 +101,7 @@ export function getCO2Color(
 
   return {
     bgColor: getAQColorByShade(color, shade),
-    textColorClass: 'text-light'
+    textColorClass: getTextColorClass(color)
   };
 }
 
@@ -131,7 +136,7 @@ export function getAQIColor(
 
   return {
     bgColor: getAQColorByShade(color, shade),
-    textColorClass: 'text-light'
+    textColorClass: getTextColorClass(color)
   };
 }
 
