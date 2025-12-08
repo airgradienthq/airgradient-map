@@ -94,7 +94,7 @@ services:
       - APP_ENV=staging
       - HOST=0.0.0.0
       - PORT=80
-      - DATA_PERMISSION_CONTEXT_HEADER=${DATA_PERMISSION_CONTEXT_HEADER}
+      - NUXT_PUBLIC_TRUSTED_CONTEXT=${DATA_PERMISSION_CONTEXT_HEADER}
 
   wind-service:
     image: "wind-service-mono:${IMAGE_TAG}"
