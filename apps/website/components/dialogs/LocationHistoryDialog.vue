@@ -12,7 +12,9 @@
           <h5 class="m-0 location-name">{{ mapLocationData?.locationName }}</h5>
           <v-chip>
             {{
-              mapLocationData?.sensorType === SensorType.reference ? 'Reference' : 'Small Sensor'
+              mapLocationData?.sensorType === SensorType.reference
+                ? $t('reference')
+                : $t('small_sensor')
             }}</v-chip
           >
         </div>
@@ -33,7 +35,9 @@
                   <span class="unit-label">{{ currentValueData.unit }}</span>
                 </h4>
                 <p :class="currentValueData.textColor" class="mb-0 current-label">
-                  <span> Current <UiHTMLSafelabel :label="currentValueData.labelHTML" /> </span>
+                  <span
+                    >{{ $t('current') }} <UiHTMLSafelabel :label="currentValueData.labelHTML" />
+                  </span>
                 </p>
               </div>
             </div>
@@ -56,6 +60,7 @@
               class="period-control"
               :selected-value="generalConfigStore.selectedHistoryPeriod.value"
               :options="HISTORY_PERIODS"
+              :translate="true"
               :disabled="loading"
               @change="handleChartPeriodChange"
             >
@@ -82,11 +87,11 @@
         </div>
         <p style="min-height: 20px" class="mb-0 mt-2 mt-md-4">
           <small v-if="chartOptions">
-            Air quality data for this location is provided by
+            {{ $t('aq_provided_by') }}
             <span v-if="!locationDetails?.url">
               {{
                 !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                  ? ' an anonymous contributor '
+                  ? $i18n.t('anonymous_contributor')
                   : locationDetails?.ownerName
               }}
             </span>
@@ -101,22 +106,33 @@
               </a>
             </span>
             via
-            <span v-if="locationDetails?.dataSource === 'OpenAQ'">
-              {{ locationDetails?.provider }} and
-              <a href="https://openaq.org/" target="_blank">
-                OpenAQ <v-icon size="16">mdi-open-in-new</v-icon></a
-              >
+            <span v-if="dataSourceAttribution">
+              <span v-if="locationDetails?.provider !== locationDetails?.dataSource">
+                {{ locationDetails?.provider }} and
+              </span>
+              <template v-if="dataSourceAttribution.url">
+                <a :href="dataSourceAttribution.url" target="_blank">
+                  {{ dataSourceAttribution.label }}
+                  <v-icon size="16">mdi-open-in-new</v-icon>
+                </a>
+              </template>
+              <template v-else>
+                {{ dataSourceAttribution.label }}
+              </template>
             </span>
 
-            <span v-if="locationDetails?.dataSource === 'AirGradient'">
-              <a href="https://www.airgradient.com/" target="_blank">
-                AirGradient
-                <v-icon size="16">mdi-open-in-new</v-icon>
-              </a>
+            {{ $t('under') }}
+            <span v-if="licenseAttribution">
+              <template v-if="licenseAttribution.url">
+                <a :href="licenseAttribution.url" target="_blank">
+                  {{ licenseAttribution.label }}
+                  <v-icon size="16">mdi-open-in-new</v-icon>
+                </a>
+              </template>
+              <template v-else>
+                {{ licenseAttribution.label }}
+              </template>
             </span>
-
-            under
-            {{ locationDetails?.licenses[0] }}
           </small>
         </p>
       </div>
@@ -163,12 +179,17 @@
   import { AnnotationOptions } from 'chartjs-plugin-annotation';
   import { DateTime } from 'luxon';
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
+  import { useNuxtApp } from '#imports';
+  import { LICENSE_MAP, DATA_SOURCE_MAP } from '~/constants/map/attribution';
 
   const props = defineProps<{
     dialog: DialogInstance<{ location: AGMapLocationData }>;
   }>();
 
-  const apiUrl = useRuntimeConfig().public.apiUrl;
+  const runtimeConfig = useRuntimeConfig();
+  const apiUrl = runtimeConfig.public.apiUrl as string;
+  const headers = { 'data-permission-context': runtimeConfig.public.trustedContext as string };
+
   const generalConfigStore = useGeneralConfigStore();
   const { getTimezoneLabel, userTimezone } = useHistoricalDataTimezone();
   const { handleApiError } = useApiErrorHandler();
@@ -176,12 +197,35 @@
   const mapLocationData: Ref<AGMapLocationData> = ref(null);
   const locationHistoryData: Ref<LocationHistoryData> = ref(null);
   const locationDetails: Ref<LocationDetails> = ref(null);
+  const dataSourceAttribution = computed(() => {
+    const sourceKey = locationDetails.value?.dataSource as keyof typeof DATA_SOURCE_MAP | undefined;
+    if (sourceKey && DATA_SOURCE_MAP[sourceKey]) {
+      return DATA_SOURCE_MAP[sourceKey];
+    }
+    if (locationDetails.value?.dataSource) {
+      return { label: locationDetails.value.dataSource, url: null };
+    }
+    return null;
+  });
+  const licenseAttribution = computed(() => {
+    const license = locationDetails.value?.licenses?.[0];
+    if (!license) {
+      return locationDetails.value ? { label: 'unknown license', url: null } : null;
+    }
+    const licenseKey = license as keyof typeof LICENSE_MAP;
+    if (LICENSE_MAP[licenseKey]) {
+      return LICENSE_MAP[licenseKey];
+    }
+    return { label: license, url: null };
+  });
   const chartData: Ref<ChartData<'bar'>> = ref(null);
   const chartOptions: Ref<ChartOptions<'bar'>> = ref(null);
   const historyLoading: Ref<boolean> = ref(false);
   const detailsLoading: Ref<boolean> = ref(false);
   const historyError: Ref<boolean> = ref(false);
   const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
+
+  const { $i18n } = useNuxtApp();
 
   const timezoneSelectShown: Ref<boolean> = computed(() => {
     const userOffset = DateTime.now().toFormat('ZZ');
@@ -278,7 +322,8 @@
     detailsLoading.value = true;
     try {
       const response = await $fetch<LocationDetails>(`${apiUrl}/locations/${locationId}`, {
-        retry: 1
+        retry: 1,
+        headers: headers
       });
       locationDetails.value = response;
     } catch (error) {
@@ -309,9 +354,11 @@
             start,
             end,
             bucketSize: generalConfigStore.selectedHistoryPeriod.defaultBucketSize,
-            measure
+            measure,
+            excludeOutliers: generalConfigStore.excludeOutliers
           },
-          retry: 1
+          retry: 1,
+          headers: headers
         }
       );
       locationHistoryData.value = response;
@@ -369,7 +416,8 @@
       chartData.value = data;
 
       const annotations = useChartJsAnnotations({
-        data: chartValues
+        data: chartValues,
+        translate: $i18n.t
       });
 
       chartOptions.value = useChartjsOptions({
@@ -464,6 +512,12 @@
   .headless {
     .chart-container {
       height: 270px;
+    }
+
+    @media (max-width: 768px) {
+      &.embedded .chart-container {
+        height: 200px;
+      }
     }
 
     .chart-controls {

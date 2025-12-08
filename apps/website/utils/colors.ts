@@ -32,9 +32,11 @@ export function getPM25Color(
   } else if (level === MeasurementLevels.UNHEALTHY) {
     result = ChartColorsType.RED;
   } else if (level === MeasurementLevels.VERY_UNHEALTHY) {
-    result = ChartColorsType.VIOLET;
-  } else if (level === MeasurementLevels.HAZARDOUS) {
     result = ChartColorsType.PURPLE;
+  } else if (level === MeasurementLevels.HAZARDOUS) {
+    result = ChartColorsType.BROWN;
+  } else {
+    result = ChartColorsType.BROWN;
   }
 
   return {
@@ -70,6 +72,15 @@ export function getCO2Color(
   shade: 500 | 700 | 300 | 100 = 500
 ): { bgColor: string; textColorClass: string } {
   let color = ChartColorsType.DEFAULT;
+// <<<<<<< HEAD
+// =======
+//   const configuration = [
+//     { index: 1, color: ChartColorsType.GREEN, max: 449, label: 'excellent' },
+//     { index: 2, color: ChartColorsType.YELLOW, max: 499, label: 'good' },
+//     { index: 3, color: ChartColorsType.ORANGE, max: 799, label: 'moderate' },
+//     { index: 4, color: ChartColorsType.GRAY, max: 10000, label: 'incorrect' }
+//   ];
+// >>>>>>> ef67d2e3adadb48ebad298f8f304b73b6905e4f2
 
   const level = getMeasurementLevel(MeasureNames.RCO2, rco2Value);
 
@@ -113,9 +124,9 @@ export function getAQIColor(
   } else if (level === MeasurementLevels.UNHEALTHY) {
     color = ChartColorsType.RED;
   } else if (level === MeasurementLevels.VERY_UNHEALTHY) {
-    color = ChartColorsType.VIOLET;
-  } else {
     color = ChartColorsType.PURPLE;
+  } else {
+    color = ChartColorsType.BROWN;
   }
 
   return {

@@ -1,17 +1,17 @@
 export const PM25_LEGEND_LABELS = [
-  'Good',
-  'Moderate',
-  'Unhealthy Sensitive Groups',
-  'Unhealthy',
-  'Very Unhealthy',
-  'Hazardous'
+  'good',
+  'moderate',
+  'unhealthy_sensitive_groups',
+  'unhealthy',
+  'very_unhealthy',
+  'hazardous'
 ];
 
 export const RCO2_LEGEND_LABELS = [
-  'Excellent',
-  'Acceptable',
-  'Not Ideal',
-  'To be Avoided',
-  'Unhealthy',
-  'Very Unhealthy'
+  'excellent',
+  'acceptable',
+  'not_ideal',
+  'to_be_avoided',
+  'unhealthy',
+  'very_unhealthy'
 ];

@@ -1,6 +1,6 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import LocationRepository from './location.repository';
-import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { getPMWithEPACorrectionIfNeeded } from 'src/utils/getEpaCorrectedPM';
 import { BucketSize, roundToBucket } from 'src/utils/timeSeriesBucket';
 import { DateTime } from 'luxon';
 import {
@@ -18,34 +18,124 @@ export class LocationService {
   constructor(private readonly locationRepository: LocationRepository) {}
   private readonly logger = new Logger(LocationService.name);
 
-  async getLocations(page = 1, pagesize = 100): Promise<LocationServiceResult> {
+  async getLocations(
+    hasFullAccess: boolean,
+    page = 1,
+    pagesize = 100,
+  ): Promise<LocationServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    return await this.locationRepository.retrieveLocations(offset, pagesize);
+    return await this.locationRepository.retrieveLocations(hasFullAccess, offset, pagesize);
   }
 
-  async getLocationById(id: number): Promise<LocationByIdResult> {
-    return await this.locationRepository.retrieveLocationById(id);
+  async getLocationById(id: number, hasFullAccess: boolean): Promise<LocationByIdResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+    return await this.locationRepository.retrieveLocationById(id, hasFullAccess);
   }
 
-  async getLocationLastMeasures(id: number): Promise<LocationMeasuresResult> {
-    const results = await this.locationRepository.retrieveLastMeasuresByLocationId(id);
-    if (results.dataSource === DataSource.AIRGRADIENT) {
-      results.pm25 = getEPACorrectedPM(results.pm25, results.rhum);
-    }
+  async getLocationLastMeasures(
+    id: number,
+    hasFullAccess: boolean,
+  ): Promise<LocationMeasuresResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+
+    const results = await this.locationRepository.retrieveLastMeasuresByLocationId(
+      id,
+      hasFullAccess,
+    );
+    results.pm25 = getPMWithEPACorrectionIfNeeded(
+      results.dataSource as DataSource,
+      results.pm25,
+      results.rhum,
+    );
     return results;
   }
 
-  async getCigarettesSmoked(id: number): Promise<CigarettesSmokedResult> {
-    return await this.locationRepository.retrieveCigarettesSmokedByLocationId(id);
+  async getCigarettesSmoked(id: number, hasFullAccess: boolean): Promise<CigarettesSmokedResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+
+    const timeframes = [
+      { label: 'last24hours', days: 1 },
+      { label: 'last7days', days: 7 },
+      { label: 'last30days', days: 30 },
+      { label: 'last365days', days: 365 },
+    ];
+
+    try {
+      const now = new Date();
+      const cigaretteData: Record<string, number | null> = {};
+
+      for (const timeframe of timeframes) {
+        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
+        const end = now.toISOString();
+
+        const rows = await this.locationRepository.retrieveLocationMeasuresHistory(
+          id,
+          start,
+          end,
+          BucketSize.OneDay,
+          true,
+          MeasureType.PM25,
+          hasFullAccess,
+        );
+
+        let results: { timebucket: string; value: number }[] = rows.map(
+          (row: {
+            timebucket: string;
+            value: number;
+            dataSource: DataSource;
+            pm25: number;
+            rhum: number;
+          }) => ({
+            timebucket: row.timebucket,
+            value: getPMWithEPACorrectionIfNeeded(row.dataSource as DataSource, row.pm25, row.rhum),
+          }),
+        );
+
+        results = results.filter(result => result.value !== null && result.value !== undefined);
+
+        console.log(results);
+        if (results.length === 0) {
+          cigaretteData[timeframe.label] = null;
+        } else {
+          // Calculate average daily PM2.5 from available data
+          const sum = results.reduce(
+            (acc: number, result: { value: number }) => acc + result.value,
+            0,
+          );
+          const averageDailyPM25 = sum / results.length;
+
+          // Apply average to full timeframe and convert to cigarettes
+          // Missing days are assumed to have the same average pollution as days with data
+          // This projects the average exposure to the entire timeframe period
+          // Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day
+          // Formula: (average_daily_PM25 × timeframe_days) / 22
+          const cigarettesForTimeframe = (averageDailyPM25 * timeframe.days) / 22;
+
+          cigaretteData[timeframe.label] = Math.round(cigarettesForTimeframe * 100) / 100;
+        }
+      }
+      return cigaretteData;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException('Error query retrieve cigarettes smoked');
+    }
   }
 
   async getLocationMeasuresHistory(
     id: number,
     start: string,
     end: string,
-    bucketSize: string,
+    bucketSize: BucketSize,
+    excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ) {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
 
@@ -54,14 +144,19 @@ export class LocationService {
     let endTime: DateTime;
     try {
       this.logger.debug(`Time range before processed: ${start} -- ${end}`);
-      startTime = roundToBucket(start, bucketSize as BucketSize);
-      endTime = roundToBucket(end, bucketSize as BucketSize);
+      startTime = roundToBucket(start, bucketSize);
+      endTime = DateTime.fromISO(end, { setZone: true });
+
+      // Ensure the conversion was successful before proceeding.
+      if (!endTime.isValid) {
+        throw new Error('Invalid ISO end date string provided.');
+      }
     } catch (error) {
       this.logger.error(error);
       throw new InternalServerErrorException({
         message: `LOC_007: Failed round range timestamp`,
         operation: 'getLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measure },
+        parameters: { id, start, end, bucketSize, excludeOutliers, measure },
         error: error.message,
         code: 'LOC_007',
       });
@@ -76,16 +171,15 @@ export class LocationService {
       startTime.toISO({ includeOffset: false }),
       endTime.toISO({ includeOffset: false }),
       bucketSize,
+      excludeOutliers,
       measureType,
+      hasFullAccess,
     );
 
     if (measureType === MeasureType.PM25) {
       return results.map((row: any) => ({
         timebucket: row.timebucket,
-        value:
-          row.dataSource === DataSource.AIRGRADIENT
-            ? getEPACorrectedPM(row.pm25, row.rhum)
-            : row.pm25,
+        value: getPMWithEPACorrectionIfNeeded(row.dataSource as DataSource, row.pm25, row.rhum),
       }));
     }
 
@@ -95,11 +189,20 @@ export class LocationService {
   async getLocationAverages(
     id: number,
     measure: MeasureType,
+    hasFullAccess: boolean,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
+    // make sure this location id exist
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+
     // Default set to pm25 if not provided
     let measureType = measure == null ? MeasureType.PM25 : measure;
 
-    return await this.locationRepository.retrieveAveragesByLocationId(id, measureType, periods);
+    return await this.locationRepository.retrieveAveragesByLocationId(
+      id,
+      measureType,
+      hasFullAccess,
+      periods,
+    );
   }
 }

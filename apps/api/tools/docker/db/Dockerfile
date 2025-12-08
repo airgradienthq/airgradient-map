@@ -24,7 +24,7 @@ WORKDIR /timeseries
 
 # The `.tmp` file will be storing the postgis version used
 RUN git clone https://github.com/postgis/docker-postgis.git && \
-	echo "export POSTGIS_VERSION=`grep '^ENV POSTGIS_VERSION' docker-postgis/16-3.5/Dockerfile | awk '{print $3}'`" >> .tmp
+	echo "export `grep '^ENV POSTGIS_VERSION' docker-postgis/16-3.5/Dockerfile | awk '{print $2}'`" >> .tmp
 
 # install all extensions
 RUN git clone https://github.com/citusdata/pg_cron.git && \

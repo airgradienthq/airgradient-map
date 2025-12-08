@@ -39,17 +39,25 @@ To get the key, please follow steps from OpenAQ [here](https://docs.openaq.org/u
 
 3. **Run the containers**
 
-We have one docker compose file to build and run 3 containers:
+We have docker compose files that build and run containers:
 
-- `postgrex-mono`: the database
-- `mapapi-mono`: the backend
-- `website-mono`: the frontend
+- `postgrex-mono`: PostgreSQL database with PostGIS
+- `db-migrate-mono`: Database migration runner (runs automatically)
+- `mapapi-mono`: NestJS API backend
+- `cron-mono`: Background cron jobs
+- `website-mono`: Nuxt.js frontend
 
 To spin them up, run from the root of this repo:
 
 ```bash
 docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml up
 ```
+
+**What happens automatically:**
+1. PostgreSQL starts and initializes
+2. Database migrations run automatically (all tables created)
+3. API and cron services start (database is ready)
+4. Frontend starts
 
 This automatically builds and starts the necessary containers. When developing and changing source files, the api service automatically reloads the source files. Use the `--build` option when you change npm dependencies and need to rebuild the image. Optionally use the `-d` option for running detached in the background.
 
@@ -59,60 +67,77 @@ To stop the services, run:
 docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml down
 ```
 
-4. **Seed Data to the Database**
+4. **Database Migrations & Seeding**
 
-> **⚠️ Important for Existing Developers:** If you've previously run this project, you'll need to refresh your database and containers due to recent schema changes. See the(#database-refresh) below.
+This project uses [Knexjs](https://knexjs.org/) for database migrations and seeding to keep the schema and test data consistent with project changes.
 
-#### Fresh Setup
+> **⚠️ Important for Existing Developers:**
+>
+> If you've previously run this project before automated migrations were introduced, it's recommended to start fresh by removing the existing Postgres volume:
+>
+> ```bash
+> docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml down -v
+> ```
 
-- Download database dump from [here](https://drive.google.com/drive/folders/1U4NijemzSUOA2aXpJy3uK-uFXz8xFZct?usp=share_link)
-- Copy db dump to the db container
+- **Migrations (Automatic)**
+
+Migrations now run **automatically** when you start the containers. You don't need to run them manually.
+
+If you need to run migrations manually for testing:
 
 ```bash
-docker cp agmap.dump postgrex-mono:/tmp/
+docker exec -it mapapi-mono npx knex migrate:latest --knexfile knexfile.ts
 ```
 
-- Restore database
+- **Seed Data (Optional)**
+
+Populate tables with sample/initial data for development:
 
 ```bash
-docker exec -it postgrex-mono pg_restore -U postgres -d agmap -v /tmp/agmap.dump
+docker exec -it mapapi-mono npx knex seed:run --knexfile knexfile.ts
 ```
 
-- Make sure database is ready
+Example Output:
+
+```
+Requiring external module ts-node/register
+Seeded 1761 owner
+Seeded 14176 locations with PostgreSQL timestamps
+Processing 65680 measurement records...
+Inserted 1000 of 65680 records
+Inserted 6000 of 65680 records
+Inserted 11000 of 65680 records
+Inserted 16000 of 65680 records
+Inserted 21000 of 65680 records
+Inserted 26000 of 65680 records
+Inserted 31000 of 65680 records
+Inserted 36000 of 65680 records
+Inserted 41000 of 65680 records
+Inserted 46000 of 65680 records
+Inserted 51000 of 65680 records
+Inserted 56000 of 65680 records
+Inserted 61000 of 65680 records
+Inserted 65680 of 65680 records
+Seeded 65680 measurements mapped to the last 6 hours
+Ran 3 seed files
+```
+
+- Verify Database Setup 
+
+Check that the data has been seeded correctly:
 
 ```bash
 docker exec -it postgrex-mono psql -U postgres -d agmap -c "select count(*) from location;"
 ```
 
-Expected Result (updated count):
+Expected result (row count may differ if seed data changes):
 
 ```bash
  count 
 -------
- 13981
+ 14176
 (1 row)
 ```
-
-#### Database Refresh Steps {#database-refresh}
-
-> For developers who have previously worked with this project
-
-The database schema and dump have been updated to support contributor fixes from PR [#196](https://github.com/airgradienthq/airgradient-map/pull/196). You'll need to completely refresh your environment:
-
-- **Remove all containers and images:**
-
-```bash
-docker compose -f docker-compose-dev.yml down --rmi all
-```
-
-- **Remove the database volume:**
-
-```bash
-docker volume rm airgradient-map_pgdata
-```
-
-- **Follow the Fresh Setup steps above** with the updated database dump.
-
 
 5. **Check the UI**
 
@@ -151,6 +176,19 @@ If you'd like to work on an issue:
 ### Workflow Status
 If you're working on an issue or it's ready for review, and the **project board** doesn't reflect that:
 - Leave a comment in the issue. We'll move the card to the correct status.
+
+### New Database Schema
+
+Since this project maintains database migrations using [Knexjs](https://knexjs.org/), run below command to create new migration file:
+
+```bash
+cd apps/api
+npx knex migrate:make <MIGRATION_NAME> --knexfile knexfile.ts
+```
+
+This creates a new migration file in `apps/api/database/migrations/`. When you restart the docker-compose stack, the new migration will run automatically.
+
+Please see Knexjs [migration documentation](https://knexjs.org/guide/migrations.html) for more information.
 
 ---
 

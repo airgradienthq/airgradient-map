@@ -8,13 +8,19 @@ import DatabaseService from 'src/database/database.service';
 import { LocationEntity } from './location.entity';
 import { MeasureType, PM25Period, PM25PeriodConfig, MeasurementAveragesResult } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
+import { LatestLocationMeasurementData } from 'src/notifications/notification.model';
+import { BucketSize } from 'src/utils/timeSeriesBucket';
 
 @Injectable()
 class LocationRepository {
   constructor(private readonly databaseService: DatabaseService) {}
   private readonly logger = new Logger(LocationRepository.name);
 
-  async retrieveLocations(offset: number = 0, limit: number = 100): Promise<LocationEntity[]> {
+  async retrieveLocations(
+    hasFullAccess: boolean,
+    offset: number = 0,
+    limit: number = 100,
+  ): Promise<LocationEntity[]> {
     const query = `
             SELECT
                 l.id AS "locationId",
@@ -27,12 +33,14 @@ class LocationRepository {
                 l.sensor_type AS "sensorType",
                 l.licenses,
                 l.provider,
-                l.data_source AS "dataSource",
+                d.name AS "dataSource",
                 l.timezone
             FROM 
-                location l
+                ${hasFullAccess ? 'location' : 'vw_location_public'} l
             JOIN
                 owner o ON l.owner_id = o.id
+            JOIN
+                data_source d ON l.data_source_id = d.id
             ORDER BY 
                 l.id
             OFFSET $1 LIMIT $2; 
@@ -54,7 +62,7 @@ class LocationRepository {
     }
   }
 
-  async retrieveLocationById(id: number): Promise<LocationEntity> {
+  async retrieveLocationById(id: number, hasFullAccess: boolean): Promise<LocationEntity> {
     const query = `
             SELECT
                 l.id AS "locationId",
@@ -67,12 +75,14 @@ class LocationRepository {
                 l.sensor_type AS "sensorType",
                 l.licenses,
                 l.provider,
-                l.data_source AS "dataSource",
+                d.name AS "dataSource",
                 l.timezone
             FROM 
-                location l
+                ${hasFullAccess ? 'location' : 'vw_location_public'} l
             JOIN
                 owner o ON l.owner_id = o.id
+            JOIN
+                data_source d ON l.data_source_id = d.id
             WHERE
                 l.id = $1;
         `;
@@ -92,6 +102,9 @@ class LocationRepository {
 
       return new LocationEntity(location);
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(error);
       throw new InternalServerErrorException({
         message: 'LOC_003: Failed to retrieve location by id',
@@ -103,37 +116,56 @@ class LocationRepository {
     }
   }
 
-  async retrieveLastPM25ByLocationsList(locationIds: number[]) {
+  async retrieveLastPM25ByLocationsList(
+    locationIds: number[],
+  ): Promise<LatestLocationMeasurementData[]> {
     if (locationIds.length === 0) {
       return [];
     }
     const query = `
-        SELECT DISTINCT ON (m.location_id)
-                m.location_id AS "locationId",
-                m.pm25,
-                m.rhum,
-                m.measured_at AS "measuredAt",
-                l.location_name AS "locationName",
-                l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
-        FROM measurement m
-        JOIN location l ON m.location_id = l.id
-        WHERE m.location_id = ANY($1::int[])
-          AND (
-            (l.data_source = 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '30 minutes')
-            OR (l.data_source <> 'AirGradient' AND m.measured_at >= NOW() - INTERVAL '90 minutes')
-          )
-        ORDER BY m.location_id, m.measured_at DESC;
+        SELECT
+          l.id AS "locationId",
+          l.location_name AS "locationName",
+          l.sensor_type AS "sensorType",
+          d.name AS "dataSource",
+          m.pm25,
+          m.rhum,
+          m.measured_at AS "measuredAt"
+        FROM location l
+        JOIN data_source d ON l.data_source_id = d.id
+        LEFT JOIN LATERAL (
+          SELECT m.pm25, m.rhum, m.measured_at
+          FROM measurement m
+            WHERE m.location_id = l.id
+              AND (m.is_pm25_outlier = false)
+              AND m.measured_at >= NOW() - (
+                CASE WHEN d.name = 'AirGradient'
+                     THEN INTERVAL '30 minutes'
+                     ELSE INTERVAL '90 minutes'
+                END
+              )
+            ORDER BY m.measured_at DESC
+            LIMIT 1
+        ) m ON TRUE
+        WHERE l.id = ANY($1)
+        ORDER BY l.id;
     `;
     const results = await this.databaseService.runQuery(query, [locationIds]);
     return results.rows;
   }
 
-  async retrieveLastMeasuresByLocationId(id: number) {
+  async retrieveLastMeasuresByLocationId(id: number, hasFullAccess: boolean) {
     const query = `
+            WITH latest_measurement AS (
+              SELECT *
+              FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'}
+              WHERE location_id = $1
+              ORDER BY measured_at DESC
+              LIMIT 1
+            )
             SELECT 
                 m.location_id AS "locationId",
-                m.pm25,
+                CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25,
                 m.pm10,
                 m.atmp,
                 m.rhum,
@@ -142,12 +174,19 @@ class LocationRepository {
                 m.no2,
                 m.measured_at AS "measuredAt",
                 l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
-            FROM measurement m
+                d.name AS "dataSource"
+            FROM latest_measurement m
             JOIN location l ON m.location_id = l.id
-            WHERE m.location_id = $1
-            ORDER BY m.measured_at DESC 
-            LIMIT 1;
+            JOIN data_source d ON l.data_source_id = d.id
+            WHERE (
+                (m.is_pm25_outlier = false AND m.pm25 IS NOT NULL)  -- pm25 must be present
+                OR m.pm10 IS NOT NULL
+                OR m.atmp IS NOT NULL
+                OR m.rhum IS NOT NULL
+                OR m.rco2 IS NOT NULL
+                OR m.o3 IS NOT NULL
+                OR m.no2 IS NOT NULL
+              );
         `;
 
     try {
@@ -164,6 +203,9 @@ class LocationRepository {
       }
       return lastMeasurements;
     } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(error);
       throw new InternalServerErrorException({
         message: 'LOC_005: Failed to retrieve last measures by location id',
@@ -175,33 +217,18 @@ class LocationRepository {
     }
   }
 
-  async retrieveCigarettesSmokedByLocationId(id: number) {
-    const timeframes = [
-      { label: 'last24hours', days: 1 },
-      { label: 'last7days', days: 7 },
-      { label: 'last30days', days: 30 },
-      { label: 'last365days', days: 365 },
-    ];
-    try {
-      const now = new Date();
-      const cigaretteData: Record<string, number> = {};
-      for (const timeframe of timeframes) {
-        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
-        const end = now.toISOString();
-
-        const rows = await this.retrieveLocationMeasuresHistory(id, start, end, '1 day', 'pm25');
-
-        let sum = 0;
-        for (const row of rows) {
-          sum += parseFloat(row.pm25);
-        }
-        const cigaretteNumber = Math.round((sum / 22) * 100) / 100;
-        cigaretteData[timeframe.label] = cigaretteNumber;
+  private getBinClauseFromBucketSize(bucketSize: BucketSize): string {
+    switch (bucketSize) {
+      case BucketSize.OneMonth: {
+        return `date_trunc('month', m.measured_at)`;
       }
-      return cigaretteData;
-    } catch (error) {
-      this.logger.error(error);
-      throw new InternalServerErrorException('Error query retrieve cigarettes smoked');
+
+      case BucketSize.OneYear: {
+        return `date_trunc('year', m.measured_at)`;
+      }
+
+      default:
+        return `date_bin($4, m.measured_at, $2)`;
     }
   }
 
@@ -209,30 +236,41 @@ class LocationRepository {
     id: number,
     start: string,
     end: string,
-    bucketSize: string,
-    measure: string,
+    bucketSize: BucketSize,
+    excludeOutliers: boolean,
+    measureType: MeasureType,
+    hasFullAccess: boolean,
   ) {
-    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measure as MeasureType);
+    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
 
-    const validationQuery = hasValidation ? `AND m.${measure} BETWEEN $5 AND $6` : '';
+    const validationQuery = hasValidation ? `AND m.${measureType} BETWEEN $5 AND $6` : '';
 
     // For pm25, we need both pm25 and rhum for EPA correction
     const selectClause =
-      measure === 'pm25'
+      measureType === MeasureType.PM25
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
-        : `round(avg(m.${measure})::NUMERIC , 2) AS value`;
+        : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
+    const binClause = this.getBinClauseFromBucketSize(bucketSize);
+    const excludeOutliersQuery = excludeOutliers
+      ? measureType === MeasureType.PM25
+        ? 'AND m.is_pm25_outlier = false'
+        : ''
+      : '';
 
     const query = `
             SELECT
-                date_bin($4, m.measured_at, $2) AT TIME ZONE 'UTC' AS timebucket,
+                ${binClause} AT TIME ZONE 'UTC' AS timebucket,
                 ${selectClause},
                 l.sensor_type AS "sensorType",
-                l.data_source AS "dataSource"
-            FROM measurement m
+                d.name AS "dataSource",
+                $4::text AS unused_bucket_param -- Make sure that $4 always be used
+            FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'} m
             JOIN location l on m.location_id = l.id
+            JOIN data_source d ON l.data_source_id = d.id
             WHERE 
                 m.location_id = $1 AND 
-                m.measured_at BETWEEN $2 AND $3 
+                m.measured_at BETWEEN $2 AND $3
+                ${excludeOutliersQuery}
                 ${validationQuery}
             GROUP BY timebucket, "sensorType", "dataSource"
             ORDER BY timebucket;
@@ -250,7 +288,7 @@ class LocationRepository {
       throw new InternalServerErrorException({
         message: 'LOC_006: Failed to retrieve location measures history',
         operation: 'retrieveLocationMeasuresHistory',
-        parameters: { id, start, end, bucketSize, measure },
+        parameters: { id, start, end, bucketSize, excludeOutliers, measureType },
         error: error.message,
         code: 'LOC_006',
       });
@@ -304,7 +342,11 @@ class LocationRepository {
     return this.convertPeriodToInterval(periods[longestIndex]);
   }
 
-  private buildAveragesQuery(measure: MeasureType, periods?: string[]): string {
+  private buildAveragesQuery(
+    measureType: MeasureType,
+    hasFullAccess: boolean,
+    periods?: string[],
+  ): string {
     // Use default predefined periods if none specified
     const defaultPeriods = Object.values(PM25Period);
     const requestedPeriods = periods || defaultPeriods;
@@ -314,7 +356,7 @@ class LocationRepository {
         const interval = periods
           ? this.convertPeriodToInterval(period)
           : PM25PeriodConfig[period as PM25Period].interval;
-        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measure} END) as "${period}"`;
+        return `AVG(CASE WHEN measured_at >= NOW() - INTERVAL '${interval}' THEN ${measureType} END) as "${period}"`;
       })
       .join(',\n      ');
 
@@ -327,25 +369,35 @@ class LocationRepository {
       longestInterval = PM25PeriodConfig[PM25Period.DAYS_90].interval;
     }
 
+    const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measureType);
+    const validationQuery = hasValidation
+      ? `AND ${measureType} BETWEEN ${minVal} AND ${maxVal}`
+      : '';
+
+    const excludeOutliersQuery =
+      measureType === MeasureType.PM25 ? 'AND is_pm25_outlier = false' : '';
+
     return `
       SELECT 
         $1::integer as location_id,
         ${periodCases}
-      FROM measurement
+      FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'}
       WHERE location_id = $1
-        AND ${measure} IS NOT NULL
-        AND ${measure} BETWEEN 0 AND 500
+        AND ${measureType} IS NOT NULL
         AND measured_at >= NOW() - INTERVAL '${longestInterval}'
+        ${excludeOutliersQuery}
+        ${validationQuery}
       GROUP BY location_id
     `;
   }
 
   async retrieveAveragesByLocationId(
     id: number,
-    measure: MeasureType,
+    measureType: MeasureType,
+    hasFullAccess: boolean,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
-    const query = this.buildAveragesQuery(measure, periods);
+    const query = this.buildAveragesQuery(measureType, hasFullAccess, periods);
 
     // Debug logging
     this.logger.debug(`Generated query for periods ${JSON.stringify(periods)}:`);
@@ -388,6 +440,34 @@ class LocationRepository {
         parameters: { id },
         error: error.message,
         code: 'LOC_008',
+      });
+    }
+  }
+
+  async isLocationIdExist(id: number, hasFullAccess: boolean): Promise<void> {
+    try {
+      const query = `SELECT 1 FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l WHERE id = $1`;
+      const result = await this.databaseService.runQuery(query, [id]);
+      const location = result.rows[0];
+      if (!location) {
+        throw new NotFoundException({
+          message: 'LOC_009: Location not found',
+          operation: 'isLocationIdExist',
+          parameters: { id },
+          code: 'LOC_009',
+        });
+      }
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_010: Failed to retrieve location',
+        operation: 'isLocationIdExist',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_010',
       });
     }
   }

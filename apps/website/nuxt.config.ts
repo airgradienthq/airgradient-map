@@ -8,7 +8,8 @@ export default defineNuxtConfig({
           ? 'https://map-data.airgradient.com/map/api/v1'
           : process.env.APP_ENV === 'staging'
             ? 'https://map-data-int.airgradient.com/map/api/v1'
-            : 'http://localhost:3001/map/api/v1'
+            : 'https://map-data-int.airgradient.com/map/api/v1',
+      trustedContext: process.env.NUXT_PUBLIC_TRUSTED_CONTEXT || ''
     }
   },
   css: [
@@ -16,7 +17,8 @@ export default defineNuxtConfig({
     '@mdi/font/css/materialdesignicons.min.css',
     '@/assets/styles/bootstrap.min.css',
     '@/assets/styles/main.scss',
-    'leaflet-geosearch/dist/geosearch.css'
+    'leaflet-geosearch/dist/geosearch.css',
+    'leaflet-velocity/dist/leaflet-velocity.css'
   ],
   build: {
     transpile: ['vuetify']
@@ -45,8 +47,26 @@ export default defineNuxtConfig({
         autoImports: ['defineStore', ['defineStore', 'definePiniaStore']]
       }
     ],
-    '@nuxtjs/leaflet'
+    '@nuxtjs/leaflet',
+    '@nuxtjs/i18n'
   ],
+  i18n: {
+    detectBrowserLanguage: {
+      useCookie: true,
+      alwaysRedirect: true
+    },
+    strategy: 'prefix_except_default',
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', name: 'English', file: 'en.json' },
+      { code: 'th', name: 'ไทย', file: 'th.json' }
+      //  temporarily disabled
+      // { code: 'es', name: 'Español', file: 'es.json' }
+    ],
+    lazy: true,
+    langDir: 'locales/',
+    fallbackLocale: 'en'
+  },
   nitro: {
     output: {
       dir: process.env.NODE_ENV === 'development' ? '.output-dev' : '.output',

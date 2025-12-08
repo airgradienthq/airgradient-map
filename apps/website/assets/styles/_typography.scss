@@ -15,6 +15,10 @@ body {
   background: var(--grayColor100);
 }
 
+.th-layout * {
+  font-family: var(--thai-font);
+}
+
 h1 {
   font-size: var(--font-size-xxxl);
   line-height: 1.2;

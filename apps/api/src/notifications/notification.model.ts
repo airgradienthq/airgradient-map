@@ -18,6 +18,18 @@ export interface NotificationJob {
   title?: { en: string; de: string };
   retries?: number;
   lastError?: string;
+  androidAccentColor?: string;
+  isScheduledNotificationNoData?: boolean;
+}
+
+export interface LatestLocationMeasurementData {
+  locationId: number;
+  pm25: number | null;
+  rhum: number | null;
+  measuredAt: Date;
+  locationName: string;
+  sensorType: string;
+  dataSource: string;
 }
 
 export interface BatchResult {

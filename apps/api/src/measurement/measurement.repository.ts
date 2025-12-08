@@ -10,6 +10,7 @@ class MeasurementRepository {
   private readonly logger = new Logger(MeasurementRepository.name);
 
   private buildMeasureQuery(
+    excludeOutliers: boolean,
     measure?: MeasureType,
     paramsCount: number = 0,
   ): {
@@ -19,16 +20,34 @@ class MeasurementRepository {
     minVal: number | null;
     maxVal: number | null;
   } {
+    let selectQuery = 'm.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2, ';
+
+    selectQuery += excludeOutliers
+      ? 'CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25'
+      : 'm.pm25';
+
+    // General where query to ensure at least one measure is present
+    const whereQuery = `
+      AND (
+        (m.is_pm25_outlier = false AND m.pm25 IS NOT NULL)  -- pm25 must be present
+        OR m.pm10 IS NOT NULL
+        OR m.atmp IS NOT NULL
+        OR m.rhum IS NOT NULL
+        OR m.rco2 IS NOT NULL
+        OR m.o3 IS NOT NULL
+        OR m.no2 IS NOT NULL
+      )`;
+
     const query = {
-      selectQuery: `m.pm25, m.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2`,
-      whereQuery: '1=1',
+      selectQuery: selectQuery,
+      whereQuery: whereQuery,
       hasValidation: false,
       minVal: null,
       maxVal: null,
     };
 
     if (measure) {
-      const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measure as MeasureType);
+      const { minVal, maxVal, hasValidation } = getMeasureValidValueRange(measure);
       let validationQuery = '';
 
       if (hasValidation) {
@@ -40,22 +59,25 @@ class MeasurementRepository {
 
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
-        query.whereQuery = `m.pm25 IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `AND m.pm25 IS NOT NULL ${validationQuery}`;
+        query.whereQuery += excludeOutliers ? ' AND m.is_pm25_outlier = false' : '';
       } else {
         query.selectQuery = `m.${measure}`;
-        query.whereQuery = `m.${measure} IS NOT NULL ${validationQuery}`;
+        query.whereQuery = `AND m.${measure} IS NOT NULL ${validationQuery}`;
       }
     }
     return query;
   }
 
   async retrieveLatest(
+    hasFullAccess: boolean,
     offset: number = 0,
     limit: number = 100,
     measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [offset, limit];
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
+      true,
       measure,
       params.length,
     );
@@ -64,37 +86,31 @@ class MeasurementRepository {
       params.push(minVal, maxVal);
     }
 
-    const query = ` 
-            WITH latest_measurements AS (
-                SELECT 
-                    location_id,
-                    last(measured_at, measured_at) AS last_measured_at
-                FROM 
-                    measurement
-                WHERE measured_at  >= NOW() - INTERVAL '6 hours'
-                GROUP BY
-                    location_id
-            )
-            SELECT 
-                lm.location_id AS "locationId", 
-                l.location_name AS "locationName", 
-                ST_X(l.coordinate) AS longitude,
-                ST_Y(l.coordinate) AS latitude,
-                l.sensor_type AS "sensorType",
-                ${selectQuery},
-                lm.last_measured_at AS "measuredAt"
-            FROM 
-                latest_measurements lm
-            JOIN 
-                measurement m ON lm.location_id = m.location_id AND lm.last_measured_at = m.measured_at
-            JOIN 
-                location l ON m.location_id = l.id
-            WHERE
-              ${whereQuery}
-            ORDER BY 
-                lm.location_id 
-            OFFSET $1 LIMIT $2; 
-        `;
+    const query = `
+      SELECT
+        m.location_id AS "locationId", 
+        l.location_name AS "locationName", 
+        ST_X(l.coordinate) AS "longitude",
+        ST_Y(l.coordinate) AS "latitude",
+        l.sensor_type AS "sensorType",
+        m.measured_at AS "measuredAt",
+        d.name AS "dataSource",
+        ${selectQuery}
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
+      JOIN LATERAL (
+        SELECT *
+        FROM measurement m
+        WHERE m.location_id = l.id
+          AND m.measured_at  >= NOW() - INTERVAL '6 hours'
+        ORDER BY m.measured_at DESC
+        LIMIT 1
+      ) m on TRUE
+      WHERE
+        TRUE
+        ${whereQuery}
+      ORDER BY l.id
+      OFFSET $1 LIMIT $2;`;
 
     try {
       const result = await this.databaseService.runQuery(query, params);
@@ -118,11 +134,14 @@ class MeasurementRepository {
     yMin: number,
     xMax: number,
     yMax: number,
+    excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
 
     const { selectQuery, whereQuery, hasValidation, minVal, maxVal } = this.buildMeasureQuery(
+      excludeOutliers,
       measure,
       params.length,
     );
@@ -133,47 +152,32 @@ class MeasurementRepository {
 
     // Format query
     const query = `
-            WITH latest_measurements AS (
-                SELECT 
-                    l.id AS location_id,
-                    LAST(m.measured_at, m.measured_at) AS last_measured_at
-                FROM 
-                    measurement m
-                JOIN location l 
-                    ON m.location_id = l.id 
-                WHERE 
-                    ST_Within(
-                        coordinate,
-                        ST_MakeEnvelope($1, $2, $3, $4, 3857)
-                    )
-                AND
-                  ${whereQuery}
-                AND
-                    m.measured_at  >= NOW() - INTERVAL '6 hours'
-                AND
-                    m.measured_at <= NOW()
-                GROUP BY 
-                    l.id
-            )
-            SELECT 
-                lm.location_id AS "locationId", 
-                l.location_name AS "locationName", 
-                ST_X(l.coordinate) AS longitude,
-                ST_Y(l.coordinate) AS latitude,
-                l.sensor_type AS "sensorType",
-                ${selectQuery},
-                lm.last_measured_at AS "measuredAt",
-                l.data_source AS "dataSource"
-            FROM 
-                latest_measurements lm
-            JOIN 
-                measurement m ON
-                    lm.location_id = m.location_id
-                    AND lm.last_measured_at = m.measured_at
-                    AND m.measured_at >= NOW() - INTERVAL '6 hours'
-            JOIN 
-                location l ON m.location_id = l.id;
-        `;
+      SELECT
+        m.location_id AS "locationId", 
+        l.location_name AS "locationName", 
+        ST_X(l.coordinate) AS "longitude",
+        ST_Y(l.coordinate) AS "latitude",
+        l.sensor_type AS "sensorType",
+        m.measured_at AS "measuredAt",
+        d.name AS "dataSource",
+        ${selectQuery}
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
+      JOIN LATERAL (
+        SELECT *
+        FROM measurement m
+        WHERE m.location_id = l.id
+          AND m.measured_at  >= NOW() - INTERVAL '6 hours'
+        ORDER BY m.measured_at DESC
+        LIMIT 1
+      ) m on TRUE
+      WHERE
+        ST_Within(
+          l.coordinate,
+          ST_MakeEnvelope($1, $2, $3, $4, 4326)
+        )
+        ${whereQuery}
+      ORDER BY l.id;`;
 
     try {
       // Execute query with query params value
@@ -188,7 +192,7 @@ class MeasurementRepository {
       throw new InternalServerErrorException({
         message: 'MEAS_002: Failed to retrieve latest measurements by area',
         operation: 'retrieveLatestByArea',
-        parameters: { xMin, yMin, xMax, yMax, measure },
+        parameters: { xMin, yMin, xMax, yMax, excludeOutliers, measure },
         error: error.message,
         code: 'MEAS_002',
       });

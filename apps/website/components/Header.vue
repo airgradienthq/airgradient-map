@@ -46,7 +46,7 @@
                   }
                 "
               >
-                {{ link.label }}
+                {{ $t(link.label) }}
               </a>
               <div class="dropdown-shadow">
                 <div
@@ -61,7 +61,7 @@
                     :href="child.path"
                     :target="child.openBlank ? '_blank' : ''"
                   >
-                    {{ child.label }}
+                    {{ $t(child.label) }}
                   </a>
                 </div>
               </div>
@@ -73,11 +73,25 @@
   </header>
 </template>
 <script setup lang="ts">
-  import { HEADER_LINKS_CONFIG } from '~/constants/shared/header-links-config';
-  import { ref, onMounted, onBeforeUnmount } from 'vue';
+  import {
+    HEADER_LINKS_CONFIG_EN,
+    HEADER_LINKS_CONFIG_TH
+  } from '~/constants/shared/header-links-config';
+  import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+  import { useI18n } from '#imports';
+  import { HeaderLink } from '~/types';
 
+  const { locale } = useI18n();
   const isNavbarVisible = ref(false);
   const activeDropdown = ref<number | null>(null);
+
+  const HEADER_LINKS_CONFIG = computed<HeaderLink[]>(() => {
+    if (locale.value === 'th') {
+      return HEADER_LINKS_CONFIG_TH;
+    } else {
+      return HEADER_LINKS_CONFIG_EN;
+    }
+  });
 
   const toggleNavbar = () => {
     isNavbarVisible.value = !isNavbarVisible.value;

@@ -4,7 +4,7 @@ export enum ChartColorsType {
   ORANGE = 'orange',
   RED = 'red',
   PURPLE = 'purple',
-  VIOLET = 'violet',
+  BROWN = 'brown',
   BLUE = 'blue',
   GRAY = 'gray',
   LIGHTGRAY = 'lightgray',

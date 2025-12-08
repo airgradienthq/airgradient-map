@@ -1,6 +1,7 @@
 :root {
   --primary-font: 'Catamaran', sans-serif;
   --secondary-font: 'Cabin', sans-serif;
+  --thai-font: 'noto sans thai', sans-serif;
   --main-text-color: #212121;
   --main-white-color: #ffffff;
   --main-disabled-color: var(--grayColor500);
@@ -81,15 +82,15 @@
   --aq-red-300: #f79090;
   --aq-red-100: #fde8e8;
 
-  --aq-violet-700: #6e2385;
-  --aq-violet-500: #994de5;
-  --aq-violet-300: #c787f7;
-  --aq-violet-100: #f6d2ff;
+  --aq-brown-700: #3e0808;
+  --aq-brown-500: #3e0808;
+  --aq-brown-300: #8c3333;
+  --aq-brown-100: #fac3c3;
 
-  --aq-purple-700: #3e0808;
-  --aq-purple-500: #8c3333;
-  --aq-purple-300: #b86464;
-  --aq-purple-100: #fac3c3;
+  --aq-purple-700: #6e2385;
+  --aq-purple-500: #994de5;
+  --aq-purple-300: #c787f7;
+  --aq-purple-100: #f6d2ff;
 
   --aq-blue-700: #003351;
   --aq-blue-500: #1b75bc;

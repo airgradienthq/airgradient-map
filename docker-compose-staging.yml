@@ -18,6 +18,27 @@ services:
       - POSTGRES_USER=${DATABASE_USER}
     networks:
       - airgradient-map-staging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db-migrate:
+    container_name: db-migrate-mono
+    image: "mapapi-mono:${IMAGE_TAG}"
+    command: npx knex migrate:latest --knexfile knexfile.ts
+    networks:
+      - airgradient-map-staging
+    volumes:
+      - ./apps/api/database:/app/database
+      - ./apps/api/knexfile.ts:/app/knexfile.ts
+    env_file:
+      - ./apps/api/.env.staging
+    depends_on:
+      postgrex:
+        condition: service_healthy
+    restart: on-failure
 
   mapapi:
     image: "mapapi-mono:${IMAGE_TAG}"
@@ -33,9 +54,31 @@ services:
     env_file:
       - ./apps/api/.env.staging
     depends_on:
-      - postgrex
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
     environment:
       - NODE_ENV=staging
+      - PM2_INSTANCE=2 # Default
+    command: ["pm2-runtime", "start", "dist/api-main.js", "-i", "${PM2_INSTANCE}", "--name", "mapapi"]
+
+  cron:
+    image: "mapapi-mono:${IMAGE_TAG}" # prevent rebuild
+    container_name: cron-mono
+    restart: unless-stopped
+    networks:
+      - airgradient-map-staging
+    env_file:
+      - ./apps/api/.env.staging
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=staging
+    command: node dist/cron-main
 
   app:
     image: "website-mono:${IMAGE_TAG}"
@@ -51,6 +94,24 @@ services:
       - APP_ENV=staging
       - HOST=0.0.0.0
       - PORT=80
+      - NUXT_PUBLIC_TRUSTED_CONTEXT=${DATA_PERMISSION_CONTEXT_HEADER}
+
+  wind-service:
+    image: "wind-service-mono:${IMAGE_TAG}"
+    container_name: wind-service-mono
+    build:
+      context: apps/wind-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ./apps/api/.env.staging
+    networks:
+      - airgradient-map-staging
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      postgrex:
+        condition: service_healthy
 
 networks:
   airgradient-map-staging:

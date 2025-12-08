@@ -10,6 +10,8 @@ import { MeasurementEntity } from './measurement.entity';
 import MeasurementClusterModel from './measurementCluster.model';
 import PaginationQuery from 'src/utils/paginationQuery';
 import ClusterQuery from './clusterQuery';
+import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
+import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 
 @Controller('map/api/v1/measurements')
 @ApiTags('Measurements')
@@ -29,8 +31,10 @@ export class MeasurementController {
   async getLastMeasurements(
     @Query() { measure }: MeasureTypeQuery,
     @Query() { page, pagesize }: PaginationQuery,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<Pagination<MeasurementEntity>> {
     const measurementEntity = await this.measurementService.getLastMeasurements(
+      hasFullAccess,
       measure,
       page,
       pagesize,
@@ -48,12 +52,14 @@ export class MeasurementController {
   async getLastMeasurementsByArea(
     @Query() { measure }: MeasureTypeQuery,
     @Query() area: AreaQuery,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<Pagination<MeasurementEntity>> {
     const measurementEntity = await this.measurementService.getLastMeasurementsByArea(
       area.xmin,
       area.ymin,
       area.xmax,
       area.ymax,
+      hasFullAccess,
       measure,
     );
     return new Pagination(measurementEntity, null, null);
@@ -70,6 +76,8 @@ export class MeasurementController {
     @Query() { measure }: MeasureTypeQuery,
     @Query() area: AreaQuery,
     @Query() cluster: ClusterQuery,
+    @Query() { excludeOutliers }: ExcludeOutliersQuery,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<Pagination<MeasurementClusterModel>> {
     const measurementClusterModel = await this.measurementService.getLastMeasurementsByCluster(
       area.xmin,
@@ -77,6 +85,8 @@ export class MeasurementController {
       area.xmax,
       area.ymax,
       area.zoom,
+      excludeOutliers,
+      hasFullAccess,
       measure,
       cluster.minPoints,
       cluster.radius,

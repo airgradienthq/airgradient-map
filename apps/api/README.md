@@ -4,19 +4,59 @@ AirGradient Map API is a backend service that stores and serves air quality data
 
 ## Technical Overview
 
-### Backend Service
+### Endpoints
 
-API docs are available [here](https://map-data-int.airgradient.com/map/api/v1/docs) or if service available locally, go to http://localhost:3001/map/api/v1/docs. 
+API docs are available [here](https://map-data-int.airgradient.com/map/api/v1/docs) or if service available locally, go to http://localhost:3001/map/api/v1/docs.
 
-#### Tasks
+### Tasks
 
-The AirGradient Map API also runs a task that acts as a cron job, retrieving sensor locations and measurements from various data sources. The task is as follows:
+The AirGradient Map API includes a task scheduler that runs periodic jobs (similar to cron jobs) to retrieve sensor locations and measurements from various data sources, along with other scheduled operations.
 
-1. Every day at midnight, it will synchronize sensor locations from both AirGradient and OpenAQ.
-2. Every 15 minutes, it will retrieve the latest AirGradient sensor measurements.
-3. Every hour, it will retrieve the latest OpenAQ sensor measurements.
+#### Sensor locations and measurements data
 
-*Note: For OpenAQ, only the **reference** sensor types from provider such as EEA, Air4Thai, AirNow, etc., are synchronized. Please see `openaq-providers.ts` for the full provider list*
+Since not all external platforms providing sensor data are publicly accessible, a plugin-based architecture for flexible data retrieval is implemented. Each scheduled task imports a standalone .js plugin file and calls standardized functions (latest and location) that return data in a consistent format.
+
+**Plugin Structure:**
+
+Each plugin must export two async functions that return a standardized response object. The expected return format is defined in [plugin-data-source.types.ts](./src/types/tasks/plugin-data-source.types.ts):
+
+```js
+async function latest() {
+  let output = {
+    success: false,
+    count: 0,
+    data: [],
+    metadata: null,
+    error: null,
+  };
+
+  return output;
+}
+
+async function location() {
+  let output = {
+    success: false,
+    count: 0,
+    data: [],
+    metadata: null,
+    error: null,
+  };
+
+  return output;
+}
+
+module.exports = { latest, location };
+```
+
+To create new data source, please follow these steps:
+
+1. Create plugin file using [template.js](./data-source/public/template.js) as starting point
+2. Add two task functions in [tasks.service.ts](./src/tasks/tasks.service.ts) that import the new plugin:
+    - One task for retrieving latest measurements
+    - One task for syncing location information
+3. Register the data source by adding a new enum value in [data-source.ts](./src/types/shared/data-source.ts)
+
+*For complete implementation examples, see this [folder](./data-source/public/).*
 
 ### Database
 
@@ -55,6 +95,12 @@ Database is PostgreSQL with 2 extensions [PostGIS](https://postgis.net/) and [pg
   - `data_source` ➝ from which platform the sensor data is retrieved 
   - `provider` ➝ which instances/entity that provide the sensor 
 - measurement ➝ store sensors measurements data 
+
+## Important Note
+AirGradient has some special agreements with some data providers that allow us to display their data, but not expose it through the public API.
+For this reason, AirGradient uses the `data-permission-context` header.
+
+**PLEASE DO NOT USE THIS HEADER FOR YOUR OWN APPS.**
 
 ## License
 
