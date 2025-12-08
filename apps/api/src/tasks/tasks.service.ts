@@ -117,14 +117,14 @@ export class TasksService {
     return await this.syncLocations('public', 'airgradient.js', DataSource.AIRGRADIENT);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_11PM)
   async syncOpenAQLocations(): Promise<void> {
     return await this.syncLocations('public', 'openaq.js', DataSource.OPENAQ, {
       apiKey: this.openAQApiKey,
     });
   }
 
-  @Cron('10 0 * * *') // 10 minutes after midnight EVERY DAY
+  @Cron('10 23 * * *') // EVERY_DAY_AT_11_10_PM
   async syncDustBoyLocations(): Promise<void> {
     return await this.syncLocations('private', 'dustboy.js', DataSource.DUSTBOY);
   }
