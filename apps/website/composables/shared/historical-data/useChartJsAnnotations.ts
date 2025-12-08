@@ -69,10 +69,8 @@ function getAveragesData(
     avgValue = pm25ToAQI(avgValue);
   }
 
-
   const avgColor = getColorForMeasure(measure, avgValue, 700).bgColor;
   const avgBgColor = getColorForMeasure(measure, avgValue, 100).bgColor;
-
 
   let avgPeriodLabel = translate('average');
 
