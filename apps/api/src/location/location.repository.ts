@@ -391,7 +391,11 @@ class LocationRepository {
     `;
   }
 
-  private buildAveragesQueryWithEPA(measureType: MeasureType, periods?: string[]): string {
+  private buildAveragesQueryWithEPA(
+    measureType: MeasureType,
+    hasFullAccess: boolean,
+    periods?: string[],
+  ): string {
     // Use default predefined periods if none specified
     const defaultPeriods = Object.values(PM25Period);
     const requestedPeriods = periods || defaultPeriods;
@@ -399,7 +403,7 @@ class LocationRepository {
     // EPA correction formula as inline CASE statement
     const epaCorrection = `
       CASE
-        WHEN l.data_source != 'AirGradient' THEN m.pm25
+        WHEN d.name != 'AirGradient' THEN m.pm25
         WHEN m.pm25 IS NULL OR m.rhum IS NULL THEN NULL
         WHEN m.pm25 = 0 THEN 0
         WHEN m.pm25 < 30 THEN
@@ -458,8 +462,9 @@ class LocationRepository {
       SELECT
         $1::integer as location_id,
         ${periodCases}
-      FROM measurement m
+      FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'} m
       JOIN location l ON m.location_id = l.id
+      JOIN data_source d ON l.data_source_id = d.id
       WHERE m.location_id = $1
         AND m.${measureType} IS NOT NULL
         AND m.measured_at >= NOW() - INTERVAL '${longestInterval}'
@@ -525,9 +530,10 @@ class LocationRepository {
   async retrieveEPACorrectedAveragesByLocationId(
     id: number,
     measureType: MeasureType,
+    hasFullAccess: boolean,
     periods?: string[],
   ): Promise<MeasurementAveragesResult> {
-    const query = this.buildAveragesQueryWithEPA(measureType, periods);
+    const query = this.buildAveragesQueryWithEPA(measureType, hasFullAccess, periods);
 
     // Debug logging
     this.logger.debug(`Generated EPA-corrected query for periods ${JSON.stringify(periods)}:`);

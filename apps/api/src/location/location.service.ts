@@ -64,6 +64,7 @@ export class LocationService {
       const result = await this.locationRepository.retrieveEPACorrectedAveragesByLocationId(
         id,
         MeasureType.PM25,
+        hasFullAccess,
         periods,
       );
 
