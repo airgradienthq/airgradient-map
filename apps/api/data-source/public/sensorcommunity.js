@@ -5,7 +5,7 @@
  * @typedef {import('../../src/types/shared/sensor-type').SensorType} SensorType
  */
 
-const tzLookup = require('tz-lookup');
+const tzLookup = require('@photostructure/tz-lookup');
 
 const LOCATION_ID_AVAILABLE = false; // we know InsertLatestMeasuresInput.locationId or not
 const ALLOW_API_ACCESS = true;
