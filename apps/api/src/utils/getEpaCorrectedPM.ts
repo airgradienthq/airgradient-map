@@ -8,7 +8,8 @@ function getEPACorrectedPM(rawPM: number, rawRhum: number): number {
   }
 
   if ([undefined, null].includes(rawRhum)) {
-    return null;
+    // TODO: Have to fix this later
+    return rawPM;
   }
 
   if (rawPM === 0) {
