@@ -52,16 +52,29 @@ export class LocationService {
     return results;
   }
 
-  async getCigarettesSmoked(id: number, hasFullAccess: boolean): Promise<CigarettesSmokedResult> {
+  async getCigarettesSmoked(
+    id: number,
+    hasFullAccess: boolean,
+    requestedTimeframes?: string[],
+  ): Promise<CigarettesSmokedResult> {
     // make sure this location id exist
     await this.locationRepository.isLocationIdExist(id, hasFullAccess);
 
-    const timeframes = [
+    // Use provided timeframes or default to standard periods
+    const defaultTimeframes = [
       { label: 'last24hours', days: 1 },
       { label: 'last7days', days: 7 },
       { label: 'last30days', days: 30 },
       { label: 'last365days', days: 365 },
     ];
+
+    const timeframes = requestedTimeframes
+      ? requestedTimeframes.map(tf => {
+          // Parse format like "7d" to extract number of days
+          const days = parseInt(tf.replace('d', ''), 10);
+          return { label: tf, days };
+        })
+      : defaultTimeframes;
 
     try {
       // Fetch all daily averages for the longest timeframe (365 days) in a single query
