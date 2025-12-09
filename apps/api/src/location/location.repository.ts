@@ -471,6 +471,47 @@ class LocationRepository {
       });
     }
   }
+
+  async retrieveDailyAveragesForCigarettes(
+    id: number,
+    start: string,
+    end: string,
+    hasFullAccess: boolean,
+  ): Promise<Array<{ timebucket: string; pm25: number; rhum: number; dataSource: string }>> {
+    // Use date_bin with a fixed origin (epoch) to align buckets to midnight UTC
+    // This ensures consistent daily buckets regardless of query time
+    const query = `
+      SELECT
+        date_bin('1 day', m.measured_at, TIMESTAMP '2000-01-01 00:00:00 UTC') AT TIME ZONE 'UTC' AS timebucket,
+        round(avg(m.pm25)::NUMERIC, 2) AS pm25,
+        round(avg(m.rhum)::NUMERIC, 2) AS rhum,
+        l.sensor_type AS "sensorType",
+        d.name AS "dataSource"
+      FROM ${hasFullAccess ? 'measurement' : 'vw_measurement_public'} m
+      JOIN location l ON m.location_id = l.id
+      JOIN data_source d ON l.data_source_id = d.id
+      WHERE m.location_id = $1
+        AND m.measured_at BETWEEN $2 AND $3
+        AND m.is_pm25_outlier = false
+        AND m.pm25 IS NOT NULL
+      GROUP BY timebucket, l.sensor_type, d.name
+      ORDER BY timebucket
+    `;
+
+    try {
+      const result = await this.databaseService.runQuery(query, [id, start, end]);
+      return result.rows;
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_011: Failed to retrieve daily averages for cigarettes calculation',
+        operation: 'retrieveDailyAveragesForCigarettes',
+        parameters: { id, start, end },
+        error: error.message,
+        code: 'LOC_011',
+      });
+    }
+  }
 }
 
 export default LocationRepository;

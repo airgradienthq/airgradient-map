@@ -64,48 +64,51 @@ export class LocationService {
     ];
 
     try {
+      // Fetch all daily averages for the longest timeframe (365 days) in a single query
       const now = new Date();
+      const maxDays = Math.max(...timeframes.map(tf => tf.days));
+      const startDate = new Date(Date.now() - maxDays * 24 * 60 * 60 * 1000).toISOString();
+      const endDate = now.toISOString();
+
+      // Round start time to bucket boundary for consistency with other time-series queries
+      const startTime = roundToBucket(startDate, BucketSize.OneDay);
+      const endTime = DateTime.fromISO(endDate, { setZone: true });
+
+      // Convert to UTC
+      const start = startTime.toUTC().toISO({ includeOffset: false });
+      const end = endTime.toUTC().toISO({ includeOffset: false });
+
+      const dailyAverages = await this.locationRepository.retrieveDailyAveragesForCigarettes(
+        id,
+        start,
+        end,
+        hasFullAccess,
+      );
+
+      // Apply EPA correction to each daily average
+      const correctedDailyValues = dailyAverages.map(day => ({
+        timebucket: day.timebucket,
+        value: getPMWithEPACorrectionIfNeeded(day.dataSource as DataSource, day.pm25, day.rhum),
+      }));
+
+      // Calculate cigarettes for each timeframe
       const cigaretteData: Record<string, number | null> = {};
 
       for (const timeframe of timeframes) {
-        const start = new Date(Date.now() - timeframe.days * 24 * 60 * 60 * 1000).toISOString();
-        const end = now.toISOString();
+        const cutoffTime = Date.now() - timeframe.days * 24 * 60 * 60 * 1000;
 
-        const rows = await this.locationRepository.retrieveLocationMeasuresHistory(
-          id,
-          start,
-          end,
-          BucketSize.OneDay,
-          true,
-          MeasureType.PM25,
-          hasFullAccess,
-        );
+        // Filter daily values that fall within this timeframe
+        const relevantDays = correctedDailyValues.filter(day => {
+          const dayTime = new Date(day.timebucket).getTime();
+          return dayTime >= cutoffTime && day.value !== null && day.value !== undefined;
+        });
 
-        let results: { timebucket: string; value: number }[] = rows.map(
-          (row: {
-            timebucket: string;
-            value: number;
-            dataSource: DataSource;
-            pm25: number;
-            rhum: number;
-          }) => ({
-            timebucket: row.timebucket,
-            value: getPMWithEPACorrectionIfNeeded(row.dataSource as DataSource, row.pm25, row.rhum),
-          }),
-        );
-
-        results = results.filter(result => result.value !== null && result.value !== undefined);
-
-        console.log(results);
-        if (results.length === 0) {
+        if (relevantDays.length === 0) {
           cigaretteData[timeframe.label] = null;
         } else {
           // Calculate average daily PM2.5 from available data
-          const sum = results.reduce(
-            (acc: number, result: { value: number }) => acc + result.value,
-            0,
-          );
-          const averageDailyPM25 = sum / results.length;
+          const sum = relevantDays.reduce((acc, day) => acc + day.value, 0);
+          const averageDailyPM25 = sum / relevantDays.length;
 
           // Apply average to full timeframe and convert to cigarettes
           // Missing days are assumed to have the same average pollution as days with data
@@ -117,6 +120,7 @@ export class LocationService {
           cigaretteData[timeframe.label] = Math.round(cigarettesForTimeframe * 100) / 100;
         }
       }
+
       return cigaretteData;
     } catch (error) {
       this.logger.error(error);
