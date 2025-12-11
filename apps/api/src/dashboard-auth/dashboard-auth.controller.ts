@@ -19,16 +19,6 @@ export class DashboardAuthController {
   })
   @ApiOkResponse({
     description: 'User data retrieved successfully',
-    schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'number', example: 123 },
-        email: { type: 'string', example: 'user@example.com' },
-        name: { type: 'string', example: 'John Doe' },
-        created_at: { type: 'string', format: 'date-time' },
-        updated_at: { type: 'string', format: 'date-time' },
-      },
-    },
   })
   @ApiUnauthorizedResponse({
     description: 'No cookies provided or invalid authentication',
