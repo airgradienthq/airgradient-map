@@ -6,7 +6,6 @@ import { OneSignalProvider } from './onesignal.provider';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import { NotificationsRepository } from './notifications.repository';
 import { LocationModule } from 'src/location/location.module';
-import { DashboardApiService } from 'src/utils/dashboard-api.service';
 
 @Module({
   imports: [HttpModule, ConfigModule, LocationModule],
@@ -15,8 +14,7 @@ import { DashboardApiService } from 'src/utils/dashboard-api.service';
     OneSignalProvider,
     NotificationBatchProcessor,
     NotificationsRepository,
-    DashboardApiService,
   ],
-  exports: [NotificationsService, DashboardApiService],
+  exports: [NotificationsService],
 })
 export class NotificationCoreModule {}

@@ -11,8 +11,7 @@ export class DashboardApiService {
   private readonly dashboardApiUrl: string;
 
   constructor() {
-    // Dashboard API base URL from environment or default
-    this.dashboardApiUrl = process.env.DASHBOARD_API_URL || 'https://api.airgradient.com';
+    this.dashboardApiUrl = process.env.DASHBOARD_API_URL;
     this.logger.log(`Dashboard API URL: ${this.dashboardApiUrl}`);
   }
 
@@ -164,17 +163,4 @@ export class DashboardApiService {
     return !!req.headers.cookie;
   }
 
-  /**
-   * Log cookie status (for debugging)
-   * NEVER logs actual cookie values for security
-   * @param req Express request
-   */
-  logCookieStatus(req: Request): void {
-    const cookies = req.headers.cookie;
-    if (cookies) {
-      this.logger.log(`✅ Cookies present (length: ${cookies.length} chars)`);
-    } else {
-      this.logger.warn('⚠️  No cookies in request');
-    }
-  }
 }
