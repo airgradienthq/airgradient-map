@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import { Request } from 'express';
 
 /**
@@ -10,7 +12,7 @@ export class DashboardApiService {
   private readonly logger = new Logger(DashboardApiService.name);
   private readonly dashboardApiUrl: string;
 
-  constructor() {
+  constructor(private readonly httpService: HttpService) {
     this.dashboardApiUrl = process.env.DASHBOARD_API_URL;
     this.logger.log(`Dashboard API URL: ${this.dashboardApiUrl}`);
   }
@@ -44,22 +46,22 @@ export class DashboardApiService {
 
     this.logger.log(`Forwarding GET ${path} to Dashboard API`);
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(cookies && { Cookie: cookies }),
-      },
-    });
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<T>(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(cookies && { Cookie: cookies }),
+          },
+        }),
+      );
 
-    if (!response.ok) {
-      const error = await response.text();
-      this.logger.error(`Dashboard API GET ${path} failed: ${response.status} - ${error}`);
-      throw new Error(`Dashboard API error: ${response.status}`);
+      return data;
+    } catch (error) {
+      this.logger.error(`Dashboard API GET ${path} failed: ${error.message}`);
+      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
     }
-
-    return response.json() as Promise<T>;
   }
 
   /**
@@ -75,23 +77,22 @@ export class DashboardApiService {
 
     this.logger.log(`Forwarding POST ${path} to Dashboard API`);
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(cookies && { Cookie: cookies }),
-      },
-      body: JSON.stringify(body),
-    });
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.post<T>(url, body, {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(cookies && { Cookie: cookies }),
+          },
+        }),
+      );
 
-    if (!response.ok) {
-      const error = await response.text();
-      this.logger.error(`Dashboard API POST ${path} failed: ${response.status} - ${error}`);
-      throw new Error(`Dashboard API error: ${response.status}`);
+      return data;
+    } catch (error) {
+      this.logger.error(`Dashboard API POST ${path} failed: ${error.message}`);
+      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
     }
-
-    return response.json() as Promise<T>;
   }
 
   /**
@@ -107,23 +108,22 @@ export class DashboardApiService {
 
     this.logger.log(`Forwarding PATCH ${path} to Dashboard API`);
 
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...(cookies && { Cookie: cookies }),
-      },
-      body: JSON.stringify(body),
-    });
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.patch<T>(url, body, {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(cookies && { Cookie: cookies }),
+          },
+        }),
+      );
 
-    if (!response.ok) {
-      const error = await response.text();
-      this.logger.error(`Dashboard API PATCH ${path} failed: ${response.status} - ${error}`);
-      throw new Error(`Dashboard API error: ${response.status}`);
+      return data;
+    } catch (error) {
+      this.logger.error(`Dashboard API PATCH ${path} failed: ${error.message}`);
+      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
     }
-
-    return response.json() as Promise<T>;
   }
 
   /**
@@ -138,18 +138,18 @@ export class DashboardApiService {
 
     this.logger.log(`Forwarding DELETE ${path} to Dashboard API`);
 
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-        ...(cookies && { Cookie: cookies }),
-      },
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      this.logger.error(`Dashboard API DELETE ${path} failed: ${response.status} - ${error}`);
-      throw new Error(`Dashboard API error: ${response.status}`);
+    try {
+      await firstValueFrom(
+        this.httpService.delete(url, {
+          headers: {
+            Accept: 'application/json',
+            ...(cookies && { Cookie: cookies }),
+          },
+        }),
+      );
+    } catch (error) {
+      this.logger.error(`Dashboard API DELETE ${path} failed: ${error.message}`);
+      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
     }
   }
 
@@ -162,5 +162,4 @@ export class DashboardApiService {
   hasCookies(req: Request): boolean {
     return !!req.headers.cookie;
   }
-
 }

@@ -1,8 +1,7 @@
 import { Controller, Get, Req, UnauthorizedException } from '@nestjs/common';
-import { ApiTags, ApiOkResponse, ApiUnauthorizedResponse, ApiOperation, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiTags, ApiOkResponse, ApiUnauthorizedResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { DashboardApiService } from 'src/utils/dashboard-api.service';
-
 
 @Controller('map/api/v1/dashboard-auth')
 @ApiTags('🔒 Internal - Dashboard Auth (Private)')
