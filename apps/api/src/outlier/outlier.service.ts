@@ -47,6 +47,11 @@ export class OutlierService {
     measureType: MeasureType,
     dataPoints: Array<{ locationReferenceId: number; value: number; measuredAt: string }>,
   ): Promise<Map<string, boolean>> {
+    if (dataPoints.length === 0) {
+      this.logger.debug(`No dataPoints, Skipping calculateBatchIsOutlier on ${measureType}`);
+      return new Map<string, boolean>(); // empty map
+    }
+
     // Extract arrays for batch processing
     const locationReferenceIds = dataPoints.map(dp => dp.locationReferenceId);
     const measuredAts = dataPoints.map(dp => dp.measuredAt);
@@ -55,7 +60,7 @@ export class OutlierService {
     let before = Date.now();
 
     // Check 1: Same value for 24 hours (computed in database)
-    this.logger.debug('Check same value for 24 hours');
+    this.logger.debug(`Check same value for 24 hours for ${measureType}`);
     const sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
       dataSource,
       measureType,
@@ -68,7 +73,7 @@ export class OutlierService {
     before = Date.now();
 
     // Check 2: Fetch all spatial stats in one query
-    this.logger.debug('Fetch spatial statistics');
+    this.logger.debug(`Fetch spatial statistics for ${measureType}`);
     const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
       dataSource,
       measureType,

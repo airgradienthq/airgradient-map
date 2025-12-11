@@ -174,7 +174,7 @@ class LocationRepository {
                 m.pm10,
                 m.atmp,
                 m.rhum,
-                m.rco2,
+                CASE WHEN m.is_rco2_outlier = false THEN m.rco2 ELSE NULL END AS rco2,
                 m.o3,
                 m.no2,
                 m.measured_at AS "measuredAt",
@@ -188,7 +188,7 @@ class LocationRepository {
                 OR m.pm10 IS NOT NULL
                 OR m.atmp IS NOT NULL
                 OR m.rhum IS NOT NULL
-                OR m.rco2 IS NOT NULL
+                OR (m.is_rco2_outlier = false AND m.rco2 IS NOT NULL)
                 OR m.o3 IS NOT NULL
                 OR m.no2 IS NOT NULL
               );
