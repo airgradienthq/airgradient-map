@@ -1,4 +1,4 @@
-export class NearbyPm25Stats {
+export class NearbyStats {
   mean: number | null;
   stddev: number | null;
 

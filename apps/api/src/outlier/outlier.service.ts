@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { OutlierRepository } from './outlier.repository';
 import { ConfigService } from '@nestjs/config';
 import { OUTLIER_CONFIG } from 'src/constants/outlier.constants';
+import { DataSource, MeasureType } from 'src/types';
 
 @Injectable()
 export class OutlierService {
@@ -41,14 +42,15 @@ export class OutlierService {
     );
   }
 
-  public async calculateBatchIsPm25Outlier(
-    dataSource: string,
-    dataPoints: Array<{ locationReferenceId: number; pm25: number; measuredAt: string }>,
+  public async calculateBatchIsOutlier(
+    dataSource: DataSource,
+    measureType: MeasureType,
+    dataPoints: Array<{ locationReferenceId: number; value: number; measuredAt: string }>,
   ): Promise<Map<string, boolean>> {
     // Extract arrays for batch processing
     const locationReferenceIds = dataPoints.map(dp => dp.locationReferenceId);
     const measuredAts = dataPoints.map(dp => dp.measuredAt);
-    const pm25Values = dataPoints.map(dp => dp.pm25);
+    const values = dataPoints.map(dp => dp.value);
 
     let before = Date.now();
 
@@ -56,9 +58,10 @@ export class OutlierService {
     this.logger.debug('Check same value for 24 hours');
     const sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
       dataSource,
+      measureType,
       locationReferenceIds,
       measuredAts,
-      pm25Values,
+      values,
     );
     this.logger.debug(`24 hours check spend ${Date.now() - before}ms`);
 
@@ -68,6 +71,7 @@ export class OutlierService {
     this.logger.debug('Fetch spatial statistics');
     const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
       dataSource,
+      measureType,
       locationReferenceIds,
       measuredAts,
       this.RADIUS_METERS,
@@ -81,7 +85,7 @@ export class OutlierService {
     const resultsMap = new Map<string, boolean>();
 
     for (const dataPoint of dataPoints) {
-      const { locationReferenceId, pm25, measuredAt } = dataPoint;
+      const { locationReferenceId, value, measuredAt } = dataPoint;
       const key = `${locationReferenceId}_${measuredAt}`;
 
       // Check 1: Same value for 24 hours (already computed in DB)
@@ -103,10 +107,10 @@ export class OutlierService {
       let isOutlier = false;
 
       if (mean >= 50) {
-        const zScore = (pm25 - mean) / stddev;
+        const zScore = (value - mean) / stddev;
         isOutlier = Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
       } else {
-        isOutlier = Math.abs(pm25 - mean) > this.ABSOLUTE_THRESHOLD;
+        isOutlier = Math.abs(value - mean) > this.ABSOLUTE_THRESHOLD;
       }
 
       resultsMap.set(key, isOutlier);

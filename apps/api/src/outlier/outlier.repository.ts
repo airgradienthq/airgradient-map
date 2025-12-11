@@ -1,6 +1,9 @@
 import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
-import { NearbyPm25Stats } from './nearby-pm25-stats.entity';
+import { NearbyStats } from './nearby-stats.entity';
+import { DataSource } from 'src/types';
+import { MeasureType } from 'src/types';
+import { OUTLIER_COLUMN_NAME } from 'src/constants/outlier-column-name';
 
 @Injectable()
 export class OutlierRepository {
@@ -9,17 +12,18 @@ export class OutlierRepository {
   constructor(private readonly databaseService: DatabaseService) {}
 
   public async getBatchSameValue24hCheck(
-    dataSource: string,
+    dataSource: DataSource,
+    measureType: MeasureType,
     locationReferenceIds: number[],
     measuredAts: string[],
-    pm25Values: number[],
+    values: number[],
   ): Promise<Map<string, boolean>> {
     try {
       /**
-       * Batch query to check if PM2.5 value has been the same for 24 hours (database-level computation).
+       * Batch query to check if value has been the same for 24 hours (database-level computation).
        *
-       * 1. unnest() creates virtual table of (referenceId, measuredAt, pm25) input tuples
-       * 2. For each tuple, subquery checks if last 24h has same value (COUNT(DISTINCT pm25) = 1)
+       * 1. unnest() creates virtual table of (referenceId, measuredAt, value) input tuples
+       * 2. For each tuple, subquery checks if last 24h has same value (COUNT(DISTINCT value) = 1)
        * 3. Returns only boolean results
        *
        * This eliminates the memory issue by doing computation in DB instead of App.
@@ -30,11 +34,11 @@ export class OutlierRepository {
           input.reference_id,
           input.measured_at,
           CASE
-            WHEN input.pm25 != 0
+            WHEN input.value != 0 -- value can be 0 for a long time (good air quality)
               AND (
                 SELECT COUNT(*) >= 3
-                  AND COUNT(DISTINCT m.pm25) = 1
-                  AND MIN(m.pm25) = input.pm25
+                  AND COUNT(DISTINCT m.${measureType}) = 1
+                  AND MIN(m.${measureType}) = input.value
                 FROM measurement m
                 JOIN location l ON m.location_id = l.id
                 JOIN data_source ds ON l.data_source_id = ds.id
@@ -47,13 +51,13 @@ export class OutlierRepository {
             ELSE false
           END as is_same_value_outlier
         FROM unnest($2::int[], $3::text[], $4::numeric[])
-          AS input(reference_id, measured_at, pm25);
+          AS input(reference_id, measured_at, value);
       `;
       const result = await this.databaseService.runQuery(query, [
         dataSource,
         locationReferenceIds,
         measuredAts,
-        pm25Values,
+        values,
       ]);
 
       // Build map keyed by "referenceId_measuredAt"
@@ -71,6 +75,7 @@ export class OutlierRepository {
         operation: 'getBatchSameValue24hCheck',
         parameters: {
           dataSource,
+          measureType,
           locationCount: locationReferenceIds.length,
           timestampCount: measuredAts.length,
         },
@@ -81,13 +86,14 @@ export class OutlierRepository {
   }
 
   public async getBatchSpatialZScoreStats(
-    dataSource: string,
+    dataSource: DataSource,
+    measureType: MeasureType,
     locationReferenceIds: number[],
     measuredAts: string[],
     radiusMeters: number,
     measuredAtIntervalHours: number,
     minNearbyCount: number,
-  ): Promise<Map<string, NearbyPm25Stats>> {
+  ): Promise<Map<string, NearbyStats>> {
     try {
       /**
        * Batch query to calculate spatial statistics for multiple location/timestamp pairs.
@@ -110,7 +116,7 @@ export class OutlierRepository {
         FROM unnest($1::int[], $2::text[]) AS input(reference_id, measured_at)
         CROSS JOIN LATERAL (
           WITH nearby AS (
-            SELECT DISTINCT ON (l2.id) m.pm25
+            SELECT DISTINCT ON (l2.id) m.${measureType}
             FROM location l1
             JOIN location l2
               ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
@@ -120,14 +126,14 @@ export class OutlierRepository {
               ON l1.data_source_id = ds.id
             WHERE ds.name = $3
               AND l1.reference_id = input.reference_id
-              AND m.is_pm25_outlier = false
+              AND m.${OUTLIER_COLUMN_NAME[measureType]} = false
               AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)
                                   AND input.measured_at::timestamp + make_interval(hours => $5::int)
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
           )
           SELECT
-            AVG(pm25) AS mean,
-            STDDEV_SAMP(pm25) AS stddev
+            AVG(${measureType}) AS mean,
+            STDDEV_SAMP(${measureType}) AS stddev
           FROM nearby
           WHERE (SELECT COUNT(*) FROM nearby) >= $6
         ) AS stats;
@@ -143,10 +149,10 @@ export class OutlierRepository {
       const result = await this.databaseService.runQuery(query, value);
 
       // Build map keyed by "referenceId_measuredAt"
-      const statsMap = new Map<string, NearbyPm25Stats>();
+      const statsMap = new Map<string, NearbyStats>();
       result.rows.forEach((r: any) => {
         const key = `${r.reference_id}_${r.measured_at}`;
-        statsMap.set(key, new NearbyPm25Stats(r.mean, r.stddev));
+        statsMap.set(key, new NearbyStats(r.mean, r.stddev));
       });
 
       return statsMap;
@@ -157,6 +163,7 @@ export class OutlierRepository {
         operation: 'getBatchSpatialZScoreStats',
         parameters: {
           dataSource,
+          measureType,
           locationCount: locationReferenceIds.length,
           timestampCount: measuredAts.length,
           radiusMeters,

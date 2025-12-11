@@ -10,6 +10,11 @@ import { MeasureType, PM25Period, PM25PeriodConfig, MeasurementAveragesResult } 
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
 import { LatestLocationMeasurementData } from 'src/notifications/notification.model';
 import { BucketSize } from 'src/utils/timeSeriesBucket';
+import {
+  OUTLIER_COLUMN_NAME,
+  MeasureTypeWithOutlier,
+  MEASURE_TYPES_WITH_OUTLIER,
+} from 'src/constants/outlier-column-name';
 
 @Injectable()
 class LocationRepository {
@@ -251,11 +256,10 @@ class LocationRepository {
         ? `round(avg(m.pm25)::NUMERIC , 2) AS pm25, round(avg(m.rhum)::NUMERIC , 2) AS rhum`
         : `round(avg(m.${measureType})::NUMERIC , 2) AS value`;
     const binClause = this.getBinClauseFromBucketSize(bucketSize);
-    const excludeOutliersQuery = excludeOutliers
-      ? measureType === MeasureType.PM25
-        ? 'AND m.is_pm25_outlier = false'
-        : ''
-      : '';
+    const excludeOutliersQuery =
+      excludeOutliers && MEASURE_TYPES_WITH_OUTLIER.includes(measureType as MeasureTypeWithOutlier)
+        ? `AND m.${OUTLIER_COLUMN_NAME[measureType as MeasureTypeWithOutlier]} = false`
+        : '';
 
     const query = `
             SELECT
@@ -374,8 +378,11 @@ class LocationRepository {
       ? `AND ${measureType} BETWEEN ${minVal} AND ${maxVal}`
       : '';
 
-    const excludeOutliersQuery =
-      measureType === MeasureType.PM25 ? 'AND is_pm25_outlier = false' : '';
+    const excludeOutliersQuery = MEASURE_TYPES_WITH_OUTLIER.includes(
+      measureType as MeasureTypeWithOutlier,
+    )
+      ? `AND ${OUTLIER_COLUMN_NAME[measureType]} = false`
+      : '';
 
     return `
       SELECT 
