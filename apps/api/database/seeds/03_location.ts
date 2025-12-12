@@ -23,12 +23,16 @@ export async function seed(knex: Knex): Promise<void> {
     // Simple licenses parsing - just store as array of strings
     let licenses = null;
     if (row.licenses && row.licenses.trim()) {
-      // Extract content between quotes and create array
-      const match = row.licenses.match(/"([^"]+)"/);
-      if (match) {
-        licenses = [match[1]]; // e.g., ["CC BY-SA 4.0"]
+      if (row.licenses.trim() === '{}') {
+        licenses = [];
       } else {
-        licenses = [row.licenses]; // fallback
+        // Extract content between quotes and create array
+        const match = row.licenses.match(/"([^"]+)"/);
+        if (match) {
+          licenses = [match[1]]; // e.g., ["CC BY-SA 4.0"]
+        } else {
+          licenses = [row.licenses]; // fallback
+        }
       }
     }
 
@@ -37,7 +41,7 @@ export async function seed(knex: Knex): Promise<void> {
       `
       INSERT INTO location (
         id, owner_id, reference_id, sensor_type, location_name, 
-        timezone, coordinate, deteted_at, licenses, data_source, provider
+        timezone, coordinate, deteted_at, licenses, data_source_id, provider
       ) VALUES (?, ?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?, ?, ?, ?)
     `,
       [
@@ -50,7 +54,7 @@ export async function seed(knex: Knex): Promise<void> {
         row.coordinate,
         row.deteted_at ? new Date(row.deteted_at) : null,
         licenses,
-        row.data_source || 'AirGradient',
+        Number(row.data_source_id) || 1,
         row.provider || null,
       ],
     );

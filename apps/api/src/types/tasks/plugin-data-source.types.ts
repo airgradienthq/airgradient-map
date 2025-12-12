@@ -1,15 +1,28 @@
 import { InsertLatestMeasuresInput } from './latest-measures-input.types';
 import { UpsertLocationOwnerInput } from './location-owner-input.types';
 
-export interface PluginDataSourceOutput {
+interface PluginDataSourceOutput {
   success: boolean;
   count: number;
-  data: InsertLatestMeasuresInput[] | UpsertLocationOwnerInput[] | [];
-  metadata?: Record<string, any>;
   error?: string;
 }
 
+export interface PluginDataSourceLatestOutput extends PluginDataSourceOutput {
+  data: InsertLatestMeasuresInput[];
+  metadata: {
+    locationIdAvailable: boolean;
+  };
+}
+
+export interface PluginDataSourceLocationOutput extends PluginDataSourceOutput {
+  data: UpsertLocationOwnerInput[];
+  metadata: {
+    allowApiAccess: boolean;
+    dataSourceUrl: string;
+  };
+}
+
 export interface PluginDataSource {
-  latest(args?: Record<string, any>): Promise<PluginDataSourceOutput>;
-  location(args?: Record<string, any>): Promise<PluginDataSourceOutput>;
+  latest(args?: Record<string, any>): Promise<PluginDataSourceLatestOutput>;
+  location(args?: Record<string, any>): Promise<PluginDataSourceLocationOutput>;
 }

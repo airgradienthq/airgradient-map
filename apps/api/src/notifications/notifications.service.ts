@@ -19,7 +19,7 @@ import { NotificationsRepository } from './notifications.repository';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import LocationRepository from 'src/location/location.repository';
 import { convertPmToUsAqi } from 'src/utils/convert-pm-us-aqi';
-import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { getPMWithEPACorrectionIfNeeded } from 'src/utils/getEpaCorrectedPM';
 import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { AQ_LEVELS_COLORS } from 'src/constants/aq-levels-colors';
@@ -38,12 +38,13 @@ export class NotificationsService {
 
   public async createNotification(
     notification: CreateNotificationDto,
+    hasFullAccess: boolean,
   ): Promise<NotificationEntity> {
     this.validateNotificationData(notification);
 
     // Verify location exists
     try {
-      await this.locationRepository.retrieveLocationById(notification.location_id);
+      await this.locationRepository.retrieveLocationById(notification.location_id, hasFullAccess);
     } catch (error) {
       this.logger.warn('Location lookup failed during notification creation', {
         locationId: notification.location_id,
@@ -206,9 +207,11 @@ export class NotificationsService {
     // Apply EPA correction for AirGradient sensors to ensure consistency with display values
     measurements.forEach((measurement: LatestLocationMeasurementData) => {
       if (measurement.pm25) {
-        if (measurement.dataSource === DataSource.AIRGRADIENT) {
-          measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
-        }
+        measurement.pm25 = getPMWithEPACorrectionIfNeeded(
+          measurement.dataSource as DataSource,
+          measurement.pm25,
+          measurement.rhum,
+        );
       }
     });
 

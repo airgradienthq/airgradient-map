@@ -23,8 +23,8 @@ export const createSwaggerConfig = () => {
 All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to +90°)
 
 ## Data Sources
-- AirGradient community sensors (CC-BY-SA 4.0)
-- OpenAQ integration (CC-BY 4.0)
+- AirGradient community sensors (CC BY-SA 4.0)
+- OpenAQ integration (CC BY 4.0)
 - Updates every 5-15 minutes
 `,
     )
@@ -33,7 +33,13 @@ All coordinates use **WGS84**: Longitude (-180° to +180°), Latitude (-90° to 
       'AirGradient Support',
       'https://www.airgradient.com/support/',
       'support@airgradient.com',
-    );
+    )
+    .addSecurity('data-permission-context', {
+      type: 'apiKey',
+      in: 'header',
+      name: 'data-permission-context',
+    })
+    .addSecurityRequirements('data-permission-context');
 
   if (isProduction) {
     builder.addServer('https://map-data-int.airgradient.com', 'Integration Server');

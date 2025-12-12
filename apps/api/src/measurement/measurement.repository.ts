@@ -70,6 +70,7 @@ class MeasurementRepository {
   }
 
   async retrieveLatest(
+    hasFullAccess: boolean,
     offset: number = 0,
     limit: number = 100,
     measure?: MeasureType,
@@ -93,9 +94,10 @@ class MeasurementRepository {
         ST_Y(l.coordinate) AS "latitude",
         l.sensor_type AS "sensorType",
         m.measured_at AS "measuredAt",
-        l.data_source AS "dataSource",
+        d.name AS "dataSource",
         ${selectQuery}
-      FROM location l
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
       JOIN LATERAL (
         SELECT *
         FROM measurement m
@@ -133,6 +135,7 @@ class MeasurementRepository {
     xMax: number,
     yMax: number,
     excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
@@ -156,9 +159,10 @@ class MeasurementRepository {
         ST_Y(l.coordinate) AS "latitude",
         l.sensor_type AS "sensorType",
         m.measured_at AS "measuredAt",
-        l.data_source AS "dataSource",
+        d.name AS "dataSource",
         ${selectQuery}
-      FROM location l
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
       JOIN LATERAL (
         SELECT *
         FROM measurement m

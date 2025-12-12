@@ -27,6 +27,7 @@ import {
 import { NotificationEntity } from './notification.entity';
 import { CreateNotificationDto } from './create-notification.dto';
 import { UpdateNotificationDto } from './update-notification.dto';
+import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 
 @Controller('map/api/v1/notifications')
 @ApiTags('Notifications')
@@ -50,8 +51,9 @@ export class NotificationsController {
   })
   async createNotification(
     @Body() notification: CreateNotificationDto,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<NotificationEntity> {
-    return await this.notificationsService.createNotification(notification);
+    return await this.notificationsService.createNotification(notification, hasFullAccess);
   }
 
   @Get('players/:playerId/registrations')
