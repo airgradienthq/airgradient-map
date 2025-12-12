@@ -401,7 +401,14 @@
       ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
       : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
 
-    if (currentMapStyle === targetStyle) return;
+    // If style is already correct but it's dark style, still apply custom colors
+    if (currentMapStyle === targetStyle) {
+      if (windLayerEnabled.value) {
+        console.log('Style already correct, applying custom colors for initial load');
+        await customizeDarkStyleColors();
+      }
+      return;
+    }
 
     styleUpdateInProgress = true;
 
@@ -413,8 +420,15 @@
 
       if (maplibreMap && typeof maplibreMap.setStyle === 'function') {
         await new Promise<void>(resolve => {
-          const onStyleLoad = () => {
+          const onStyleLoad = async () => {
             maplibreMap.off('styledata', onStyleLoad);
+
+            // Apply custom colors IMMEDIATELY in the style load event
+            if (windLayerEnabled.value) {
+              console.log('Applying custom colors immediately on style load');
+              await customizeDarkStyleColors();
+            }
+
             resolve();
           };
           maplibreMap.on('styledata', onStyleLoad);
@@ -422,14 +436,6 @@
         });
 
         currentMapStyle = targetStyle;
-
-        // Apply custom colors if using dark style
-        console.log('Wind layer enabled:', windLayerEnabled.value);
-        console.log('Target style:', targetStyle);
-        if (windLayerEnabled.value) {
-          console.log('Calling customizeDarkStyleColors...');
-          await customizeDarkStyleColors();
-        }
       }
     } catch (error) {
       console.error('Failed to update base map style:', error);
@@ -464,22 +470,22 @@
               reject(new Error('Style load timeout'));
             }, 5000);
 
-            // Poll for style loaded state
+            // Poll for style loaded state more frequently
             const checkInterval = setInterval(() => {
               if (maplibreMap.isStyleLoaded()) {
                 clearInterval(checkInterval);
                 clearTimeout(timeout);
                 console.log('Style is now loaded (polling)');
-                setTimeout(resolve, 500); // Wait extra 500ms
+                resolve(); // Apply immediately, no delay
               }
-            }, 100);
+            }, 50); // Check every 50ms
 
             // Also listen for event
             maplibreMap.once('styledata', () => {
               clearInterval(checkInterval);
               clearTimeout(timeout);
               console.log('Style loaded event fired');
-              setTimeout(resolve, 500); // Wait extra 500ms for style to fully apply
+              resolve(); // Apply immediately, no delay
             });
           });
         } catch (err) {
