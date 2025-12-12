@@ -150,7 +150,7 @@
       minVelocity: 0,
       maxVelocity: 15,
       velocityScale: 0.015,
-      opacity: 0.97,
+      opacity: 0.85,
       colorScale: VELOCITY_COLOR_SCALE
     });
 

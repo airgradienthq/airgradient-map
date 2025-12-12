@@ -9,7 +9,7 @@ export const DEFAULT_MAP_VIEW_CONFIG = {
   maxBounds: new LatLngBounds(new LatLng(-88, -180), new LatLng(88, 179)),
   wind_layer: false,
   light_map_style_url: 'https://tiles.openfreemap.org/styles/bright',
-  dark_map_style_url: 'https://tiles.openfreemap.org/styles/positron',
+  dark_map_style_url: 'https://tiles.openfreemap.org/styles/dark',
   embedded: false,
   debug: undefined // hide it at first
 };
