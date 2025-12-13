@@ -14,5 +14,5 @@ export const VELOCITY_COLOR_SCALE = [
   '#8868D8', // Violet-blue (13.5 m/s)
   '#9458D0', // Deep violet (15 m/s)
   '#9050C8', // Dark blue-violet (16.5+ m/s)
-  '#8848C0'  // Very dark violet (18+ m/s - ensures visibility)
+  '#8848C0' // Very dark violet (18+ m/s - ensures visibility)
 ];

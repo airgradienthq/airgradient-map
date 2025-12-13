@@ -404,7 +404,6 @@
     // If style is already correct but it's dark style, still apply custom colors
     if (currentMapStyle === targetStyle) {
       if (windLayerEnabled.value) {
-        
         await customizeDarkStyleColors();
       }
       return;
@@ -425,7 +424,6 @@
 
             // Apply custom colors IMMEDIATELY in the style load event
             if (windLayerEnabled.value) {
-             
               await customizeDarkStyleColors();
             }
 
@@ -445,13 +443,11 @@
   }
 
   async function customizeDarkStyleColors(): Promise<void> {
-
     try {
       const maplibreMap =
         typeof mapLibreLayer.getMaplibreMap === 'function'
           ? mapLibreLayer.getMaplibreMap()
           : mapLibreLayer._glMap;
-
 
       if (!maplibreMap) {
         console.warn('MapLibre map instance not found');
@@ -471,7 +467,7 @@
               if (maplibreMap.isStyleLoaded()) {
                 clearInterval(checkInterval);
                 clearTimeout(timeout);
-               
+
                 resolve(); // Apply immediately, no delay
               }
             }, 50); // Check every 50ms
@@ -480,7 +476,7 @@
             maplibreMap.once('styledata', () => {
               clearInterval(checkInterval);
               clearTimeout(timeout);
-             
+
               resolve(); // Apply immediately, no delay
             });
           });
@@ -490,16 +486,12 @@
         }
       }
 
-     
-
       // Log all available layers for debugging
       const style = maplibreMap.getStyle();
-
 
       // Set background color to pure neutral gray (no purple/blue tint)
       if (maplibreMap.getPaintProperty('background', 'background-color') !== undefined) {
         maplibreMap.setPaintProperty('background', 'background-color', '#2a2a2a');
-       
       }
 
       // Find and lighten all layers by type with pure neutral gray tones
@@ -508,39 +500,37 @@
           // Water layers - slightly darker neutral gray
           if (layer.type === 'fill' && layer.id.includes('water')) {
             maplibreMap.setPaintProperty(layer.id, 'fill-color', '#383838');
-           
           }
 
           // Landcover/landuse layers - medium neutral gray
-          if (layer.type === 'fill' && (layer.id.includes('land') || layer.id.includes('background'))) {
+          if (
+            layer.type === 'fill' &&
+            (layer.id.includes('land') || layer.id.includes('background'))
+          ) {
             maplibreMap.setPaintProperty(layer.id, 'fill-color', '#333333');
-           
           }
 
           // Borders - lighter neutral gray
           if (layer.type === 'line' && layer.id.includes('boundary')) {
             maplibreMap.setPaintProperty(layer.id, 'line-color', '#5a5a5a');
-           
           }
 
           // Roads - medium-light neutral gray
           if (layer.type === 'line' && layer.id.includes('road')) {
             maplibreMap.setPaintProperty(layer.id, 'line-color', '#4a4a4a');
-           
           }
 
           // Labels - very light neutral gray
-          if (layer.type === 'symbol' && (layer.id.includes('place') || layer.id.includes('label'))) {
+          if (
+            layer.type === 'symbol' &&
+            (layer.id.includes('place') || layer.id.includes('label'))
+          ) {
             maplibreMap.setPaintProperty(layer.id, 'text-color', '#c0c0c0');
-           
           }
         } catch (err) {
           // Skip layers that don't support the property
         }
       });
-
-     
-
     } catch (error) {
       console.error('Failed to customize dark style colors:', error);
     }

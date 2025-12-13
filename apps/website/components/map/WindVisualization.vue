@@ -242,10 +242,12 @@
       const nearWorldEdge = rawXmax > seamMargin || rawXmin < -seamMargin;
 
       if (crossesAntimeridian || nearWorldEdge) {
-        console.debug(
-          'Wind layer: viewport near antimeridian, requesting global data',
-          { rawXmin, rawXmax, normalizedXmin: xmin, normalizedXmax: xmax }
-        );
+        console.debug('Wind layer: viewport near antimeridian, requesting global data', {
+          rawXmin,
+          rawXmax,
+          normalizedXmin: xmin,
+          normalizedXmax: xmax
+        });
         xmin = -180;
         xmax = 180;
       }
