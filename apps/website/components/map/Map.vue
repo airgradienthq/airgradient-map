@@ -404,7 +404,7 @@
     // If style is already correct but it's dark style, still apply custom colors
     if (currentMapStyle === targetStyle) {
       if (windLayerEnabled.value) {
-        console.log('Style already correct, applying custom colors for initial load');
+        
         await customizeDarkStyleColors();
       }
       return;
@@ -425,7 +425,7 @@
 
             // Apply custom colors IMMEDIATELY in the style load event
             if (windLayerEnabled.value) {
-              console.log('Applying custom colors immediately on style load');
+             
               await customizeDarkStyleColors();
             }
 
@@ -445,14 +445,13 @@
   }
 
   async function customizeDarkStyleColors(): Promise<void> {
-    console.log('customizeDarkStyleColors started');
+
     try {
       const maplibreMap =
         typeof mapLibreLayer.getMaplibreMap === 'function'
           ? mapLibreLayer.getMaplibreMap()
           : mapLibreLayer._glMap;
 
-      console.log('MapLibre map:', maplibreMap ? 'found' : 'not found');
 
       if (!maplibreMap) {
         console.warn('MapLibre map instance not found');
@@ -460,13 +459,10 @@
       }
 
       // Wait for style to be fully loaded with timeout and polling
-      console.log('Style loaded?', maplibreMap.isStyleLoaded());
       if (!maplibreMap.isStyleLoaded()) {
-        console.log('Waiting for style to load...');
         try {
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => {
-              console.warn('Style load timeout after 5 seconds');
               reject(new Error('Style load timeout'));
             }, 5000);
 
@@ -475,7 +471,7 @@
               if (maplibreMap.isStyleLoaded()) {
                 clearInterval(checkInterval);
                 clearTimeout(timeout);
-                console.log('Style is now loaded (polling)');
+               
                 resolve(); // Apply immediately, no delay
               }
             }, 50); // Check every 50ms
@@ -484,7 +480,7 @@
             maplibreMap.once('styledata', () => {
               clearInterval(checkInterval);
               clearTimeout(timeout);
-              console.log('Style loaded event fired');
+             
               resolve(); // Apply immediately, no delay
             });
           });
@@ -494,18 +490,16 @@
         }
       }
 
-      console.log('After wait - Style loaded?', maplibreMap.isStyleLoaded());
+     
 
       // Log all available layers for debugging
       const style = maplibreMap.getStyle();
-      console.log('Style object:', style);
-      console.log('Number of layers:', style.layers?.length);
-      console.log('Available layers:', style.layers.map(l => ({ id: l.id, type: l.type })));
+
 
       // Set background color to pure neutral gray (no purple/blue tint)
       if (maplibreMap.getPaintProperty('background', 'background-color') !== undefined) {
         maplibreMap.setPaintProperty('background', 'background-color', '#2a2a2a');
-        console.log('Set background color');
+       
       }
 
       // Find and lighten all layers by type with pure neutral gray tones
@@ -514,38 +508,38 @@
           // Water layers - slightly darker neutral gray
           if (layer.type === 'fill' && layer.id.includes('water')) {
             maplibreMap.setPaintProperty(layer.id, 'fill-color', '#383838');
-            console.log('Set water layer:', layer.id);
+           
           }
 
           // Landcover/landuse layers - medium neutral gray
           if (layer.type === 'fill' && (layer.id.includes('land') || layer.id.includes('background'))) {
             maplibreMap.setPaintProperty(layer.id, 'fill-color', '#333333');
-            console.log('Set land layer:', layer.id);
+           
           }
 
           // Borders - lighter neutral gray
           if (layer.type === 'line' && layer.id.includes('boundary')) {
             maplibreMap.setPaintProperty(layer.id, 'line-color', '#5a5a5a');
-            console.log('Set boundary layer:', layer.id);
+           
           }
 
           // Roads - medium-light neutral gray
           if (layer.type === 'line' && layer.id.includes('road')) {
             maplibreMap.setPaintProperty(layer.id, 'line-color', '#4a4a4a');
-            console.log('Set road layer:', layer.id);
+           
           }
 
           // Labels - very light neutral gray
           if (layer.type === 'symbol' && (layer.id.includes('place') || layer.id.includes('label'))) {
             maplibreMap.setPaintProperty(layer.id, 'text-color', '#c0c0c0');
-            console.log('Set label layer:', layer.id);
+           
           }
         } catch (err) {
           // Skip layers that don't support the property
         }
       });
 
-      console.log('Dark style customization complete');
+     
 
     } catch (error) {
       console.error('Failed to customize dark style colors:', error);
