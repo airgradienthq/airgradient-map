@@ -35,6 +35,15 @@
 
   // Debounced reload to prevent multiple API calls on zoom/pan
   const reloadWindLayerDebounced = createVueDebounce(reloadWindLayerForCurrentView, 500);
+  const normalizeLongitude = (lon: number): number => {
+    let normalized = ((lon + 180) % 360) - 180;
+    if (normalized < -180) {
+      normalized += 360;
+    } else if (normalized > 180) {
+      normalized -= 360;
+    }
+    return normalized;
+  };
 
   onMounted(async () => {
     if (process.client) {
@@ -213,10 +222,33 @@
     try {
       // Get map bounds
       const bounds = props.map.getBounds();
-      const xmin = bounds.getWest();
-      const xmax = bounds.getEast();
+      const rawXmin = bounds.getWest();
+      const rawXmax = bounds.getEast();
       const ymin = bounds.getSouth();
       const ymax = bounds.getNorth();
+
+      let xmin = normalizeLongitude(rawXmin);
+      let xmax = normalizeLongitude(rawXmax);
+
+      /**
+       * Detect antimeridian issues in two scenarios:
+       * 1. Leaflet reports west > east (viewport already wrapped).
+       * 2. The view is close to +/-180° even if still monotonic. Leaflet will
+       *    clamp bounds to [-180, 180], so when the seam is visible at either
+       *    edge we proactively fetch the global slice to avoid partial grids.
+       */
+      const crossesAntimeridian = xmin > xmax || rawXmax > 180 || rawXmin < -180;
+      const seamMargin = 150; // degrees from +/-180 at which we switch to global
+      const nearWorldEdge = rawXmax > seamMargin || rawXmin < -seamMargin;
+
+      if (crossesAntimeridian || nearWorldEdge) {
+        console.debug(
+          'Wind layer: viewport near antimeridian, requesting global data',
+          { rawXmin, rawXmax, normalizedXmin: xmin, normalizedXmax: xmax }
+        );
+        xmin = -180;
+        xmax = 180;
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 50000);

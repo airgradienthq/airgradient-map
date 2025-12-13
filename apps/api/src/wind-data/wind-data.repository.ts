@@ -157,6 +157,16 @@ export class WindDataRepository {
         longitude: row.longitude > 180 ? row.longitude - 360 : row.longitude,
       }));
 
+      // Ensure ordering matches grib expectation after longitude normalization.
+      // Crossing the antimeridian changes sort order, so re-sort by latitude DESC,
+      // longitude ASC to keep the grid continuous.
+      records.sort((a, b) => {
+        if (a.latitude === b.latitude) {
+          return a.longitude - b.longitude;
+        }
+        return b.latitude - a.latitude;
+      });
+
       return records as WindDataRecord[];
     } catch (error) {
       if (error instanceof NotFoundException) {
