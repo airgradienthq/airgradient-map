@@ -7,7 +7,10 @@
   import L from 'leaflet';
   import { useRuntimeConfig } from 'nuxt/app';
 
-  import { VELOCITY_COLOR_SCALE_DARK, VELOCITY_COLOR_SCALE_LIGHT } from '~/constants/map/wind-layer';
+  import {
+    VELOCITY_COLOR_SCALE_DARK,
+    VELOCITY_COLOR_SCALE_LIGHT
+  } from '~/constants/map/wind-layer';
   import { transformToLeafletVelocityFormat } from '~/utils/wind-data-transformer';
   import { createVueDebounce } from '~/utils/debounce';
   import type { MapTheme } from '~/constants';
