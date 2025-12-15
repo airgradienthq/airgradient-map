@@ -7,13 +7,15 @@
   import L from 'leaflet';
   import { useRuntimeConfig } from 'nuxt/app';
 
-  import { VELOCITY_COLOR_SCALE } from '~/constants/map/wind-layer';
+  import { VELOCITY_COLOR_SCALE_DARK, VELOCITY_COLOR_SCALE_LIGHT } from '~/constants/map/wind-layer';
   import { transformToLeafletVelocityFormat } from '~/utils/wind-data-transformer';
   import { createVueDebounce } from '~/utils/debounce';
+  import type { MapTheme } from '~/constants';
 
   interface Props {
     map: L.Map | null;
     enabled: boolean;
+    mapTheme: MapTheme;
   }
 
   const props = defineProps<Props>();
@@ -44,6 +46,8 @@
     }
     return normalized;
   };
+  const getColorScaleForTheme = () =>
+    props.mapTheme === 'dark' ? VELOCITY_COLOR_SCALE_DARK : VELOCITY_COLOR_SCALE_LIGHT;
 
   onMounted(async () => {
     if (process.client) {
@@ -99,6 +103,18 @@
           setupMapEventListeners();
         }, 100);
       }
+    }
+  );
+
+  watch(
+    () => props.mapTheme,
+    () => {
+      if (!libraryLoaded || !props.enabled) return;
+      if (!props.map) return;
+      if (!windData) return;
+
+      removeWindLayer();
+      addVelocityLayerToMap();
     }
   );
 
@@ -160,7 +176,7 @@
       maxVelocity: 15,
       velocityScale: 0.015,
       opacity: 0.85,
-      colorScale: VELOCITY_COLOR_SCALE
+      colorScale: getColorScaleForTheme()
     });
 
     if (velocityLayer && props.map && props.enabled) {
