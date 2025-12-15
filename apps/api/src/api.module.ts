@@ -6,7 +6,7 @@ import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
 import { WindDataModule } from './wind-data/wind-data.module';
 import { NotificationModule } from './notifications/notification.module';
-import { DashboardAuthModule } from './dashboard-auth/dashboard-auth.module';
+import { CoreApiModule } from './core-api/core-api.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SoftAuthGuard } from './auth/guards/soft-auth.guard';
 
@@ -32,7 +32,7 @@ import { SoftAuthGuard } from './auth/guards/soft-auth.guard';
     LocationModule,
     WindDataModule,
     NotificationModule,
-    DashboardAuthModule,
+    CoreApiModule,
   ],
   controllers: [],
   providers: [

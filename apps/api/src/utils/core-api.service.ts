@@ -4,17 +4,17 @@ import { firstValueFrom } from 'rxjs';
 import { Request } from 'express';
 
 /**
- * Service for forwarding authenticated requests to Dashboard API
- * Automatically extracts cookies from incoming requests and forwards them
+ * Service for forwarding authenticated requests to AirGradient's Core API.
+ * Automatically extracts cookies from incoming requests and forwards them.
  */
 @Injectable()
-export class DashboardApiService {
-  private readonly logger = new Logger(DashboardApiService.name);
-  private readonly dashboardApiUrl: string;
+export class CoreApiService {
+  private readonly logger = new Logger(CoreApiService.name);
+  private readonly coreApiUrl: string;
 
   constructor(private readonly httpService: HttpService) {
-    this.dashboardApiUrl = process.env.DASHBOARD_API_URL;
-    this.logger.log(`Dashboard API URL: ${this.dashboardApiUrl}`);
+    this.coreApiUrl = process.env.CORE_API_URL;
+    this.logger.log(`Core API URL: ${this.coreApiUrl}`);
   }
 
   /**
@@ -35,16 +35,17 @@ export class DashboardApiService {
   }
 
   /**
-   * Forward a GET request to Dashboard API with cookies
+   * Forward a GET request to Core API with cookies
    * @param req Express request (to extract cookies from)
-   * @param path Dashboard API path (e.g., '/auth/user')
-   * @returns Response from Dashboard API
+   * @param path Core API path (e.g., '/auth/user')
+   * @returns Response from Core API
    */
   async get<T>(req: Request, path: string): Promise<T> {
-    const url = `${this.dashboardApiUrl}${path}`;
+    const url = `${this.coreApiUrl}${path}`;
     const cookies = this.extractCookies(req);
+    this.logger.debug(cookies);
 
-    this.logger.log(`Forwarding GET ${path} to Dashboard API`);
+    this.logger.log(`Forwarding GET ${path} to Core API`);
 
     try {
       const { data } = await firstValueFrom(
@@ -59,23 +60,23 @@ export class DashboardApiService {
 
       return data;
     } catch (error) {
-      this.logger.error(`Dashboard API GET ${path} failed: ${error.message}`);
-      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
+      this.logger.error(`Core API GET ${path} failed: ${error.message}`);
+      throw new Error(`Core API error: ${error.response?.status || 500}`);
     }
   }
 
   /**
-   * Forward a POST request to Dashboard API with cookies
+   * Forward a POST request to Core API with cookies
    * @param req Express request (to extract cookies from)
-   * @param path Dashboard API path
+   * @param path Core API path
    * @param body Request body
-   * @returns Response from Dashboard API
+   * @returns Response from Core API
    */
   async post<T>(req: Request, path: string, body: unknown): Promise<T> {
-    const url = `${this.dashboardApiUrl}${path}`;
+    const url = `${this.coreApiUrl}${path}`;
     const cookies = this.extractCookies(req);
 
-    this.logger.log(`Forwarding POST ${path} to Dashboard API`);
+    this.logger.log(`Forwarding POST ${path} to Core API`);
 
     try {
       const { data } = await firstValueFrom(
@@ -90,23 +91,23 @@ export class DashboardApiService {
 
       return data;
     } catch (error) {
-      this.logger.error(`Dashboard API POST ${path} failed: ${error.message}`);
-      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
+      this.logger.error(`Core API POST ${path} failed: ${error.message}`);
+      throw new Error(`Core API error: ${error.response?.status || 500}`);
     }
   }
 
   /**
-   * Forward a PATCH request to Dashboard API with cookies
+   * Forward a PATCH request to Core API with cookies
    * @param req Express request (to extract cookies from)
-   * @param path Dashboard API path
+   * @param path Core API path
    * @param body Request body
-   * @returns Response from Dashboard API
+   * @returns Response from Core API
    */
   async patch<T>(req: Request, path: string, body: unknown): Promise<T> {
-    const url = `${this.dashboardApiUrl}${path}`;
+    const url = `${this.coreApiUrl}${path}`;
     const cookies = this.extractCookies(req);
 
-    this.logger.log(`Forwarding PATCH ${path} to Dashboard API`);
+    this.logger.log(`Forwarding PATCH ${path} to Core API`);
 
     try {
       const { data } = await firstValueFrom(
@@ -121,22 +122,22 @@ export class DashboardApiService {
 
       return data;
     } catch (error) {
-      this.logger.error(`Dashboard API PATCH ${path} failed: ${error.message}`);
-      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
+      this.logger.error(`Core API PATCH ${path} failed: ${error.message}`);
+      throw new Error(`Core API error: ${error.response?.status || 500}`);
     }
   }
 
   /**
-   * Forward a DELETE request to Dashboard API with cookies
+   * Forward a DELETE request to Core API with cookies
    * @param req Express request (to extract cookies from)
-   * @param path Dashboard API path
+   * @param path Core API path
    * @returns void
    */
   async delete(req: Request, path: string): Promise<void> {
-    const url = `${this.dashboardApiUrl}${path}`;
+    const url = `${this.coreApiUrl}${path}`;
     const cookies = this.extractCookies(req);
 
-    this.logger.log(`Forwarding DELETE ${path} to Dashboard API`);
+    this.logger.log(`Forwarding DELETE ${path} to Core API`);
 
     try {
       await firstValueFrom(
@@ -148,8 +149,8 @@ export class DashboardApiService {
         }),
       );
     } catch (error) {
-      this.logger.error(`Dashboard API DELETE ${path} failed: ${error.message}`);
-      throw new Error(`Dashboard API error: ${error.response?.status || 500}`);
+      this.logger.error(`Core API DELETE ${path} failed: ${error.message}`);
+      throw new Error(`Core API error: ${error.response?.status || 500}`);
     }
   }
 
