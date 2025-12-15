@@ -12,6 +12,7 @@ module.exports = [
       'dist/**',
       '**/.nuxt/**',
       'nuxt.config.ts',
+      '**/*.min.js',
     ],
   },
   {
