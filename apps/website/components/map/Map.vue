@@ -14,6 +14,7 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
 
       <UiIconButton
+        v-if="!generalConfigStore.embedded"
         :ripple="false"
         :size="ButtonSize.NORMAL"
         :icon="isDarkMapEnabled ? 'mdi-weather-night' : 'mdi-white-balance-sunny'"
@@ -21,16 +22,6 @@
         :active="isDarkMapEnabled"
         title="Toggle Dark Map"
         @click="toggleMapTheme"
-      >
-      </UiIconButton>
-
-      <UiIconButton
-        :ripple="false"
-        :size="ButtonSize.NORMAL"
-        customIcon="wind-icon.svg"
-        :active="windLayerEnabled"
-        title="Toggle Wind Layer"
-        @click="toggleWindLayer"
       >
       </UiIconButton>
 
@@ -75,6 +66,20 @@
           @change="handleMeasureChange"
         >
         </UiDropdownControl>
+        <div
+          v-if="!generalConfigStore.embedded"
+          style="display: flex; justify-content: end; margin-top: 10px"
+        >
+          <UiIconButton
+            :ripple="false"
+            :size="ButtonSize.NORMAL"
+            customIcon="wind-icon.svg"
+            :active="windLayerEnabled"
+            title="Toggle Wind Layer"
+            @click="toggleWindLayer"
+          >
+          </UiIconButton>
+        </div>
       </div>
 
       <LMap
@@ -634,7 +639,7 @@
   }
 
   #map {
-    height: calc(100svh - 130px);
+    height: calc(100svh - 129px);
   }
 
   .legend-overlay {
@@ -672,7 +677,7 @@
 
   @include desktop {
     #map {
-      height: calc(100svh - 117px);
+      height: calc(100svh - 116px);
     }
 
     .legend-container {

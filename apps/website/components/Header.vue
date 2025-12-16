@@ -117,13 +117,13 @@
 </script>
 <style>
   .main-content {
-    min-height: calc(100svh - 126px);
+    min-height: calc(100svh - 125px);
     background: var(--main-white-color);
   }
 
   @media (max-width: 991px) {
     .main-content {
-      min-height: calc(100svh - 113px);
+      min-height: calc(100svh - 112px);
     }
   }
 </style>
