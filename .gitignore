@@ -64,3 +64,6 @@ tools/docker/db/pg_timeseries
 tools/docker/db/docker-postgis
 
 CLAUDE.md
+
+# Open Street Map data
+apps/openstreetmap/data

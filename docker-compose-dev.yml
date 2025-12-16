@@ -120,6 +120,21 @@ services:
         condition: service_completed_successfully
       postgrex:
         condition: service_healthy
+  
+  pgadmin:
+    container_name: ag-pgadmin
+    image: dpage/pgadmin4:9.3
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@airgradient.com
+      PGADMIN_DEFAULT_PASSWORD: airgradient123#
+      PGADMIN_LISTEN_ADDRESS: "0.0.0.0"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin:rw
+    ports:
+      - 20003:80
+    networks:
+      - dev
     
 networks:
   dev:
@@ -127,3 +142,4 @@ networks:
 
 volumes:
   pgdata:
+  pgadmin_data:
