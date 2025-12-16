@@ -28,7 +28,6 @@ import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { getMascotImageUrl } from './notification-mascots.util';
 import { getAndroidAccentColor } from './notification-colors.util';
 import { DashboardApiClient } from './dashboard-api.client';
-import { BatchMeasurementsRequestDto, PlaceLocationRequest } from './dto/batch-measurements.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -131,6 +130,10 @@ export class NotificationsService {
       monitor_type: notification.monitor_type ?? MonitorType.PUBLIC,
       place_id: notification.place_id ?? null,
     });
+
+    if (newNotification.monitor_type === MonitorType.OWNED) {
+      await this.forwardOwnedNotificationToDashboard(newNotification);
+    }
 
     const result = await this.notificationRepository.createNotification(newNotification);
 
@@ -316,23 +319,50 @@ export class NotificationsService {
       ownedNotifications,
     );
 
-    // 4. Build notification jobs
-    const jobs = await this.buildNotificationJobs(allNotifications, measurementMap, new Date());
+    // 4 & 5. Build and send jobs (shared pipeline)
+    return this.dispatchNotifications(allNotifications, measurementMap, {
+      startTime,
+      scheduledCount,
+      thresholdCount,
+    });
+  }
+
+  /**
+   * Shared notification dispatch pipeline used by the scheduler and external triggers
+   */
+  private async dispatchNotifications(
+    notifications: NotificationEntity[],
+    measurementMap: Map<number, LatestLocationMeasurementData>,
+    context: {
+      startTime?: number;
+      scheduledCount?: number;
+      thresholdCount?: number;
+    } = {},
+  ): Promise<BatchResult> {
+    if (notifications.length === 0) {
+      this.logger.debug('No notifications provided for dispatch');
+      return { successful: [], failed: [], totalTime: 0 };
+    }
+
+    const jobs = await this.buildNotificationJobs(notifications, measurementMap, new Date());
 
     if (jobs.length === 0) {
       this.logger.debug('No notifications need to be sent');
       return { successful: [], failed: [], totalTime: 0 };
     }
 
-    // 5. Send notifications
-    const processingTime = Date.now() - startTime;
-    this.logger.log(`Sending ${jobs.length} notifications in batch...`, {
-      processingTimeMs: processingTime,
-      scheduledCount,
-      thresholdCount,
-      totalNotificationsEvaluated: allNotifications.length,
-      notificationsToSend: jobs.length,
-    });
+    if (context.startTime !== undefined) {
+      const processingTime = Date.now() - context.startTime;
+      this.logger.log(`Sending ${jobs.length} notifications in batch...`, {
+        processingTimeMs: processingTime,
+        scheduledCount: context.scheduledCount,
+        thresholdCount: context.thresholdCount,
+        totalNotificationsEvaluated: notifications.length,
+        notificationsToSend: jobs.length,
+      });
+    } else {
+      this.logger.log(`Sending ${jobs.length} notifications (external trigger)`);
+    }
 
     return this.sendBatchNotifications(jobs);
   }
@@ -393,7 +423,7 @@ export class NotificationsService {
       publicMeasurements.forEach(m => measurementMap.set(m.locationId, m));
     }
 
-    // Fetch owned monitor measurements from external API
+    // Fetch owned monitor measurements points to Dashboard API (temporarily disabled)
     if (ownedNotifications.length > 0) {
       const ownedMeasurements = await this.fetchOwnedMeasurements(ownedNotifications);
       ownedMeasurements.forEach(m => measurementMap.set(m.locationId, m));
@@ -439,7 +469,8 @@ export class NotificationsService {
   }
 
   /**
-   * Fetch measurements for owned monitors from external Dashboard API
+   * Fetch measurements for owned monitors from external Dashboard API.
+   * Temporarily disabled until shared Dashboard client lands.
    */
   private async fetchOwnedMeasurements(
     notifications: NotificationEntity[],
@@ -448,72 +479,11 @@ export class NotificationsService {
       return [];
     }
 
-    this.logger.debug(`Fetching measurements for ${notifications.length} owned monitors`);
-
-    // Group notifications by place_id and collect location_ids
-    const placeLocationMap = new Map<number, Set<number>>();
-
-    for (const notification of notifications) {
-      if (!notification.place_id) {
-        this.logger.warn(`Owned notification ${notification.id} missing place_id, skipping`);
-        continue;
-      }
-
-      if (!placeLocationMap.has(notification.place_id)) {
-        placeLocationMap.set(notification.place_id, new Set());
-      }
-      placeLocationMap.get(notification.place_id)!.add(notification.location_id);
-    }
-
-    // Build batch request
-    const locations: PlaceLocationRequest[] = Array.from(placeLocationMap.entries()).map(
-      ([place_id, location_ids]) => ({
-        place_id,
-        location_ids: Array.from(location_ids),
-      }),
+    this.logger.warn(
+      `Owned monitor notifications disabled: skipping ${notifications.length} notification(s) until Dashboard API client integration is restored.`,
     );
 
-    const request: BatchMeasurementsRequestDto = { locations };
-
-    // Call external API
-    const response = await this.dashboardApiClient.fetchBatchMeasurements(request);
-
-    if (!response.success) {
-      this.logger.error(
-        `Dashboard API request failed: ${response.message}. ` +
-          `Affected: ${notifications.length} notification(s) across ${request.locations.length} place(s). ` +
-          `No owned monitor measurements available.`,
-      );
-      return [];
-    }
-
-    // Log errors from API
-    if (response.errors.length > 0) {
-      this.logger.warn(
-        `Dashboard API returned ${response.errors.length} error(s) out of ` +
-          `${response.data.length + response.errors.length} requested location(s):`,
-        response.errors,
-      );
-    }
-
-    // Transform response to LatestLocationMeasurementData format
-    const measurements: LatestLocationMeasurementData[] = response.data.map(item => ({
-      locationId: item.location_id,
-      pm25: item.measurements.pm25,
-      rco2: item.measurements.rco2,
-      tvoc_index: item.measurements.tvoc_index,
-      nox_index: item.measurements.nox_index,
-      atmp: item.measurements.atmp,
-      rhum: item.measurements.rhum,
-      measuredAt: new Date(item.timestamp),
-      locationName: item.location_name,
-      sensorType: 'ONE_INDOOR', // Owned monitors are indoor
-      dataSource: DataSource.AIRGRADIENT,
-    }));
-
-    this.logger.debug(`Successfully fetched ${measurements.length} owned monitor measurements`);
-
-    return measurements;
+    return [];
   }
 
   /**
@@ -910,6 +880,35 @@ export class NotificationsService {
     if (data.monitor_type === MonitorType.OWNED && !data.place_id) {
       throw new BadRequestException('place_id is required when monitor_type is "owned"');
     }
+  }
+
+  private async forwardOwnedNotificationToDashboard(notification: NotificationEntity): Promise<void> {
+    if (notification.alarm_type !== NotificationType.THRESHOLD) {
+      this.logger.warn(
+        `Owned notification for location ${notification.location_id} with alarm type ${notification.alarm_type} cannot be forwarded to Dashboard API`,
+      );
+      return;
+    }
+
+    if (notification.threshold === null || notification.threshold === undefined) {
+      throw new BadRequestException('Owned notifications require a threshold value');
+    }
+
+    await this.dashboardApiClient.registerNotificationTrigger({
+      active: true,
+      alarmType: 'location',
+      description: 'hg',
+      locationGroupId: null,
+      locationGroupName: null,
+      locationId: notification.location_id,
+      measure: notification.parameter,
+      operator: 'greater',
+      threshold: notification.threshold,
+      title: 'kjh',
+      triggerDelay: 0,
+      triggerOnlyWhenOpen: false,
+      triggerType: 'always',
+    });
   }
 
   /**

@@ -5,11 +5,11 @@ import { NotificationsService } from './notifications.service';
 import { OneSignalProvider } from './onesignal.provider';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import { NotificationsRepository } from './notifications.repository';
-import { DashboardApiClient } from './dashboard-api.client';
 import { LocationModule } from 'src/location/location.module';
+import { DashboardApiClient } from './dashboard-api.client';
 
 @Module({
-  imports: [HttpModule, ConfigModule, LocationModule],
+  imports: [ConfigModule, LocationModule, HttpModule],
   providers: [
     NotificationsService,
     OneSignalProvider,
