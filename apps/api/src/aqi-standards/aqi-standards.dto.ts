@@ -4,7 +4,11 @@ export class AqiRangeDto {
   @ApiProperty({ description: 'Minimum value of the range', example: 0 })
   min!: number;
 
-  @ApiProperty({ description: 'Maximum value of the range, null means open-ended', example: 35.4, nullable: true })
+  @ApiProperty({
+    description: 'Maximum value of the range, null means open-ended',
+    example: 35.4,
+    nullable: true,
+  })
   max!: number | null;
 
   @ApiProperty({ description: 'Color key for this range', example: 'green' })
