@@ -377,13 +377,20 @@ Converts API response format to leaflet-velocity (grib2json-compatible) format:
 - `maxVelocity`: 15 m/s
 - `velocityScale`: 0.015 - Controls arrow size
 - `opacity`: 0.97
-- `colorScale`: Custom turquoise-to-purple gradient (0-15 m/s)
+- `colorScale`: Theme-aware gradients (dark vs. light)
 
-**Color Scale**:
+**Color Scale Source of Truth**:
+
+- JSON palette: `apps/shared/constants/wind-layer-colors.json` defines both dark and light mode gradients (13 stops each).
+- Website implementation: `apps/website/constants/map/wind-layer.ts` imports/uses the same values when building Leaflet-Velocity layers.
+- Mobile apps should mirror the same arrays; if any palette entry changes, ensure both the shared JSON and every consumer (web, iOS, Android) are updated together.
+
+**Scale Characteristics**:
 
 - Range: 0-15 m/s (0-54 km/h)
-- Colors: Turquoise (calm) → Blue → Purple (strong winds)
-- 13 color stops for smooth gradient
+- Dark theme: green-cyan → blue-violet optimized for dark gray map background.
+- Light theme: turquoise → indigo/purple optimized for light backgrounds.
+- 13 color stops for smooth gradients across both themes.
 
 ### Performance Optimizations
 
