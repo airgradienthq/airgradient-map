@@ -1,4 +1,3 @@
----
 ADDITIONAL ATTRIBUTION REQUIREMENT (AGPL-3.0 Section 7)
 
 UI ATTRIBUTION:
@@ -9,7 +8,7 @@ All versions must display in the About/Settings screen:
      Licensed under AGPL-3.0
      Source: https://www.airgradient.com/open-source-initiative/"
      
----
+Please note that the **Artwork** is copyright of AirGradient and not part of the AGPL license. For example: (1) AirGradient Logo, (2) AirGradient product photos (3) Air Quality Mascot images. Usage of these assets need written approval by AirGradient.
                     
                     GNU AFFERO GENERAL PUBLIC LICENSE
                        Version 3, 19 November 2007
