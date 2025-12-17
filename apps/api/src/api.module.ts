@@ -6,6 +6,7 @@ import { MeasurementModule } from './measurement/measurement.module';
 import { LocationModule } from './location/location.module';
 import { WindDataModule } from './wind-data/wind-data.module';
 import { NotificationModule } from './notifications/notification.module';
+import { CoreApiModule } from './core-api/core-api.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SoftAuthGuard } from './auth/guards/soft-auth.guard';
 import { AqiStandardsModule } from './aqi-standards/aqi-standards.module';
@@ -32,6 +33,7 @@ import { AqiStandardsModule } from './aqi-standards/aqi-standards.module';
     LocationModule,
     WindDataModule,
     NotificationModule,
+    CoreApiModule,
     AqiStandardsModule,
   ],
   controllers: [],
