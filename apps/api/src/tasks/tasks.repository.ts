@@ -4,7 +4,12 @@ import { Logger } from '@nestjs/common';
 import DatabaseService from 'src/database/database.service';
 import { OWNER_REFERENCE_ID_PREFIXES } from 'src/constants/owner-reference-id-prefixes';
 import { OutlierService } from 'src/outlier/outlier.service';
-import { DataSource, InsertLatestMeasuresInput, UpsertLocationOwnerInput } from 'src/types';
+import {
+  DataSource,
+  InsertLatestMeasuresInput,
+  UpsertLocationOwnerInput,
+  MeasureType,
+} from 'src/types';
 
 @Injectable()
 export class TasksRepository {
@@ -287,12 +292,13 @@ export class TasksRepository {
     latestMeasuresInput: InsertLatestMeasuresInput[],
   ): Promise<void> {
     try {
-      // Calculate outlier status for all measurements in batch
-      const outlierResults = await this.outlierService.calculateBatchIsPm25Outlier(
+      // Calculate outlier status for PM25 in batch
+      const isPm25OutlierResults = await this.outlierService.calculateBatchIsOutlier(
         dataSource,
+        MeasureType.PM25,
         latestMeasuresInput.map(dp => ({
           locationReferenceId: dp.locationReferenceId,
-          pm25: dp.pm25,
+          value: dp.pm25,
           measuredAt: dp.measuredAt,
         })),
       );
@@ -303,7 +309,7 @@ export class TasksRepository {
           const { locationId, locationReferenceId, pm25, pm10, atmp, rhum, rco2, measuredAt } =
             dataPoint;
           const key = `${locationReferenceId}_${measuredAt}`;
-          const isPm25Outlier = outlierResults.get(key) ?? false;
+          const isPm25Outlier = isPm25OutlierResults.get(key) ?? false;
           const locId = locationIdAvailable ? locationId : locationReferenceId;
           return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
         })

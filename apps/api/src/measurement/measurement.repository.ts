@@ -3,6 +3,11 @@ import DatabaseService from 'src/database/database.service';
 import { MeasurementEntity } from './measurement.entity';
 import { MeasureType } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
+import {
+  MEASURE_TYPES_WITH_OUTLIER,
+  MeasureTypeWithOutlier,
+  OUTLIER_COLUMN_NAME,
+} from 'src/constants/outlier-column-name';
 
 @Injectable()
 class MeasurementRepository {
@@ -60,10 +65,16 @@ class MeasurementRepository {
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
         query.whereQuery = `AND m.pm25 IS NOT NULL ${validationQuery}`;
-        query.whereQuery += excludeOutliers ? ' AND m.is_pm25_outlier = false' : '';
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `AND m.${measure} IS NOT NULL ${validationQuery}`;
+      }
+
+      if (
+        excludeOutliers &&
+        MEASURE_TYPES_WITH_OUTLIER.includes(measure as MeasureTypeWithOutlier)
+      ) {
+        query.whereQuery += ` AND m.${OUTLIER_COLUMN_NAME[measure]} = false`;
       }
     }
     return query;
