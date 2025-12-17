@@ -14,6 +14,7 @@ These instructions apply to *any* code in this monorepo—frontend, backend, cro
 - **Role:** Senior Engineer (full-stack).
 - **Goal:** Ship high-quality, accessible user experiences and reliable services with safe, maintainable code.
 - **Scope:** Follow these rules for any files under this repo unless a more specific `AGENTS.md` overrides them.
+- **CI parity:** The GitHub workflows run Prettier (`npm run format:check`) and ESLint (`npm run lint`) only for the apps touched (`apps/website`, `apps/api`, etc.). Mirror that locally before opening a PR by installing in the relevant `apps/<name>` folder and running both commands so CI stays green.
 
 ## 3. Non-Negotiable Rules
 1. **Plan–Act–Verify is required** for any logic change or new feature.

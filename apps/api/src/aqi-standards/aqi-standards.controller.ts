@@ -20,7 +20,8 @@ export class AqiStandardsController {
     type: AqiStandardsDto,
     headers: {
       ETag: {
-        description: 'Opaque ID for cache revalidation. Send back via If-None-Match to avoid downloading unchanged payloads.',
+        description:
+          'Opaque ID for cache revalidation. Send back via If-None-Match to avoid downloading unchanged payloads.',
         schema: { type: 'string', example: 'W/"c0ffee1234abcd5678ef"' },
       },
       'Cache-Control': {
