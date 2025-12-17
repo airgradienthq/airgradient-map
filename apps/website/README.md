@@ -42,18 +42,6 @@ The application will be available at `http://localhost:3000`
 
 **Note:** When running frontend-only, you'll need to ensure the API is running separately or configure the frontend to point to a running API instance.
 
-## Mobile Development
-
-For mobile development (iOS), use the following commands:
-
-```bash
-# iOS
-npm run add:ios
-npm run build:dev:ios
-```
-
-**Note:** Mobile development requires direct Node.js setup and cannot be run through Docker. Currently, mobile development is in the early stages and is not fully ready for production use.
-
 ## Frontend Development Commands
 
 ```bash

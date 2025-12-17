@@ -1,6 +1,5 @@
 //@ts-ignore
 export default defineNuxtConfig({
-  ssr: !process.env.NUXT_PUBLIC_MOBILE,
   runtimeConfig: {
     public: {
       apiUrl:

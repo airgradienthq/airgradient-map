@@ -18,6 +18,5 @@
 
 export * from './map';
 export * from './shared';
-export * from './deps';
 export * from './plugins';
 export * from './store';
