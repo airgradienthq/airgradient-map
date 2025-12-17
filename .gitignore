@@ -64,3 +64,17 @@ tools/docker/db/pg_timeseries
 tools/docker/db/docker-postgis
 
 CLAUDE.md
+AGENTS.md
+
+# Android
+**/apps/mobile/Android/local.properties
+**/apps/mobile/Android/app/google-services.json
+**/apps/mobile/Android/app/**/build/
+**/apps/mobile/Android/app/**/release/
+**/apps/mobile/Android/.gradle/
+**/apps/mobile/Android/**/.cxx/
+**/apps/mobile/Android/**/captures/
+**/apps/mobile/Android/**/outputs/
+
+# Derived data
+**/apps/mobile/Android/**/DerivedData/
