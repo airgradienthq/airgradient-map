@@ -26,7 +26,7 @@ AG-MAP Android is a Kotlin + Jetpack Compose client for the AirGradient sensor n
 - `./gradlew test` - execute JVM unit tests (currently minimal scaffolding)
 - `./gradlew connectedAndroidTest` - launch instrumentation tests (suites are placeholders)
 - `./gradlew clean` - clear build outputs
-
+/m
 ## Backend Integrations
 - **AirGradient Map API** (`https://map-data-int.airgradient.com/`): clustered measurements, location details, historical series, cigarette equivalents, and notification management (`map/api/v1/...`).
 - **AirGradient Notification API**: create, update, and delete scheduled or threshold alerts for an OneSignal player id.
