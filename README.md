@@ -158,6 +158,14 @@ If you're new to the project:
 - Please start by forking this repository and submitting pull requests from your fork.
 - If you become an active contributor, we'll be happy to invite you to join as a collaborator.
 
+### ✅ GitHub Actions Checks
+
+Every pull request triggers two GitHub Actions workflows:
+- **Prettier Check** (`.github/workflows/format.yml`): Runs `npm run format:check` inside each app that changed (website/api). Fix locally via `npm run format`.
+- **Lint Code** (`.github/workflows/lint.yml`): Runs `npm run lint` inside each modified app. Resolve issues locally before pushing.
+
+To keep CI green, install dependencies inside the relevant `apps/<name>` directory and run both commands prior to opening your PR.
+
 We use the [GitHub Project board](https://github.com/users/airgradienthq/projects/1/views/1) to track issues and development workflow.
 
 ### Labels
@@ -196,5 +204,4 @@ Please see Knexjs [migration documentation](https://knexjs.org/guide/migrations.
 ---
 
 Thanks for contributing to AirGradient Map! 🚀
-
 
