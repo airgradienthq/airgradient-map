@@ -1,0 +1,166 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'com.google.devtools.ksp'
+    id 'dagger.hilt.android.plugin'
+    id 'org.jetbrains.kotlin.plugin.compose'
+    id 'org.jetbrains.kotlin.plugin.serialization'
+}
+
+def oneSignalAppId = (project.findProperty('ONESIGNAL_APP_ID') ?: "").toString().trim()
+
+android {
+    namespace 'com.airgradient.android'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.airgradient.android.app"
+        minSdk 26
+        targetSdk 35
+        versionCode 7
+        versionName "1.2.2"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        vectorDrawables {
+            useSupportLibrary true
+        }
+
+        buildConfigField "String", "AUTH_BASE_URL", '"https://api.airgradient.com/"'
+        buildConfigField "String", "ONE_SIGNAL_APP_ID", "\"${oneSignalAppId}\""
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    
+    buildFeatures {
+        compose true
+        buildConfig true
+    }
+    
+    // Enable Compose Live Edit for real-time UI updates
+    composeOptions {
+        // kotlinCompilerExtensionVersion is now handled by org.jetbrains.kotlin.plugin.compose
+    }
+    
+    // Enable experimental features for live reload
+    experimentalProperties["android.experimental.enableArtProfiles"] = true
+    
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.0.21"
+    
+    // Core Android
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.core:core-splashscreen:1.0.1'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'androidx.activity:activity-compose:1.8.2'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    
+    // Compose BOM
+    implementation platform('androidx.compose:compose-bom:2024.12.01')
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material'
+    implementation 'androidx.compose.material:material-icons-extended'
+    implementation 'androidx.compose.ui:ui-unit'
+    implementation 'androidx.compose.ui:ui-text'
+    
+    // Navigation
+    implementation 'androidx.navigation:navigation-compose:2.7.5'
+    
+    // ViewModel
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.7.0'
+    
+    // Networking
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+    
+    // OpenStreetMap
+    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    
+    // Location services
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
+    
+    // Charts
+    implementation 'com.patrykandpatrick.vico:compose:1.13.1'
+    
+    // Image Loading
+    implementation 'io.coil-kt:coil-compose:2.5.0'
+
+    // Permissions handling
+    implementation 'com.google.accompanist:accompanist-permissions:0.32.0'
+
+    // Dependency Injection
+    implementation 'com.google.dagger:hilt-android:2.52'
+    implementation 'androidx.hilt:hilt-navigation-compose:1.2.0'
+    implementation 'com.google.android.material:material:1.13.0'
+    ksp 'com.google.dagger:hilt-compiler:2.52'
+    
+    // JSON serialization
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0'
+
+    // DataStore for modern preferences
+    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+    implementation 'androidx.datastore:datastore:1.0.0'
+
+    // One Signal
+    implementation 'com.onesignal:OneSignal:[5.1.6, 5.1.99]'
+
+    //
+    implementation platform('com.google.firebase:firebase-bom:34.3.0')
+    
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation platform('androidx.compose:compose-bom:2024.12.01')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+}
+
+// Apply Google Services plugin only when available or explicitly requested
+def hasGsFile = file('google-services.json').exists() ||
+        file('src/debug/google-services.json').exists() ||
+        file('src/release/google-services.json').exists()
+
+def useGsProp = project.hasProperty('USE_GOOGLE_SERVICES') &&
+        project.property('USE_GOOGLE_SERVICES').toString().toBoolean()
+
+if (hasGsFile || useGsProp) {
+    apply plugin: 'com.google.gms.google-services'
+    logger.lifecycle("Applied Google Services plugin (hasGsFile=${hasGsFile}, USE_GOOGLE_SERVICES=${useGsProp})")
+} else {
+    logger.lifecycle('Skipping Google Services plugin (no google-services.json). Use -PUSE_GOOGLE_SERVICES=true to force.')
+}

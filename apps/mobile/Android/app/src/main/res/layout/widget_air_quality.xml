@@ -1,0 +1,175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <LinearLayout
+        android:id="@+id/widget_layout_root"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@android:color/transparent">
+
+        <FrameLayout
+            android:id="@+id/widget_main_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <ImageView
+                android:id="@+id/widget_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/aqi_bg_good_mobile" />
+
+            <LinearLayout
+                android:id="@+id/widget_content"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="@dimen/widget_padding"
+                android:paddingEnd="@dimen/widget_padding"
+                android:paddingTop="@dimen/widget_padding_top_reduced"
+                android:paddingBottom="@dimen/widget_padding">
+
+                <FrameLayout
+                    android:layout_width="@dimen/widget_mascot_container_size"
+                    android:layout_height="@dimen/widget_mascot_container_size"
+                    android:layout_marginEnd="@dimen/widget_spacing_lg">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/widget_mascot_circle" />
+
+                    <ImageView
+                        android:id="@+id/widget_mascot"
+                        android:layout_width="@dimen/widget_mascot_image_size"
+                        android:layout_height="@dimen/widget_mascot_image_size"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/widget_cd_mascot"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/aqi_mascot_good" />
+
+                    <ImageView
+                        android:id="@+id/widget_refresh_icon"
+                        android:layout_width="@dimen/widget_refresh_icon_size"
+                        android:layout_height="@dimen/widget_refresh_icon_size"
+                        android:layout_gravity="center"
+                        android:contentDescription="@string/widget_cd_refresh"
+                        android:scaleType="fitCenter"
+                        android:src="@android:drawable/ic_popup_sync"
+                        android:visibility="gone" />
+
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/widget_location"
+                        android:gravity="center_vertical"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="2"
+                        android:text="@string/widget_location_placeholder"
+                        android:textColor="@color/widget_text_primary"
+                        android:textSize="@dimen/widget_text_size_location"
+                        android:textStyle="bold" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/widget_spacing_location_to_aqi"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/widget_aqi_category"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/widget_spacing_category_margin"
+                            android:text="@string/aqi_good"
+                            android:textColor="@color/widget_text_primary"
+                            android:textSize="@dimen/widget_text_size_category"
+                            android:textStyle="bold" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:baselineAligned="true"
+                            android:gravity="bottom"
+                            android:orientation="horizontal"
+                            android:paddingTop="@dimen/widget_spacing_aqi_row_padding"
+                            android:paddingBottom="@dimen/widget_spacing_aqi_row_padding">
+
+                            <TextView
+                                android:id="@+id/widget_aqi_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:includeFontPadding="false"
+                                android:text="@string/widget_aqi_value_placeholder"
+                                android:textColor="@color/widget_text_primary"
+                                android:textSize="@dimen/widget_text_size_value"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/widget_aqi_label"
+                                android:layout_gravity="bottom"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="@dimen/widget_spacing_md"
+                                android:text="@string/unit_us_aqi_short"
+                                android:textColor="@color/widget_text_primary"
+                                android:textSize="@dimen/widget_text_size_label"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </FrameLayout>
+
+                <LinearLayout
+            android:id="@+id/widget_footer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="@dimen/widget_padding"
+            android:paddingEnd="@dimen/widget_padding"
+            android:paddingTop="@dimen/widget_footer_padding_vertical"
+            android:paddingBottom="@dimen/widget_footer_padding_vertical"
+            android:background="@color/widget_good">
+
+                    <TextView
+                        android:id="@+id/widget_last_updated"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                        android:text="@string/widget_updated_placeholder"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/widget_text_size_caption"
+                android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/widget_pm_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                        android:text="@string/widget_pm_placeholder"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/widget_text_size_caption"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+</FrameLayout>

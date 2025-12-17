@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "redacted",
+    "project_id": "airgradient-kotlin",
+    "storage_bucket": "airgradient-kotlin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "redacted",
+        "android_client_info": {
+          "package_name": "com.agmap.android.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "redacted"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "redacted",
+        "android_client_info": {
+          "package_name": "com.airgradient.android.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "redacted"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
