@@ -42,6 +42,104 @@ export class TasksRepository {
     }
   }
 
+  private async _getLocationNameFallback(
+    dataSource: DataSource,
+    locationOwnerInput: Array<{
+      locationReferenceId: number;
+      coordinateLatitude?: number;
+      coordinateLongitude?: number;
+    }>,
+  ): Promise<Record<number, string>> {
+    if (!locationOwnerInput.length) return {};
+
+    const referenceIds = locationOwnerInput.map(item => item.locationReferenceId);
+    if (!referenceIds.length) return {};
+
+    const latitudes = locationOwnerInput.map(item =>
+      item.coordinateLatitude === null || item.coordinateLatitude === undefined
+        ? null
+        : Number(item.coordinateLatitude),
+    );
+    const longitudes = locationOwnerInput.map(item =>
+      item.coordinateLongitude === null || item.coordinateLongitude === undefined
+        ? null
+        : Number(item.coordinateLongitude),
+    );
+
+    try {
+      const result = await this.databaseService.runQuery(
+        `
+        WITH input AS (
+          SELECT *
+          FROM unnest($1::int[], $2::double precision[], $3::double precision[])
+            AS t(reference_id, latitude, longitude)
+        )
+        SELECT json_object_agg(
+          i.reference_id::TEXT,
+          COALESCE(
+            NULLIF(
+              CASE
+                WHEN m.street IS NOT NULL AND m.locality IS NOT NULL THEN m.street || ', ' || m.locality
+                WHEN m.street IS NOT NULL THEN m.street
+                ELSE m.locality
+              END,
+              ''
+            ),
+            format('%s: %s', $4::text, i.reference_id::text)
+          )
+        ) AS names
+        FROM input i
+        CROSS JOIN LATERAL (
+          SELECT
+            CASE
+              WHEN i.latitude IS NULL OR i.longitude IS NULL THEN NULL
+              ELSE ST_SetSRID(ST_MakePoint(i.longitude, i.latitude), 4326)::geography
+            END AS geog
+        ) p
+        LEFT JOIN LATERAL (
+          SELECT
+            na.street,
+            COALESCE(
+              na.village,
+              na.town,
+              na.city,
+              na.district,
+              na.county,
+              na.state,
+              na.country
+            ) AS locality
+          FROM public.nominatim_address na
+          WHERE i.latitude IS NOT NULL
+            AND i.longitude IS NOT NULL
+            AND p.geog IS NOT NULL
+            AND ST_DWithin(
+              na.coordinate::geography,
+              p.geog,
+              1
+            )
+          ORDER BY na.coordinate::geography <-> p.geog
+          LIMIT 1
+        ) m ON TRUE;
+      `,
+        [referenceIds, latitudes, longitudes, dataSource],
+      );
+
+      return (result.rows?.[0]?.names ?? {}) as Record<number, string>;
+    } catch (error) {
+      this.logger.error('Failed to get location names from nominatim_address', {
+        error: (error as Error).message,
+      });
+      // fallback entirely in JS if query fails
+      return referenceIds.reduce(
+        (acc, id) => {
+          acc[id] = `${dataSource}: ${id}`;
+          return acc;
+        },
+        {} as Record<number, string>,
+      );
+    }
+  }
+
   private async _upsertLocationsAndOwners(
     dataSource: DataSource,
     allowApiAccess: boolean,
@@ -49,6 +147,24 @@ export class TasksRepository {
     locationOwnerInput: UpsertLocationOwnerInput[],
   ): Promise<void> {
     try {
+      // Get missing location names from nominatim_address or fallback:
+      //   - if matched: `${street}, ${village > town > city > district > county > state > country}`
+      //   - else: `${dataSource}: ${locationReferenceId}`
+      const before = Date.now();
+
+      const locationNameLookup = await this._getLocationNameFallback(
+        dataSource,
+        locationOwnerInput
+          .filter(dp => dp.locationName == null)
+          .map(dp => ({
+            locationReferenceId: dp.locationReferenceId,
+            coordinateLatitude: dp.coordinateLatitude,
+            coordinateLongitude: dp.coordinateLongitude,
+          })),
+      );
+
+      this.logger.debug(`locationNameLookup spend ${Date.now() - before}ms`);
+
       // Creating columnar arrays
       // WHY: PostgreSQL's unnest() function works with arrays, not individual records
       // Transform row-based input (array of objects) into column-based arrays for efficient batch processing
@@ -72,14 +188,24 @@ export class TasksRepository {
       } = locationOwnerInput.reduce(
         (acc, r) => {
           // Filter invalid rows
-          if (r.coordinateLatitude === null || r.coordinateLongitude === null) return acc;
-          if (r.locationName === null) return acc;
+          if (
+            r.coordinateLatitude === null ||
+            r.coordinateLatitude === undefined ||
+            r.coordinateLongitude === null ||
+            r.coordinateLongitude === undefined
+          )
+            return acc;
+
+          const resolvedLocationName =
+            r.locationName ??
+            locationNameLookup[r.locationReferenceId] ??
+            `${dataSource}: ${r.locationReferenceId}`;
 
           // Restructure and collect data for each column
           acc.ownerNames.push(r.ownerName || null);
           acc.ownerUrls.push(r.ownerUrl || null);
           acc.ownerRefIds.push(`${OWNER_REFERENCE_ID_PREFIXES[dataSource]}${r.ownerReferenceId}`);
-          acc.locationNames.push(r.locationName);
+          acc.locationNames.push(resolvedLocationName);
           acc.locationRefIds.push(r.locationReferenceId);
           acc.sensorTypes.push(r.sensorType);
           acc.timezones.push(r.timezone);
