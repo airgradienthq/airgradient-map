@@ -25,11 +25,14 @@ class MeasurementRepository {
     minVal: number | null;
     maxVal: number | null;
   } {
-    let selectQuery = 'm.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2, ';
-
-    selectQuery += excludeOutliers
-      ? 'CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25'
-      : 'm.pm25';
+    const selectQuery = `
+      ${excludeOutliers ? 'CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25' : 'm.pm25'},
+      m.pm10, 
+      m.atmp, 
+      m.rhum, 
+      ${excludeOutliers ? 'CASE WHEN m.is_rco2_outlier = false THEN m.rco2 ELSE NULL END AS rco2' : 'm.rco2'},
+      m.o3, 
+      m.no2`;
 
     // General where query to ensure at least one measure is present
     const whereQuery = `
@@ -38,7 +41,7 @@ class MeasurementRepository {
         OR m.pm10 IS NOT NULL
         OR m.atmp IS NOT NULL
         OR m.rhum IS NOT NULL
-        OR m.rco2 IS NOT NULL
+        OR (m.is_rco2_outlier = false AND m.rco2 IS NOT NULL)
         OR m.o3 IS NOT NULL
         OR m.no2 IS NOT NULL
       )`;

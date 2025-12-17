@@ -303,6 +303,19 @@ export class TasksRepository {
         })),
       );
 
+      // Calculate outlier status for RCO2 in batch
+      const isRco2OutlierResults = await this.outlierService.calculateBatchIsOutlier(
+        dataSource,
+        MeasureType.RCO2,
+        latestMeasuresInput
+          .filter(dp => dp.rco2 != null) // filters out null AND undefined
+          .map(dp => ({
+            locationReferenceId: dp.locationReferenceId,
+            value: dp.rco2,
+            measuredAt: dp.measuredAt,
+          })),
+      );
+
       // Map into values query with pre-calculated outlier status
       const latestValues = latestMeasuresInput
         .map(dataPoint => {
@@ -310,8 +323,9 @@ export class TasksRepository {
             dataPoint;
           const key = `${locationReferenceId}_${measuredAt}`;
           const isPm25Outlier = isPm25OutlierResults.get(key) ?? false;
+          const isRco2Outlier = isRco2OutlierResults.get(key) ?? false;
           const locId = locationIdAvailable ? locationId : locationReferenceId;
-          return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier})`;
+          return `(${locId}, ${pm25}, ${pm10}, ${atmp}, ${rhum}, ${rco2}, '${measuredAt}', ${isPm25Outlier}, ${isRco2Outlier})`;
         })
         .join(', ');
 
@@ -320,7 +334,7 @@ export class TasksRepository {
       if (locationIdAvailable) {
         query = `
           INSERT INTO public."measurement" (
-            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
+            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier, is_rco2_outlier
           )
           VALUES
             ${latestValues}
@@ -335,7 +349,7 @@ export class TasksRepository {
             WHERE name = '${dataSource}'
           )
           INSERT INTO public."measurement" (
-            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier
+            location_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier, is_rco2_outlier
           )
           SELECT
             loc.id AS location_id,
@@ -345,13 +359,14 @@ export class TasksRepository {
             m.rhum::float8,
             m.rco2::int4,
             m.measured_at::timestamp,
-            m.is_pm25_outlier::boolean
+            m.is_pm25_outlier::boolean,
+            m.is_rco2_outlier::boolean
           FROM ds
           JOIN public."location" loc 
             ON loc.data_source_id = ds.id
           JOIN(
             VALUES ${latestValues}
-          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier)
+          ) AS m(reference_id, pm25, pm10, atmp, rhum, rco2, measured_at, is_pm25_outlier, is_rco2_outlier)
             ON loc.reference_id = m.reference_id
           ON CONFLICT (location_id, measured_at) DO NOTHING;
         `;
