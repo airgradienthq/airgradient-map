@@ -1,0 +1,761 @@
+{
+  "visibility": {
+    "us_epa": true,
+    "german_lqi": false,
+    "thai": false,
+    "lao": false,
+    "india": false,
+    "co2": true
+  },
+  "colors": {
+    "lightBlue": "#87CEEA",
+    "darkBlue": "#00496D",
+    "green": "#58D32F",
+    "yellow": "#FFDA3E",
+    "orange": "#FF9300",
+    "red": "#E1243B",
+    "lightRed": "#FF6666",
+    "purple": "#7C2DC1",
+    "maroon": "#822B22",
+    "gray": "#808080"
+  },
+  "standards": [
+    {
+      "id": "us_epa",
+      "displayName": "US EPA",
+      "pollutant": "pm25",
+      "ranges": [
+        {
+          "min": 0.0,
+          "max": 9.0,
+          "color": "green",
+          "labels": {
+            "ar": "Good",
+            "de": "Gut",
+            "en": "Good",
+            "es": "Buena",
+            "fr": "Bonne",
+            "hi": "अच्छा",
+            "id": "Baik",
+            "lo": "ອາກາດດີ",
+            "pt": "Bom",
+            "ru": "Хорошо",
+            "th": "ดี",
+            "vi": "Tốt",
+            "zh-Hans": "优"
+          }
+        },
+        {
+          "min": 9.0,
+          "max": 35.4,
+          "color": "yellow",
+          "labels": {
+            "ar": "Moderate",
+            "de": "Mäßig",
+            "en": "Moderate",
+            "es": "Moderada",
+            "fr": "Modérée",
+            "hi": "मध्यम",
+            "id": "Sedang",
+            "lo": "ປານກາງ",
+            "pt": "Moderado",
+            "ru": "Умеренно",
+            "th": "ปานกลาง",
+            "vi": "Trung bình",
+            "zh-Hans": "良"
+          }
+        },
+        {
+          "min": 35.4,
+          "max": 55.4,
+          "color": "orange",
+          "labels": {
+            "ar": "Unhealthy for Sensitive Groups",
+            "de": "Ungesund für empfindliche Gruppen",
+            "en": "Unhealthy for Sensitive Groups",
+            "es": "Dañina para grupos sensibles",
+            "fr": "Nocive pour les groupes sensibles",
+            "hi": "संवेदनशील समूहों के लिए अस्वस्थ",
+            "id": "Tidak Sehat bagi Kelompok Sensitif",
+            "lo": "ບໍ່ດີຕໍ່ສຸຂະພາບສຳລັບກຸ່ມສ່ຽງ",
+            "pt": "Prejudicial para grupos sensíveis",
+            "ru": "Вредно для чувствительных групп",
+            "th": "มีผลกระทบต่อกลุ่มเสี่ยง",
+            "vi": "Không lành mạnh cho các nhóm nhạy cảm",
+            "zh-Hans": "对敏感人群不健康"
+          }
+        },
+        {
+          "min": 55.4,
+          "max": 125.4,
+          "color": "red",
+          "labels": {
+            "ar": "Unhealthy",
+            "de": "Ungesund",
+            "en": "Unhealthy",
+            "es": "Dañina",
+            "fr": "Nocive",
+            "hi": "अस्वस्थ",
+            "id": "Tidak Sehat",
+            "lo": "ບໍ່ດີຕໍ່ສຸຂະພາບ",
+            "pt": "Prejudicial",
+            "ru": "Вредно",
+            "th": "มีผลกระทบต่อสุขภาพ",
+            "vi": "Không lành mạnh",
+            "zh-Hans": "不健康"
+          }
+        },
+        {
+          "min": 125.4,
+          "max": 225.4,
+          "color": "purple",
+          "labels": {
+            "ar": "Very Unhealthy",
+            "de": "Sehr ungesund",
+            "en": "Very Unhealthy",
+            "es": "Muy dañina",
+            "fr": "Très nocive",
+            "hi": "बहुत अस्वस्थ",
+            "id": "Sangat Tidak Sehat",
+            "lo": "ບໍ່ດີຕໍ່ສຸຂະພາບຫຼາຍ",
+            "pt": "Muito prejudicial",
+            "ru": "Очень вредно",
+            "th": "มีผลกระทบต่อสุขภาพมาก",
+            "vi": "Rất không lành mạnh",
+            "zh-Hans": "非常不健康"
+          }
+        },
+        {
+          "min": 225.4,
+          "max": 325.4,
+          "color": "maroon",
+          "labels": {
+            "ar": "Hazardous",
+            "de": "Gefährlich",
+            "en": "Hazardous",
+            "es": "Peligrosa",
+            "fr": "Dangereuse",
+            "hi": "खतरनाक",
+            "id": "Berbahaya",
+            "lo": "ອັນຕະລາຍ",
+            "pt": "Perigoso",
+            "ru": "Опасно",
+            "th": "อันตราย",
+            "vi": "Nguy hiểm",
+            "zh-Hans": "危险"
+          }
+        },
+        {
+          "min": 325.5,
+          "max": null,
+          "color": "maroon",
+          "labels": {
+            "ar": "خطر (أعلى من مؤشر AQI)",
+            "de": "Gefährlich (jenseits des AQI)",
+            "en": "Hazardous (beyond AQI)",
+            "es": "Peligrosa (más allá del AQI)",
+            "fr": "Dangereuse (au-delà de l'AQI)",
+            "hi": "खतरनाक (AQI से परे)",
+            "id": "Berbahaya (melampaui AQI)",
+            "lo": "ອັນຕະລາຍ (ເກີນ AQI)",
+            "pt": "Perigoso (além do AQI)",
+            "ru": "Опасно (выше индекса AQI)",
+            "th": "อันตราย (เกินกว่าดัชนี AQI)",
+            "vi": "Nguy hiểm (vượt ngoài AQI)",
+            "zh-Hans": "危险（超出 AQI）"
+          }
+        }
+      ]
+    },
+    {
+      "id": "german_lqi",
+      "displayName": "German LQI",
+      "pollutant": "pm25",
+      "ranges": [
+        {
+          "min": 0.0,
+          "max": 5.0,
+          "color": "lightBlue",
+          "labels": {
+            "ar": "جيد جدًا",
+            "de": "Sehr gut",
+            "en": "Very Good",
+            "es": "Muy buena",
+            "fr": "Très bonne",
+            "hi": "बहुत अच्छा",
+            "id": "Sangat baik",
+            "lo": "ດີຫຼາຍ",
+            "pt": "Muito boa",
+            "ru": "Очень хорошо",
+            "th": "ดีมาก",
+            "vi": "Rất tốt",
+            "zh-Hans": "优"
+          }
+        },
+        {
+          "min": 5.0,
+          "max": 15.0,
+          "color": "green",
+          "labels": {
+            "ar": "جيد",
+            "de": "Gut",
+            "en": "Good",
+            "es": "Buena",
+            "fr": "Bonne",
+            "hi": "अच्छा",
+            "id": "Baik",
+            "lo": "ດີ",
+            "pt": "Boa",
+            "ru": "Хорошо",
+            "th": "ดี",
+            "vi": "Tốt",
+            "zh-Hans": "良"
+          }
+        },
+        {
+          "min": 15.0,
+          "max": 30.0,
+          "color": "yellow",
+          "labels": {
+            "ar": "متوسط",
+            "de": "Mäßig",
+            "en": "Moderate",
+            "es": "Moderada",
+            "fr": "Modérée",
+            "hi": "मध्यम",
+            "id": "Sedang",
+            "lo": "ປານກາງ",
+            "pt": "Moderada",
+            "ru": "Умеренно",
+            "th": "ปานกลาง",
+            "vi": "Trung bình",
+            "zh-Hans": "中"
+          }
+        },
+        {
+          "min": 30.0,
+          "max": 50.0,
+          "color": "orange",
+          "labels": {
+            "ar": "رديء",
+            "de": "Schlecht",
+            "en": "Poor",
+            "es": "Mala",
+            "fr": "Mauvaise",
+            "hi": "खराब",
+            "id": "Buruk",
+            "lo": "ບໍ່ດີ",
+            "pt": "Ruim",
+            "ru": "Плохо",
+            "th": "แย่",
+            "vi": "Kém",
+            "zh-Hans": "较差"
+          }
+        },
+        {
+          "min": 50.0,
+          "max": null,
+          "color": "red",
+          "labels": {
+            "ar": "رديء جدًا",
+            "de": "Sehr schlecht",
+            "en": "Very Poor",
+            "es": "Muy mala",
+            "fr": "Très mauvaise",
+            "hi": "बहुत खराब",
+            "id": "Sangat buruk",
+            "lo": "ແຍ່ຫຼາຍ",
+            "pt": "Muito ruim",
+            "ru": "Очень плохо",
+            "th": "แย่มาก",
+            "vi": "Rất kém",
+            "zh-Hans": "非常差"
+          }
+        }
+      ]
+    },
+    {
+      "id": "thai",
+      "displayName": "Thai",
+      "pollutant": "pm25",
+      "ranges": [
+        {
+          "min": 0.0,
+          "max": 15.0,
+          "color": "lightBlue",
+          "labels": {
+            "ar": "Excellent",
+            "de": "Ausgezeichnet",
+            "en": "Excellent",
+            "es": "Excelente",
+            "fr": "Excellente",
+            "hi": "उत्कृष्ट",
+            "id": "Sangat Baik",
+            "lo": "ດີເລີດ",
+            "pt": "Excelente",
+            "ru": "Отличный",
+            "th": "ดีเยี่ยม",
+            "vi": "Tuyệt vời",
+            "zh-Hans": "优"
+          }
+        },
+        {
+          "min": 15.0,
+          "max": 25.0,
+          "color": "green",
+          "labels": {
+            "ar": "Satisfactory",
+            "de": "Zufriedenstellend",
+            "en": "Satisfactory",
+            "es": "Satisfactoria",
+            "fr": "Satisfaisante",
+            "hi": "संतोषजनक",
+            "id": "Memuaskan",
+            "lo": "ດີ",
+            "pt": "Satisfatório",
+            "ru": "Удовлетворительно",
+            "th": "ดี",
+            "vi": "Tốt",
+            "zh-Hans": "良"
+          }
+        },
+        {
+          "min": 25.0,
+          "max": 37.5,
+          "color": "yellow",
+          "labels": {
+            "ar": "Moderate",
+            "de": "Mäßig",
+            "en": "Moderate",
+            "es": "Moderada",
+            "fr": "Modérée",
+            "hi": "मध्यम",
+            "id": "Sedang",
+            "lo": "ປານກາງ",
+            "pt": "Moderado",
+            "ru": "Умеренный",
+            "th": "ปานกลาง",
+            "vi": "Trung bình",
+            "zh-Hans": "中"
+          }
+        },
+        {
+          "min": 37.5,
+          "max": 75.0,
+          "color": "orange",
+          "labels": {
+            "ar": "Unhealthy",
+            "de": "Ungesund",
+            "en": "Unhealthy",
+            "es": "Dañina",
+            "fr": "Nocive",
+            "hi": "अस्वस्थ",
+            "id": "Tidak Sehat",
+            "lo": "ເລີ່ມມີຜົນກະທົບຕໍ່ສຸຂະພາບ",
+            "pt": "Prejudicial",
+            "ru": "Вредно",
+            "th": "เริ่มมีผลกระทบต่อสุขภาพ",
+            "vi": "Bắt đầu có hại",
+            "zh-Hans": "不健康"
+          }
+        },
+        {
+          "min": 75.0,
+          "max": null,
+          "color": "red",
+          "labels": {
+            "ar": "Very Unhealthy",
+            "de": "Sehr ungesund",
+            "en": "Very Unhealthy",
+            "es": "Muy dañina",
+            "fr": "Très nocive",
+            "hi": "बहुत अस्वस्थ",
+            "id": "Sangat Tidak Sehat",
+            "lo": "ມີຜົນກະທົບຕໍ່ສຸຂະພາບ",
+            "pt": "Muito prejudicial",
+            "ru": "Очень вредно",
+            "th": "มีผลกระทบต่อสุขภาพ",
+            "vi": "Có hại",
+            "zh-Hans": "非常不健康"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lao",
+      "displayName": "Lao",
+      "pollutant": "pm25",
+      "ranges": [
+        {
+          "min": 0.0,
+          "max": 25.0,
+          "color": "lightBlue",
+          "labels": {
+            "ar": "Very Good",
+            "de": "Sehr gut",
+            "en": "Very Good",
+            "es": "Muy buena",
+            "fr": "Très bonne",
+            "hi": "बहुत अच्छा",
+            "id": "Sangat Baik",
+            "lo": "ດີຫຼາຍ",
+            "pt": "Muito bom",
+            "ru": "Очень хороший",
+            "th": "ดีมาก",
+            "vi": "Rất tốt",
+            "zh-Hans": "优"
+          }
+        },
+        {
+          "min": 25.0,
+          "max": 50.0,
+          "color": "green",
+          "labels": {
+            "ar": "Good",
+            "de": "Gut",
+            "en": "Good",
+            "es": "Buena",
+            "fr": "Bonne",
+            "hi": "अच्छा",
+            "id": "Baik",
+            "lo": "ດີ",
+            "pt": "Bom",
+            "ru": "Хороший",
+            "th": "ดี",
+            "vi": "Tốt",
+            "zh-Hans": "良"
+          }
+        },
+        {
+          "min": 50.0,
+          "max": 100.0,
+          "color": "yellow",
+          "labels": {
+            "ar": "Moderate",
+            "de": "Mäßig",
+            "en": "Moderate",
+            "es": "Moderada",
+            "fr": "Modérée",
+            "hi": "मध्यम",
+            "id": "Sedang",
+            "lo": "ປານກາງ",
+            "pt": "Moderado",
+            "ru": "Умеренный",
+            "th": "ปานกลาง",
+            "vi": "Trung bình",
+            "zh-Hans": "中"
+          }
+        },
+        {
+          "min": 100.0,
+          "max": 150.0,
+          "color": "orange",
+          "labels": {
+            "ar": "Minor Health Effects",
+            "de": "Geringfügige gesundheitliche Auswirkungen",
+            "en": "Minor Health Effects",
+            "es": "Efectos menores en la salud",
+            "fr": "Effets mineurs sur la santé",
+            "hi": "हल्का स्वास्थ्य प्रभाव",
+            "id": "Efek Kesehatan Ringan",
+            "lo": "ມີຜົນກະທົບຕໍ່ສຸຂະພາບເລັກນ້ອຍ",
+            "pt": "Efeitos ligeiros na saúde",
+            "ru": "Незначительные последствия для здоровья",
+            "th": "มีผลกระทบต่อสุขภาพเล็กน้อย",
+            "vi": "Ảnh hưởng sức khỏe nhỏ",
+            "zh-Hans": "轻度健康影响"
+          }
+        },
+        {
+          "min": 150.0,
+          "max": 200.0,
+          "color": "lightRed",
+          "labels": {
+            "ar": "Start Affecting Health",
+            "de": "Beginnende gesundheitliche Auswirkungen",
+            "en": "Start Affecting Health",
+            "es": "Comienza a afectar la salud",
+            "fr": "Commence à affecter la santé",
+            "hi": "स्वास्थ्य पर असर शुरू",
+            "id": "Mulai Mempengaruhi Kesehatan",
+            "lo": "ເລີ່ມມີຜົນກະທົບຕໍ່ສຸຂະພາບ",
+            "pt": "Começa a afetar a saúde",
+            "ru": "Начинает влиять на здоровье",
+            "th": "เริ่มมีผลกระทบต่อสุขภาพ",
+            "vi": "Bắt đầu ảnh hưởng sức khỏe",
+            "zh-Hans": "开始影响健康"
+          }
+        },
+        {
+          "min": 200.0,
+          "max": 300.0,
+          "color": "red",
+          "labels": {
+            "ar": "Moderate Health Effects",
+            "de": "Mäßige gesundheitliche Auswirkungen",
+            "en": "Moderate Health Effects",
+            "es": "Efectos moderados en la salud",
+            "fr": "Effets modérés sur la santé",
+            "hi": "मध्यम स्वास्थ्य प्रभाव",
+            "id": "Efek Kesehatan Sedang",
+            "lo": "ມີຜົນກະທົບຕໍ່ສຸຂະພາບປານກາງ",
+            "pt": "Efeitos moderados na saúde",
+            "ru": "Умеренные последствия для здоровья",
+            "th": "มีผลกระทบต่อสุขภาพปานกลาง",
+            "vi": "Ảnh hưởng sức khỏe trung bình",
+            "zh-Hans": "中度健康影响"
+          }
+        },
+        {
+          "min": 300.0,
+          "max": null,
+          "color": "maroon",
+          "labels": {
+            "ar": "Hazardous",
+            "de": "Gefährlich",
+            "en": "Hazardous",
+            "es": "Peligrosa",
+            "fr": "Dangereuse",
+            "hi": "खतरनाक",
+            "id": "Berbahaya",
+            "lo": "ອັນຕະລາຍ",
+            "pt": "Perigoso",
+            "ru": "Опасно",
+            "th": "อันตราย",
+            "vi": "Nguy hiểm",
+            "zh-Hans": "危险"
+          }
+        }
+      ]
+    },
+    {
+      "id": "india",
+      "displayName": "India",
+      "pollutant": "pm25",
+      "ranges": [
+        {
+          "min": 0.0,
+          "max": 30.0,
+          "color": "lightBlue",
+          "labels": {
+            "ar": "جيد",
+            "de": "Gut",
+            "en": "Good",
+            "es": "Bueno",
+            "fr": "Bon",
+            "hi": "अच्छा",
+            "id": "Baik",
+            "lo": "ດີ",
+            "pt": "Bom",
+            "ru": "Хорошо",
+            "th": "ดี",
+            "vi": "Tốt",
+            "zh-Hans": "优"
+          }
+        },
+        {
+          "min": 30.0,
+          "max": 60.0,
+          "color": "green",
+          "labels": {
+            "ar": "مرضي",
+            "de": "Zufriedenstellend",
+            "en": "Satisfactory",
+            "es": "Satisfactorio",
+            "fr": "Satisfaisant",
+            "hi": "संतोषजनक",
+            "id": "Memuaskan",
+            "lo": "ນ່າພໍໃຈ",
+            "pt": "Satisfatório",
+            "ru": "Удовлетворительно",
+            "th": "น่าพอใจ",
+            "vi": "Chấp nhận được",
+            "zh-Hans": "良"
+          }
+        },
+        {
+          "min": 60.0,
+          "max": 90.0,
+          "color": "yellow",
+          "labels": {
+            "ar": "ملوّث بشكل معتدل",
+            "de": "Mäßig verschmutzt",
+            "en": "Moderately Polluted",
+            "es": "Moderadamente contaminado",
+            "fr": "Modérément pollué",
+            "hi": "मध्यम रूप से प्रदूषित",
+            "id": "Tercemar sedang",
+            "lo": "ມົນລະພິດປານກາງ",
+            "pt": "Moderadamente poluído",
+            "ru": "Умеренно загрязнено",
+            "th": "มลพิษปานกลาง",
+            "vi": "Ô nhiễm vừa phải",
+            "zh-Hans": "中度污染"
+          }
+        },
+        {
+          "min": 90.0,
+          "max": 120.0,
+          "color": "orange",
+          "labels": {
+            "ar": "رديء",
+            "de": "Schlecht",
+            "en": "Poor",
+            "es": "Malo",
+            "fr": "Mauvais",
+            "hi": "खराब",
+            "id": "Buruk",
+            "lo": "ບໍ່ດີ",
+            "pt": "Ruim",
+            "ru": "Плохо",
+            "th": "แย่",
+            "vi": "Kém",
+            "zh-Hans": "较差"
+          }
+        },
+        {
+          "min": 120.0,
+          "max": 250.0,
+          "color": "red",
+          "labels": {
+            "ar": "رديء جدًا",
+            "de": "Sehr schlecht",
+            "en": "Very Poor",
+            "es": "Muy malo",
+            "fr": "Très mauvais",
+            "hi": "बहुत खराब",
+            "id": "Sangat buruk",
+            "lo": "ແຍ່ຫຼາຍ",
+            "pt": "Muito ruim",
+            "ru": "Очень плохо",
+            "th": "แย่มาก",
+            "vi": "Rất kém",
+            "zh-Hans": "非常差"
+          }
+        },
+        {
+          "min": 250.0,
+          "max": null,
+          "color": "maroon",
+          "labels": {
+            "ar": "حاد",
+            "de": "Extrem",
+            "en": "Severe",
+            "es": "Severo",
+            "fr": "Grave",
+            "hi": "गंभीर",
+            "id": "Parah",
+            "lo": "ຮ້າຍແຮງ",
+            "pt": "Severo",
+            "ru": "Опасно",
+            "th": "รุนแรง",
+            "vi": "Nguy hiểm",
+            "zh-Hans": "严重"
+          }
+        }
+      ]
+    },
+    {
+      "id": "co2",
+      "displayName": "CO2",
+      "pollutant": "co2",
+      "ranges": [
+        {
+          "min": 0.0,
+          "max": 450.0,
+          "color": "green",
+          "labels": {
+            "ar": "Excellent",
+            "de": "Ausgezeichnet",
+            "en": "Excellent",
+            "es": "Excelente",
+            "fr": "Excellente",
+            "hi": "उत्कृष्ट",
+            "id": "Sangat Baik",
+            "lo": "ດີເລີດ",
+            "pt": "Excelente",
+            "ru": "Отлично",
+            "th": "ยอดเยี่ยม",
+            "vi": "Tuyệt vời",
+            "zh-Hans": "优"
+          }
+        },
+        {
+          "min": 450.0,
+          "max": 500.0,
+          "color": "yellow",
+          "labels": {
+            "ar": "Good",
+            "de": "Gut",
+            "en": "Good",
+            "es": "Buena",
+            "fr": "Bonne",
+            "hi": "अच्छा",
+            "id": "Baik",
+            "lo": "ດີ",
+            "pt": "Bom",
+            "ru": "Хорошо",
+            "th": "ดี",
+            "vi": "Tốt",
+            "zh-Hans": "良"
+          }
+        },
+        {
+          "min": 500.0,
+          "max": 800.0,
+          "color": "orange",
+          "labels": {
+            "ar": "Moderate",
+            "de": "Mäßig",
+            "en": "Moderate",
+            "es": "Moderada",
+            "fr": "Modérée",
+            "hi": "मध्यम",
+            "id": "Sedang",
+            "lo": "ປານກາງ",
+            "pt": "Moderado",
+            "ru": "Умеренно",
+            "th": "ปานกลาง",
+            "vi": "Trung bình",
+            "zh-Hans": "中"
+          }
+        },
+        {
+          "min": 800.0,
+          "max": null,
+          "color": "gray",
+          "labels": {
+            "ar": "Incorrect",
+            "de": "Fehlerhaft",
+            "en": "Incorrect",
+            "es": "Incorrecta",
+            "fr": "Incorrecte",
+            "hi": "गलत",
+            "id": "Tidak Benar",
+            "lo": "ບໍ່ສາມາດລະບຸໄດ້",
+            "pt": "Incorreto",
+            "ru": "Некорректно",
+            "th": "ไม่ถูกต้อง",
+            "vi": "Không chính xác",
+            "zh-Hans": "异常"
+          }
+        }
+      ]
+    }
+  ],
+  "locales": [
+    "ar",
+    "de",
+    "en",
+    "es",
+    "fr",
+    "hi",
+    "id",
+    "lo",
+    "pt",
+    "ru",
+    "th",
+    "vi",
+    "zh-Hans"
+  ]
+}
