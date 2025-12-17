@@ -10,7 +10,6 @@ AG-MAP Android is a Kotlin + Jetpack Compose client for the AirGradient sensor n
 - Settings surface for AQI display units, widget location, notification summaries, profile experiments, plus a Material 3 home screen widget
 - Push-notification support through OneSignal player registration and AirGradient notification APIs for both scheduled and threshold alerts
 
-
 ## Tech Stack
 - Kotlin 2.0.21 with Jetpack Compose and Material 3
 - Android Gradle Plugin 8.7.3 / Gradle 8.10.2
@@ -19,7 +18,6 @@ AG-MAP Android is a Kotlin + Jetpack Compose client for the AirGradient sensor n
 - Coil for images, Vico charts for historical visualisation
 - Jetpack Navigation Compose, DataStore, Coroutines + StateFlow
 - OneSignal SDK and AirGradient notification REST endpoints
-
 
 ## Common Gradle Commands
 - `./gradlew assembleDebug` - build and package the debug APK
@@ -42,8 +40,3 @@ All remote access runs through Retrofit. Rate limiting and viewport throttling h
 - Track notifications: `adb logcat -s "NotificationsRepo:*" "NotificationSettingsVM:*"`
 - Inspect network calls with OkHttp logging (BODY level is enabled in debug builds)
 - Widget diagnostics: `adb logcat -s "AirQualityWidget:*"` and `adb shell dumpsys appwidget`
-
-## License
-- Licensed under **AGPL-3.0**. See `LICENSE.md`.
-- **Additional attribution requirement:** the app UI must display the attribution text described at the top of `LICENSE.md`.
-- 
