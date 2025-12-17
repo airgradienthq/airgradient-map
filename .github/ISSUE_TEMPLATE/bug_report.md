@@ -2,53 +2,31 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: 'bug'
+labels: bug
 assignees: ''
+
 ---
 
-**Which part of the application is affected?**
+### Affected area
+Briefly describe where the bug appears (e.g., website map page, API endpoint, native app screen, automation script, etc.).
 
-- [ ] Frontend (Website)
-- [ ] Backend (API)
-- [ ] Mobile App
-- [ ] Database
-- [ ] Infrastructure/Docker
-- [ ] Other (please specify)
+### Description
+What happened? Provide a concise explanation of the issue and any visible impact to users or systems.
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+### Steps to reproduce
+1. …
+2. …
+3. …
 
-**To Reproduce**
-Steps to reproduce the behavior:
+### Expected vs actual behavior
+- **Expected:** …
+- **Actual:** …
 
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+### Evidence
+Attach logs, screenshots, videos, or API responses that illustrate the problem.
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+### Environment
+Include any relevant context such as device, OS, browser, app version/build number, API base URL, feature flags, or data set.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
-
-**Environment (please complete the following information):**
-
-- **Desktop:**
-
-  - OS: [e.g. macOS, Windows, Linux]
-  - Browser [e.g. chrome, safari, firefox]
-  - Version [e.g. 22]
-
-- **Mobile:**
-  - Device: [e.g. iPhone 14, Samsung Galaxy]
-  - OS: [e.g. iOS 17, Android 14]
-  - Browser [e.g. stock browser, safari, chrome]
-  - Version [e.g. 22]
-
-**Additional context**
-Add any other context about the problem here, such as:
-
-- API endpoints affected (if backend issue)
-- Specific pages/components (if frontend issue)
-- Error messages or logs
+### Additional context
+Anything else that helps us troubleshoot (recent deploys, feature toggles, related tickets, etc.).

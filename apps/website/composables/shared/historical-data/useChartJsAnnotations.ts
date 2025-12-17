@@ -4,7 +4,7 @@ import { useWindowSize } from '@vueuse/core';
 import { MEASURE_UNITS } from '~/constants/shared/measure-units';
 import { useGeneralConfigStore } from '~/store/general-config-store';
 import { HistoryPeriodConfig, MeasureNames } from '~/types';
-import { getChartFontSize, getCO2Color, getPM25Color } from '~/utils';
+import { getChartFontSize, getColorForMeasure } from '~/utils';
 import { pm25ToAQI } from '~/utils/aqi';
 
 export function useChartJsAnnotations({
@@ -43,7 +43,8 @@ export function useChartJsAnnotations({
 
 function getAveragesData(
   data: number[],
-  measure: string,
+
+  measure: MeasureNames,
   period: HistoryPeriodConfig,
   translate: (key: string) => string
 ): {
@@ -63,18 +64,16 @@ function getAveragesData(
   let avgValue = total / data.length;
 
   avgValue = Number(avgValue.toFixed(averageApproximation));
-  const avgColor = isCO2
-    ? getCO2Color(avgValue, true, true)?.bgColor
-    : getPM25Color(avgValue, true, true)?.bgColor;
-  const avgBgColor = isCO2
-    ? getCO2Color(avgValue, false, true)?.bgColor
-    : getPM25Color(avgValue, false, true)?.bgColor;
 
   if (measure === MeasureNames.PM_AQI) {
     avgValue = pm25ToAQI(avgValue);
   }
 
+  const avgColor = getColorForMeasure(measure, avgValue, 700).bgColor;
+  const avgBgColor = getColorForMeasure(measure, avgValue, 100).bgColor;
+
   let avgPeriodLabel = translate('average');
+
   if (window.innerWidth > 450) {
     avgPeriodLabel = translate(period.label + '_average');
   }
@@ -124,16 +123,16 @@ function createWHOAnnotation(
     type: 'line',
     yMin: yValue,
     yMax: yValue,
-    borderColor: '#005121',
+    borderColor: getColorForMeasure(MeasureNames.PM25, 5, 700).bgColor,
     borderWidth: 2,
     label: {
       display: true,
-      backgroundColor: '#D2F7D3',
+      backgroundColor: getColorForMeasure(MeasureNames.PM25, 5, 100).bgColor,
       position: 'start',
       padding: width < 450 ? { x: 5, y: 3 } : { x: 10, y: 8 },
-      borderColor: '#005121',
+      borderColor: getColorForMeasure(MeasureNames.PM25, 5, 700).bgColor,
       borderWidth: 2,
-      color: '#212121',
+      color: getColorForMeasure(MeasureNames.PM25, 5, 700).bgColor,
       font: { family: '"Cabin", sans-serif', size: fontSize },
       xAdjust,
       content: label

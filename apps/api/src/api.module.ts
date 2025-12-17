@@ -9,6 +9,7 @@ import { NotificationModule } from './notifications/notification.module';
 import { CoreApiModule } from './core-api/core-api.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SoftAuthGuard } from './auth/guards/soft-auth.guard';
+import { AqiStandardsModule } from './aqi-standards/aqi-standards.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { SoftAuthGuard } from './auth/guards/soft-auth.guard';
     WindDataModule,
     NotificationModule,
     CoreApiModule,
+    AqiStandardsModule,
   ],
   controllers: [],
   providers: [

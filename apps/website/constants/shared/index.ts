@@ -9,3 +9,4 @@ export * from './ui';
 export * from './chart-periods';
 export * from './chart-min-visible-value';
 export * from './historical-data-timezone-options';
+export * from './measurement-display-config';

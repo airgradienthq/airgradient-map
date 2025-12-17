@@ -1,7 +1,9 @@
 import { Controller, Get, Req, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { CoreApiService } from 'src/utils/core-api.service';
+import { ApiExcludeController } from '@nestjs/swagger';
 
+@ApiExcludeController()
 @Controller('/private/map/api/v1/core-api/')
 export class CoreApiController {
   constructor(private readonly coreApiService: CoreApiService) {}

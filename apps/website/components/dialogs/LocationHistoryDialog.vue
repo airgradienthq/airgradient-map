@@ -88,24 +88,18 @@
         <p style="min-height: 20px" class="mb-0 mt-2 mt-md-4">
           <small v-if="chartOptions">
             {{ $t('aq_provided_by') }}
-            <span v-if="!locationDetails?.url">
-              {{
-                !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                  ? $i18n.t('anonymous_contributor')
-                  : locationDetails?.ownerName
-              }}
+            <span v-if="locationDetails?.ownerName && locationDetails?.ownerName !== 'unknown'">
+              <span v-if="locationDetails?.url">
+                <a :href="locationDetails?.url" target="_blank">
+                  {{ locationDetails?.ownerName }}
+                  <v-icon size="16">mdi-open-in-new</v-icon>
+                </a>
+              </span>
+              <span v-else>
+                {{ locationDetails?.ownerName }}
+              </span>
+              via
             </span>
-            <span v-else>
-              <a :href="locationDetails?.url" target="_blank">
-                {{
-                  !locationDetails?.ownerName || locationDetails?.ownerName === 'unknown'
-                    ? ' an anonymous contributor '
-                    : locationDetails?.ownerName
-                }}
-                <v-icon size="16">mdi-open-in-new</v-icon>
-              </a>
-            </span>
-            via
             <span v-if="dataSourceAttribution">
               <span v-if="locationDetails?.provider !== locationDetails?.dataSource">
                 {{ locationDetails?.provider }} and
@@ -210,7 +204,7 @@
   const licenseAttribution = computed(() => {
     const license = locationDetails.value?.licenses?.[0];
     if (!license) {
-      return locationDetails.value ? { label: 'unknown license', url: null } : null;
+      return locationDetails.value ? { label: 'own license', url: null } : null;
     }
     const licenseKey = license as keyof typeof LICENSE_MAP;
     if (LICENSE_MAP[licenseKey]) {

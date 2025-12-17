@@ -11,6 +11,8 @@ import {
   ApiTags,
   ApiBadRequestResponse,
   ApiParam,
+  ApiExtraModels,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { ApiPaginatedResponse, Pagination } from 'src/utils/pagination.dto';
 import MeasureTypeQuery from 'src/utils/measureTypeQuery';
@@ -18,8 +20,10 @@ import TimeseriesQuery from './timeseriesQuery';
 import TimeseriesDto from './timeseries.dto';
 import LocationMeasuresDto from './locationMeasures.dto';
 import { CigarettesSmokedDto } from './cigarettesSmoked.dto';
+import { CigarettesArrayDto } from './cigarettesArray.dto';
 import { MeasurementAveragesDto } from './averages.dto';
 import { AveragesQueryDto } from './averagesQuery.dto';
+import { CigarettesQueryDto } from './cigarettesQuery.dto';
 import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
 import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 
@@ -98,7 +102,7 @@ export class LocationController {
   @ApiOperation({
     summary: 'Get cigarettes equivalent for air pollution exposure',
     description:
-      'Calculates the equivalent number of cigarettes smoked based on PM2.5 exposure levels for different time periods. Uses the Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day.',
+      'Calculates the equivalent number of cigarettes smoked based on PM2.5 exposure levels for different time periods. Uses the Berkeley Earth conversion: 22 µg/m³ PM2.5 = 1 cigarette per day. Returns flat object for default timeframes (backward compatible), or structured array for custom timeframes.',
   })
   @ApiParam({
     name: 'id',
@@ -106,19 +110,39 @@ export class LocationController {
     example: 12345,
     type: Number,
   })
+  @ApiExtraModels(CigarettesSmokedDto, CigarettesArrayDto)
   @ApiOkResponse({
-    type: CigarettesSmokedDto,
-    description: 'Cigarette equivalents for multiple time periods',
+    description:
+      'Cigarette equivalents for multiple time periods. Returns flat object for default timeframes (backward compatible), or structured array for custom timeframes.',
+    schema: {
+      oneOf: [
+        { $ref: getSchemaPath(CigarettesSmokedDto) },
+        { $ref: getSchemaPath(CigarettesArrayDto) },
+      ],
+    },
   })
   @ApiNotFoundResponse({ description: 'Location not found or no PM2.5 data available' })
-  @ApiBadRequestResponse({ description: 'Invalid location ID format' })
+  @ApiBadRequestResponse({ description: 'Invalid location ID format or timeframe format' })
   @UsePipes(new ValidationPipe({ transform: true }))
   async getCigarettesSmoked(
     @Param() { id }: FindOneParams,
+    @Query() { timeframes }: CigarettesQueryDto,
     @HasFullAccess() hasFullAccess: boolean,
-  ): Promise<CigarettesSmokedDto> {
-    const result = await this.locationService.getCigarettesSmoked(id, hasFullAccess);
-    return new CigarettesSmokedDto(result);
+  ): Promise<CigarettesSmokedDto | CigarettesArrayDto> {
+    const result = await this.locationService.getCigarettesSmoked(id, hasFullAccess, timeframes);
+
+    // Format response based on whether custom timeframes were request
+    if (timeframes) {
+      // Custom timeframes: return structured array format
+      const cigarettesArray = Object.entries(result).map(([timeframe, value]) => ({
+        timeframe,
+        value,
+      }));
+      return new CigarettesArrayDto(id, cigarettesArray);
+    } else {
+      // Default timeframes: return flat object for backward compatibility
+      return new CigarettesSmokedDto(result);
+    }
   }
 
   @Get(':id/averages')
