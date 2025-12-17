@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Surface Colors -->
+    <color name="surface_light">#121212</color>
+    <color name="surface_dark">#E6E1E5</color>
+
+    <!-- Widget Colors -->
+    <color name="widget_background">#1E1E1E</color>
+    <color name="widget_border">#2C2C2C</color>
+    <color name="widget_text_primary">#F5F5F5</color>
+    <color name="widget_text_secondary">#B3FFFFFF</color>
+    <color name="widget_gray">#8A8A8A</color>
+    <color name="widget_chip_overlay">#33FFFFFF</color>
+</resources>
