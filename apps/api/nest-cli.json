@@ -3,6 +3,13 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "aqi-standards/aqi_standards.json",
+        "outDir": "dist/src"
+      }
+    ],
+    "watchAssets": true
   }
 }

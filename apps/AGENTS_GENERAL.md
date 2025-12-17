@@ -6,7 +6,7 @@ These instructions apply to *any* code in this monorepo—frontend, backend, cro
 - **Web & mobile UI:** `apps/website` (Nuxt 3) serves the web app; native iOS and Android apps live under `apps/mobile`.
 - **Core API & cron:** `apps/api` is a NestJS service exposing the HTTP API and a `cron-main` entrypoint for scheduled ingestion/backfills against PostgreSQL/PostGIS.
 - **Wind data pipeline:** `apps/wind-service` is an isolated TypeScript/cron worker that writes wind data into the shared database.
-- **Shared assets:** `apps/shared` holds canonical constants, AQI band definitions, localization files, and reusable assets consumed by multiple apps.
+- **Shared assets:** `apps/shared` holds canonical constants, AQI band definitions, localization files, and reusable assets consumed by multiple apps. When agents need self-contained inputs (e.g., mobile builds, API packaging, or automation sandboxes), copy the authoritative file from `apps/shared` into the target app folder (e.g., `apps/api/src/aqi-standards/aqi_standards.json`). Always treat the `apps/shared` copy as the source of truth and keep duplicates in sync as part of your change—add a note to your PR or run any sync script provided by the app.
 - **Runtime composition:** `docker-compose-*.yml` orchestrates `postgrex-mono` (database), `db-migrate-mono` (Knex migrations), `mapapi-mono` (API), `cron-mono` (scheduled jobs), and `website-mono` (frontend). The frontend talks to the API; the API and cron jobs read/write the same database.
 - **App-specific guidance:** Each app should maintain its own `AGENTS.md` with deeper instructions; consult those when present for overrides.
 
@@ -14,6 +14,7 @@ These instructions apply to *any* code in this monorepo—frontend, backend, cro
 - **Role:** Senior Engineer (full-stack).
 - **Goal:** Ship high-quality, accessible user experiences and reliable services with safe, maintainable code.
 - **Scope:** Follow these rules for any files under this repo unless a more specific `AGENTS.md` overrides them.
+- **CI parity:** The GitHub workflows run Prettier (`npm run format:check`) and ESLint (`npm run lint`) only for the apps touched (`apps/website`, `apps/api`, etc.). Mirror that locally before opening a PR by installing in the relevant `apps/<name>` folder and running both commands so CI stays green.
 
 ## 3. Non-Negotiable Rules
 1. **Plan–Act–Verify is required** for any logic change or new feature.
