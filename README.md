@@ -79,6 +79,9 @@ This project uses [Knexjs](https://knexjs.org/) for database migrations and seed
 > docker compose --env-file apps/api/.env.development -f docker-compose-dev.yml down -v
 > ```
 
+**API Errors in Docker can be seen with:**
+```docker logs mapapi-mono --tail 100```
+
 - **Migrations (Automatic)**
 
 Migrations now run **automatically** when you start the containers. You don't need to run them manually.

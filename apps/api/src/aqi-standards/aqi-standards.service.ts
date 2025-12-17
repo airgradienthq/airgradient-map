@@ -22,12 +22,23 @@ export class AqiStandardsService {
   }
 
   private resolveFilePath(): string {
-    const filePath = resolve(__dirname, '../../../shared/aqi-bands/aqi_standards.json');
-    if (!existsSync(filePath)) {
-      this.logger.error(`AQI standards file not found at ${filePath}`);
-      throw new Error('AQI standards file is missing');
+    const candidates = [
+      // When assets are copied next to compiled JS (dist/src/aqi-standards)
+      resolve(__dirname, './aqi_standards.json'),
+      // Fallback to source tree (useful in watch/dev or if asset copy failed)
+      resolve(__dirname, '../aqi-standards/aqi_standards.json'),
+      resolve(process.cwd(), 'src/aqi-standards/aqi_standards.json'),
+    ];
+
+    for (const path of candidates) {
+      if (existsSync(path)) {
+        return path;
+      }
     }
-    return filePath;
+
+    const attempted = candidates.join(', ');
+    this.logger.error(`AQI standards file not found. Tried: ${attempted}`);
+    throw new Error('AQI standards file is missing');
   }
 
   private generateEtag(content: string): string {
