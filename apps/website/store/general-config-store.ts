@@ -12,7 +12,9 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     selectedHistoricalDataTimeZoneConfig: HistoricalDataTimeZone.LOCAL,
     headless: false,
     embedded: false,
-    excludeOutliers: true
+    excludeOutliers: true,
+    outlierRadiusKm: 10,
+    outlierWindowHours: 2
   }),
   actions: {
     setSelectedMeasure(measure: MeasureNames) {
@@ -32,6 +34,12 @@ export const useGeneralConfigStore = defineStore('generalConfig', {
     },
     setExcludeOutliers(excludeOutliers: boolean) {
       this.excludeOutliers = excludeOutliers;
+    },
+    setOutlierRadiusKm(radius: number) {
+      this.outlierRadiusKm = radius;
+    },
+    setOutlierWindowHours(hours: number) {
+      this.outlierWindowHours = hours;
     }
   }
 });

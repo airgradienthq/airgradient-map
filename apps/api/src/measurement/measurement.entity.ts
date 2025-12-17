@@ -43,6 +43,9 @@ export class MeasurementEntity {
   @ApiProperty()
   dataSource: string;
 
+  @ApiPropertyOptional()
+  locationReferenceId?: number;
+
   constructor(partial: Partial<MeasurementEntity>) {
     Object.assign(this, partial);
   }

@@ -7,4 +7,6 @@ export type GeneralConfigStoreState = {
   headless: boolean;
   embedded: boolean;
   excludeOutliers: boolean;
+  outlierRadiusKm: number;
+  outlierWindowHours: number;
 };

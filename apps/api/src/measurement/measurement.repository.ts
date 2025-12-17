@@ -89,6 +89,7 @@ class MeasurementRepository {
     const query = `
       SELECT
         m.location_id AS "locationId", 
+        l.reference_id AS "locationReferenceId",
         l.location_name AS "locationName", 
         ST_X(l.coordinate) AS "longitude",
         ST_Y(l.coordinate) AS "latitude",
@@ -154,6 +155,7 @@ class MeasurementRepository {
     const query = `
       SELECT
         m.location_id AS "locationId", 
+        l.reference_id AS "locationReferenceId",
         l.location_name AS "locationName", 
         ST_X(l.coordinate) AS "longitude",
         ST_Y(l.coordinate) AS "latitude",

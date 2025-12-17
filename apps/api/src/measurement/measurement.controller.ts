@@ -12,6 +12,7 @@ import PaginationQuery from 'src/utils/paginationQuery';
 import ClusterQuery from './clusterQuery';
 import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
 import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
+import OutlierRealtimeQuery from './outlierRealtimeQuery';
 
 @Controller('map/api/v1/measurements')
 @ApiTags('Measurements')
@@ -77,6 +78,7 @@ export class MeasurementController {
     @Query() area: AreaQuery,
     @Query() cluster: ClusterQuery,
     @Query() { excludeOutliers }: ExcludeOutliersQuery,
+    @Query() outlierQuery: OutlierRealtimeQuery,
     @HasFullAccess() hasFullAccess: boolean,
   ): Promise<Pagination<MeasurementClusterModel>> {
     const measurementClusterModel = await this.measurementService.getLastMeasurementsByCluster(
@@ -91,6 +93,7 @@ export class MeasurementController {
       cluster.minPoints,
       cluster.radius,
       cluster.maxZoom,
+      outlierQuery,
     );
     return new Pagination(measurementClusterModel, null, null);
   }

@@ -87,6 +87,7 @@ export class OutlierRepository {
     radiusMeters: number,
     measuredAtIntervalHours: number,
     minNearbyCount: number,
+    useStoredOutlierFlagForNeighbors: boolean,
   ): Promise<Map<string, NearbyPm25Stats>> {
     try {
       /**
@@ -101,6 +102,8 @@ export class OutlierRepository {
        *
        * This reduces individual spatial queries to 1 LATERAL JOIN query.
        */
+      const outlierFilter = useStoredOutlierFlagForNeighbors ? 'AND m.is_pm25_outlier = false' : '';
+
       const query = `
         SELECT
           input.reference_id,
@@ -120,7 +123,7 @@ export class OutlierRepository {
               ON l1.data_source_id = ds.id
             WHERE ds.name = $3
               AND l1.reference_id = input.reference_id
-              AND m.is_pm25_outlier = false
+              ${outlierFilter}
               AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)
                                   AND input.measured_at::timestamp + make_interval(hours => $5::int)
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))

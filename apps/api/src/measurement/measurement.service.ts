@@ -14,6 +14,8 @@ import {
 import { MeasurementGeoJSONFeature } from '../types/shared/geojson.types';
 import { DataSource } from 'src/types/shared/data-source';
 import { MEASUREMENT_CLUSTER_CONFIG } from 'src/constants/measurement-cluster.constants';
+import OutlierRealtimeQuery from './outlierRealtimeQuery';
+import { OutlierService, OutlierCalculationOptions } from 'src/outlier/outlier.service';
 
 @Injectable()
 export class MeasurementService {
@@ -27,6 +29,7 @@ export class MeasurementService {
   constructor(
     private readonly measurementRepository: MeasurementRepository,
     private readonly configService: ConfigService,
+    private readonly outlierService: OutlierService,
   ) {
     // Allow environment overrides
     this.CLUSTER_MIN_POINTS = this.configService.get<number>(
@@ -93,9 +96,17 @@ export class MeasurementService {
     minPoints?: number,
     radius?: number,
     maxZoom?: number,
+    outlierQuery?: OutlierRealtimeQuery,
   ): Promise<MeasurementClusterResult> {
     // Default set to pm25 if not provided
     measure = measure || MeasureType.PM25;
+
+    const shouldApplyDynamicOutlier =
+      excludeOutliers &&
+      measure === MeasureType.PM25 &&
+      (outlierQuery?.outlierRadiusMeters ||
+        outlierQuery?.outlierWindowHours ||
+        outlierQuery?.outlierMinNearby);
 
     // Query locations by certain area with measurementType as the value
     const locations = await this.measurementRepository.retrieveLatestByArea(
@@ -103,13 +114,21 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
-      excludeOutliers,
+      shouldApplyDynamicOutlier ? false : excludeOutliers,
       hasFullAccess,
       measure,
     );
 
     if (locations.length === 0) {
       // Directly return if query result empty
+      return new Array<MeasurementCluster>();
+    }
+
+    const outlierFilteredLocations = shouldApplyDynamicOutlier
+      ? await this.filterOutliersWithOverrides(locations, outlierQuery)
+      : locations;
+
+    if (outlierFilteredLocations.length === 0) {
       return new Array<MeasurementCluster>();
     }
 
@@ -123,7 +142,7 @@ export class MeasurementService {
 
     // converting to .geojson features array
     let geojson = new Array<MeasurementGeoJSONFeature>();
-    locations.map(point => {
+    outlierFilteredLocations.map(point => {
       const value =
         measure === MeasureType.PM25
           ? getPMWithEPACorrectionIfNeeded(point.dataSource as DataSource, point.pm25, point.rhum)
@@ -169,6 +188,52 @@ export class MeasurementService {
     );
 
     return clustersModel;
+  }
+
+  private async filterOutliersWithOverrides(
+    locations: MeasurementEntity[],
+    outlierQuery?: OutlierRealtimeQuery,
+  ): Promise<MeasurementEntity[]> {
+    const outlierOptions: OutlierCalculationOptions = {
+      radiusMeters: outlierQuery?.outlierRadiusMeters,
+      measuredAtIntervalHours: outlierQuery?.outlierWindowHours,
+      minNearbyCount: outlierQuery?.outlierMinNearby,
+      useStoredOutlierFlagForNeighbors: false,
+    };
+
+    const dataPoints = locations
+      .filter(
+        location =>
+          location.pm25 !== null &&
+          location.pm25 !== undefined &&
+          location.locationReferenceId !== undefined &&
+          location.measuredAt,
+      )
+      .map(location => ({
+        locationReferenceId: location.locationReferenceId as number,
+        pm25: location.pm25 as number,
+        measuredAt: new Date(location.measuredAt).toISOString(),
+        dataSource: location.dataSource,
+      }));
+
+    if (dataPoints.length === 0) {
+      return locations;
+    }
+
+    const outlierResults = await this.outlierService.calculateBatchIsPm25Outlier(
+      undefined,
+      dataPoints,
+      outlierOptions,
+    );
+
+    return locations.filter(location => {
+      if (location.locationReferenceId === undefined || location.pm25 === null) {
+        return true;
+      }
+
+      const key = `${location.locationReferenceId}_${new Date(location.measuredAt).toISOString()}`;
+      return outlierResults.get(key) !== true;
+    });
   }
 
   private setEPACorrectedPM(measurements: MeasurementEntity[]) {

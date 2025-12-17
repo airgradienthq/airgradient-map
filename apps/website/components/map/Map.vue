@@ -66,6 +66,45 @@
         </UiDropdownControl>
       </div>
 
+      <div
+        v-if="generalConfigStore.excludeOutliers && isPmMeasure"
+        class="map-outlier-controls"
+      >
+        <div class="panel-title">Outlier sensitivity</div>
+        <div class="control">
+          <div class="control-label">
+            <span>Radius</span>
+            <span>{{ outlierRadiusKm }} km</span>
+          </div>
+          <input
+            v-model.number="outlierRadiusKm"
+            type="range"
+            min="2"
+            max="300"
+            step="1"
+            :aria-valuenow="outlierRadiusKm"
+            aria-label="Outlier radius in kilometers"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+        <div class="control">
+          <div class="control-label">
+            <span>Time window</span>
+            <span>±{{ outlierWindowHours }} h</span>
+          </div>
+          <input
+            v-model.number="outlierWindowHours"
+            type="range"
+            min="0.5"
+            max="12"
+            step="0.5"
+            :aria-valuenow="outlierWindowHours"
+            aria-label="Time window in hours"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+      </div>
+
       <LMap
         ref="map"
         class="map"
@@ -180,6 +219,20 @@
     return false;
   });
 
+  const isPmMeasure = computed(() =>
+    [MeasureNames.PM25, MeasureNames.PM_AQI].includes(generalConfigStore.selectedMeasure)
+  );
+
+  const outlierRadiusKm = computed({
+    get: () => generalConfigStore.outlierRadiusKm,
+    set: value => generalConfigStore.setOutlierRadiusKm(value)
+  });
+
+  const outlierWindowHours = computed({
+    get: () => generalConfigStore.outlierWindowHours,
+    set: value => generalConfigStore.setOutlierWindowHours(value)
+  });
+
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
   const windLayerEnabled = computed(() => urlState.wind_layer === 'true');
@@ -191,6 +244,7 @@
   ];
 
   const updateMapDebounced = createVueDebounce(updateMapData, 400);
+  const handleOutlierParamsChange = () => updateMapDebounced();
 
   let geoJsonMapData: GeoJsonObject;
   let mapInstance: L.Map | null = null;
@@ -330,6 +384,13 @@
 
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
+      const outlierParams =
+        generalConfigStore.excludeOutliers && isPmMeasure.value
+          ? {
+              outlierRadiusMeters: generalConfigStore.outlierRadiusKm * 1000,
+              outlierWindowHours: generalConfigStore.outlierWindowHours
+            }
+          : {};
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
           xmin: bounds.getWest(),
@@ -341,7 +402,8 @@
             generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
               ? MeasureNames.PM25
               : generalConfigStore.selectedMeasure,
-          excludeOutliers: generalConfigStore.excludeOutliers
+          excludeOutliers: generalConfigStore.excludeOutliers,
+          ...outlierParams
         },
         retry: 1,
         headers: headers
@@ -499,6 +561,66 @@
 
   #map {
     height: calc(100svh - 130px);
+  }
+
+  .map-outlier-controls {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    z-index: 450;
+    padding: 14px 16px;
+    width: 320px;
+    max-width: calc(100% - 24px);
+    background: rgba(18, 30, 45, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    color: #f4f7ff;
+  }
+
+  .map-outlier-controls .panel-title {
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    text-transform: uppercase;
+  }
+
+  .map-outlier-controls .control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .map-outlier-controls .control:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .map-outlier-controls .control-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  .map-outlier-controls input[type='range'] {
+    accent-color: #7bc8f6;
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .map-outlier-controls {
+      position: fixed;
+      top: auto;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      width: auto;
+    }
   }
 
   .legend-overlay {
