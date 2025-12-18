@@ -101,12 +101,27 @@ export class MeasurementService {
     // Default set to pm25 if not provided
     measure = measure || MeasureType.PM25;
 
+    const outliersOnly = outlierQuery?.outliersOnly === true;
+
+    const hasDynamicOutlierParams =
+      outlierQuery?.outlierRadiusMeters !== undefined ||
+      outlierQuery?.outlierWindowHours !== undefined ||
+      outlierQuery?.outlierMinNearby !== undefined ||
+      outlierQuery?.outlierAbsoluteThreshold !== undefined ||
+      outlierQuery?.outlierZScoreThreshold !== undefined ||
+      outlierQuery?.outlierZScoreMinMean !== undefined ||
+      outlierQuery?.outlierUseStoredOutlierFlagForNeighbors !== undefined ||
+      outlierQuery?.outlierEnableSameValueCheck !== undefined ||
+      outlierQuery?.outlierSameValueWindowHours !== undefined ||
+      outlierQuery?.outlierSameValueMinCount !== undefined ||
+      outlierQuery?.outlierSameValueIncludeZero !== undefined;
+
     const shouldApplyDynamicOutlier =
-      excludeOutliers &&
-      measure === MeasureType.PM25 &&
-      (outlierQuery?.outlierRadiusMeters ||
-        outlierQuery?.outlierWindowHours ||
-        outlierQuery?.outlierMinNearby);
+      (excludeOutliers || outliersOnly) && measure === MeasureType.PM25 && hasDynamicOutlierParams;
+
+    const shouldFilterStoredOutliers =
+      !shouldApplyDynamicOutlier && excludeOutliers && !outliersOnly;
+    const shouldReturnStoredOutliersOnly = !shouldApplyDynamicOutlier && outliersOnly;
 
     // Query locations by certain area with measurementType as the value
     const locations = await this.measurementRepository.retrieveLatestByArea(
@@ -114,9 +129,10 @@ export class MeasurementService {
       yMin,
       xMax,
       yMax,
-      shouldApplyDynamicOutlier ? false : excludeOutliers,
+      shouldFilterStoredOutliers,
       hasFullAccess,
       measure,
+      shouldReturnStoredOutliersOnly,
     );
 
     if (locations.length === 0) {
@@ -194,11 +210,21 @@ export class MeasurementService {
     locations: MeasurementEntity[],
     outlierQuery?: OutlierRealtimeQuery,
   ): Promise<MeasurementEntity[]> {
+    const outliersOnly = outlierQuery?.outliersOnly === true;
+
     const outlierOptions: OutlierCalculationOptions = {
       radiusMeters: outlierQuery?.outlierRadiusMeters,
       measuredAtIntervalHours: outlierQuery?.outlierWindowHours,
       minNearbyCount: outlierQuery?.outlierMinNearby,
-      useStoredOutlierFlagForNeighbors: false,
+      absoluteThreshold: outlierQuery?.outlierAbsoluteThreshold,
+      zScoreThreshold: outlierQuery?.outlierZScoreThreshold,
+      zScoreMinMean: outlierQuery?.outlierZScoreMinMean,
+      enableSameValueCheck: outlierQuery?.outlierEnableSameValueCheck,
+      sameValueWindowHours: outlierQuery?.outlierSameValueWindowHours,
+      sameValueMinCount: outlierQuery?.outlierSameValueMinCount,
+      sameValueIncludeZero: outlierQuery?.outlierSameValueIncludeZero,
+      useStoredOutlierFlagForNeighbors:
+        outlierQuery?.outlierUseStoredOutlierFlagForNeighbors ?? false,
     };
 
     const dataPoints = locations
@@ -228,11 +254,12 @@ export class MeasurementService {
 
     return locations.filter(location => {
       if (location.locationReferenceId === undefined || location.pm25 === null) {
-        return true;
+        return outliersOnly ? false : true;
       }
 
       const key = `${location.locationReferenceId}_${new Date(location.measuredAt).toISOString()}`;
-      return outlierResults.get(key) !== true;
+      const isOutlier = outlierResults.get(key) === true;
+      return outliersOnly ? isOutlier : !isOutlier;
     });
   }
 

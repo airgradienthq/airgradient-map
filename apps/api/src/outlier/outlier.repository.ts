@@ -13,13 +13,16 @@ export class OutlierRepository {
     locationReferenceIds: number[],
     measuredAts: string[],
     pm25Values: number[],
+    includeZero: boolean,
+    minCount: number,
+    windowHours: number,
   ): Promise<Map<string, boolean>> {
     try {
       /**
-       * Batch query to check if PM2.5 value has been the same for 24 hours (database-level computation).
+       * Batch query to check if PM2.5 value has been the same for a window of hours (database-level computation).
        *
        * 1. unnest() creates virtual table of (referenceId, measuredAt, pm25) input tuples
-       * 2. For each tuple, subquery checks if last 24h has same value (COUNT(DISTINCT pm25) = 1)
+       * 2. For each tuple, subquery checks if last window has same value (COUNT(DISTINCT pm25) = 1)
        * 3. Returns only boolean results
        *
        * This eliminates the memory issue by doing computation in DB instead of App.
@@ -30,9 +33,9 @@ export class OutlierRepository {
           input.reference_id,
           input.measured_at,
           CASE
-            WHEN input.pm25 != 0
+            WHEN ($5::boolean OR input.pm25 != 0)
               AND (
-                SELECT COUNT(*) >= 3
+                SELECT COUNT(*) >= $6
                   AND COUNT(DISTINCT m.pm25) = 1
                   AND MIN(m.pm25) = input.pm25
                 FROM measurement m
@@ -40,7 +43,7 @@ export class OutlierRepository {
                 JOIN data_source ds ON l.data_source_id = ds.id
                 WHERE ds.name = $1
                   AND l.reference_id = input.reference_id
-                  AND m.measured_at >= input.measured_at::timestamp - INTERVAL '24 HOURS'
+                  AND m.measured_at >= input.measured_at::timestamp - ($7::numeric * INTERVAL '1 hour')
                   AND m.measured_at < input.measured_at::timestamp
               )
             THEN true
@@ -54,6 +57,9 @@ export class OutlierRepository {
         locationReferenceIds,
         measuredAts,
         pm25Values,
+        includeZero,
+        minCount,
+        windowHours,
       ]);
 
       // Build map keyed by "referenceId_measuredAt"
@@ -73,6 +79,9 @@ export class OutlierRepository {
           dataSource,
           locationCount: locationReferenceIds.length,
           timestampCount: measuredAts.length,
+          includeZero,
+          minCount,
+          windowHours,
         },
         error: error.message,
         code: 'OUT_001',

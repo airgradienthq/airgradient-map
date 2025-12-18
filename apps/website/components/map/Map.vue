@@ -71,9 +71,32 @@
         class="map-outlier-controls"
       >
         <div class="panel-title">Outlier sensitivity</div>
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Show hidden only
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.showHiddenMonitorsOnly"
+              />
+            </span>
+            <input
+              v-model="showHiddenMonitorsOnly"
+              type="checkbox"
+              aria-label="Show hidden monitors only"
+              @change="handleOutlierParamsChange"
+            />
+          </div>
+        </div>
         <div class="control">
           <div class="control-label">
-            <span>Radius</span>
+            <span class="control-label-with-info">
+              Radius
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierRadiusKm"
+              />
+            </span>
             <span>{{ outlierRadiusKm }} km</span>
           </div>
           <input
@@ -89,7 +112,13 @@
         </div>
         <div class="control">
           <div class="control-label">
-            <span>Time window</span>
+            <span class="control-label-with-info">
+              Time window
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierWindowHours"
+              />
+            </span>
             <span>±{{ outlierWindowHours }} h</span>
           </div>
           <input
@@ -102,6 +131,213 @@
             aria-label="Time window in hours"
             @input="handleOutlierParamsChange"
           />
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Min nearby
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierMinNearby"
+              />
+            </span>
+            <span>{{ outlierMinNearby }}</span>
+          </div>
+          <input
+            v-model.number="outlierMinNearby"
+            type="range"
+            min="1"
+            max="20"
+            step="1"
+            :aria-valuenow="outlierMinNearby"
+            aria-label="Minimum nearby points"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Z-score threshold
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierZScoreThreshold"
+              />
+            </span>
+            <span>{{ outlierZScoreThreshold.toFixed(1) }}</span>
+          </div>
+          <input
+            v-model.number="outlierZScoreThreshold"
+            type="range"
+            min="0.5"
+            max="6"
+            step="0.1"
+            :aria-valuenow="outlierZScoreThreshold"
+            aria-label="Z-score threshold"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Absolute threshold
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierAbsoluteThreshold"
+              />
+            </span>
+            <span>{{ outlierAbsoluteThreshold }} µg/m³</span>
+          </div>
+          <input
+            v-model.number="outlierAbsoluteThreshold"
+            type="range"
+            min="0"
+            max="200"
+            step="1"
+            :aria-valuenow="outlierAbsoluteThreshold"
+            aria-label="Absolute threshold"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Z-score min mean
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierZScoreMinMean"
+              />
+            </span>
+            <span>{{ outlierZScoreMinMean }} µg/m³</span>
+          </div>
+          <input
+            v-model.number="outlierZScoreMinMean"
+            type="range"
+            min="0"
+            max="200"
+            step="1"
+            :aria-valuenow="outlierZScoreMinMean"
+            aria-label="Z-score minimum mean"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Filter outlier neighbors
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierUseStoredOutlierFlagForNeighbors"
+              />
+            </span>
+            <input
+              v-model="outlierUseStoredOutlierFlagForNeighbors"
+              type="checkbox"
+              aria-label="Filter neighbors using stored outlier flags"
+              @change="handleOutlierParamsChange"
+            />
+          </div>
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Same-value check
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierEnableSameValueCheck"
+              />
+            </span>
+            <input
+              v-model="outlierEnableSameValueCheck"
+              type="checkbox"
+              aria-label="Enable same-value check"
+              @change="handleOutlierParamsChange"
+            />
+          </div>
+        </div>
+
+        <div v-if="showOutlierStats && outlierEnableSameValueCheck" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Same-value window
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierSameValueWindowHours"
+              />
+            </span>
+            <span>{{ outlierSameValueWindowHours }} h</span>
+          </div>
+          <input
+            v-model.number="outlierSameValueWindowHours"
+            type="range"
+            min="1"
+            max="48"
+            step="1"
+            :aria-valuenow="outlierSameValueWindowHours"
+            aria-label="Same-value window hours"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats && outlierEnableSameValueCheck" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Same-value min count
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierSameValueMinCount"
+              />
+            </span>
+            <span>{{ outlierSameValueMinCount }}</span>
+          </div>
+          <input
+            v-model.number="outlierSameValueMinCount"
+            type="range"
+            min="1"
+            max="24"
+            step="1"
+            :aria-valuenow="outlierSameValueMinCount"
+            aria-label="Same-value minimum count"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats && outlierEnableSameValueCheck" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Same-value include zero
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierSameValueIncludeZero"
+              />
+            </span>
+            <input
+              v-model="outlierSameValueIncludeZero"
+              type="checkbox"
+              aria-label="Include zeros in same-value check"
+              @change="handleOutlierParamsChange"
+            />
+          </div>
+        </div>
+
+        <div v-if="showOutlierStats" class="control outlier-stats">
+          <div class="control-label">
+            <span>{{ visibleMonitorsLabel }}</span>
+            <span>{{ outlierViewportStats.visibleMonitors }}</span>
+          </div>
+          <div class="control-label">
+            <span>{{ hiddenMonitorsLabel }}</span>
+            <span>{{ outlierViewportStats.hiddenMonitors ?? '…' }}</span>
+          </div>
+          <div class="control-label">
+            <span>Total monitors</span>
+            <span>{{ outlierViewportStats.totalMonitors ?? '…' }}</span>
+          </div>
         </div>
       </div>
 
@@ -198,6 +434,19 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
+  const showHiddenMonitorsOnly = useStorage('showHiddenMonitorsOnly', false);
+  const outlierMinNearby = useStorage('outlierMinNearby', 3);
+  const outlierZScoreThreshold = useStorage('outlierZScoreThreshold', 2);
+  const outlierAbsoluteThreshold = useStorage('outlierAbsoluteThreshold', 30);
+  const outlierZScoreMinMean = useStorage('outlierZScoreMinMean', 50);
+  const outlierUseStoredOutlierFlagForNeighbors = useStorage(
+    'outlierUseStoredOutlierFlagForNeighbors',
+    false
+  );
+  const outlierEnableSameValueCheck = useStorage('outlierEnableSameValueCheck', true);
+  const outlierSameValueWindowHours = useStorage('outlierSameValueWindowHours', 24);
+  const outlierSameValueMinCount = useStorage('outlierSameValueMinCount', 3);
+  const outlierSameValueIncludeZero = useStorage('outlierSameValueIncludeZero', false);
 
   const { urlState, setUrlState } = useUrlState();
 
@@ -232,6 +481,60 @@
     get: () => generalConfigStore.outlierWindowHours,
     set: value => generalConfigStore.setOutlierWindowHours(value)
   });
+
+  type OutlierViewportStats = {
+    visibleMonitors: number;
+    hiddenMonitors: number | null;
+    totalMonitors: number | null;
+  };
+
+  const outlierViewportStats = ref<OutlierViewportStats>({
+    visibleMonitors: 0,
+    hiddenMonitors: null,
+    totalMonitors: null
+  });
+
+  const unfilteredMonitorTotalCache = new Map<string, number>();
+  let updateMapRequestId = 0;
+
+  const showOutlierStats = computed(
+    () => isDebugMode.value && generalConfigStore.excludeOutliers && isPmMeasure.value
+  );
+
+  const outlierControlTooltips = {
+    showHiddenMonitorsOnly:
+      'Shows only monitors currently flagged as outliers (normally hidden when filtering is enabled).',
+    outlierRadiusKm:
+      'Search radius for nearby monitors used to compute the spatial baseline. Larger = more neighbors but less local.',
+    outlierWindowHours:
+      'Time window (±hours) used when matching nearby measurements to the current timestamp. Larger = more matches but less time-accurate.',
+    outlierMinNearby:
+      'Minimum number of nearby monitors required to compute spatial stats. If not met, spatial outlier detection is skipped.',
+    outlierZScoreThreshold:
+      'When neighborhood mean is high, flags if |value-mean|/stddev exceeds this. Lower = more sensitive.',
+    outlierAbsoluteThreshold:
+      'When neighborhood mean is low, flags if |value-mean| exceeds this (µg/m³). Lower = more sensitive at low PM.',
+    outlierZScoreMinMean:
+      'Switch point: use Z-score mode when neighborhood mean ≥ this; otherwise use absolute threshold mode.',
+    outlierUseStoredOutlierFlagForNeighbors:
+      'Excludes neighbors already flagged (stored outlier flag) from the baseline. Helps avoid contaminated baselines but can reduce neighbor count.',
+    outlierEnableSameValueCheck:
+      'Flags monitors whose PM2.5 stays exactly constant over the lookback window (common stuck-sensor signal).',
+    outlierSameValueWindowHours:
+      'Lookback window for the same-value check. Shorter catches flatlines sooner; longer requires a longer flatline.',
+    outlierSameValueMinCount:
+      'Minimum number of measurements required in the same-value window to trigger a same-value outlier.',
+    outlierSameValueIncludeZero:
+      'If enabled, constant PM2.5 = 0 can be flagged as a same-value outlier (useful for detecting permanent zeros).'
+  } as const;
+
+  const visibleMonitorsLabel = computed(() =>
+    showHiddenMonitorsOnly.value ? 'Visible outliers' : 'Visible monitors'
+  );
+
+  const hiddenMonitorsLabel = computed(() =>
+    showHiddenMonitorsOnly.value ? 'Hidden inliers' : 'Hidden outliers'
+  );
 
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
@@ -374,40 +677,92 @@
     return marker;
   }
 
+  function countMonitorsInResponseData(data: AGMapData['data']): number {
+    return data.reduce((sum, item) => sum + ('sensorsCount' in item ? item.sensorsCount : 1), 0);
+  }
+
+  function buildViewportCacheKey(bounds: LatLngBounds, measure: MeasureNames): string {
+    return [
+      bounds.getWest().toFixed(3),
+      bounds.getSouth().toFixed(3),
+      bounds.getEast().toFixed(3),
+      bounds.getNorth().toFixed(3),
+      String(measure)
+    ].join(',');
+  }
+
   async function updateMapData(showLoader = true): Promise<void> {
     if (loading.value || locationHistoryDialog.value?.isOpen || !mapInstance) {
       return;
     }
 
+    const requestId = ++updateMapRequestId;
     loading.value = true;
     loaderShown.value = showLoader;
 
     try {
       const bounds: LatLngBounds = mapInstance.getBounds();
+      const requestMeasure: MeasureNames =
+        generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
+          ? MeasureNames.PM25
+          : generalConfigStore.selectedMeasure;
+
+      const viewportCacheKey = buildViewportCacheKey(bounds, requestMeasure);
+      const cachedUnfilteredTotal = unfilteredMonitorTotalCache.get(viewportCacheKey);
+      const shouldFetchUnfilteredTotal = showOutlierStats.value && cachedUnfilteredTotal === undefined;
+
       const outlierParams =
         generalConfigStore.excludeOutliers && isPmMeasure.value
           ? {
               outlierRadiusMeters: generalConfigStore.outlierRadiusKm * 1000,
-              outlierWindowHours: generalConfigStore.outlierWindowHours
+              outlierWindowHours: generalConfigStore.outlierWindowHours,
+              outliersOnly: showHiddenMonitorsOnly.value,
+              outlierMinNearby: outlierMinNearby.value,
+              outlierAbsoluteThreshold: outlierAbsoluteThreshold.value,
+              outlierZScoreThreshold: outlierZScoreThreshold.value,
+              outlierZScoreMinMean: outlierZScoreMinMean.value,
+              outlierUseStoredOutlierFlagForNeighbors:
+                outlierUseStoredOutlierFlagForNeighbors.value,
+              outlierEnableSameValueCheck: outlierEnableSameValueCheck.value,
+              outlierSameValueWindowHours: outlierSameValueWindowHours.value,
+              outlierSameValueMinCount: outlierSameValueMinCount.value,
+              outlierSameValueIncludeZero: outlierSameValueIncludeZero.value
             }
           : {};
+
+      const baseParams = {
+        xmin: bounds.getWest(),
+        ymin: bounds.getSouth(),
+        xmax: bounds.getEast(),
+        ymax: bounds.getNorth(),
+        zoom: mapInstance.getZoom(),
+        measure: requestMeasure
+      };
+
+      const unfilteredTotalPromise = shouldFetchUnfilteredTotal
+        ? $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
+            params: {
+              ...baseParams,
+              excludeOutliers: false
+            },
+            retry: 1,
+            headers: headers
+          })
+        : null;
+
       const response = await $fetch<AGMapData>(`${apiUrl}/measurements/current/cluster`, {
         params: {
-          xmin: bounds.getWest(),
-          ymin: bounds.getSouth(),
-          xmax: bounds.getEast(),
-          ymax: bounds.getNorth(),
-          zoom: mapInstance.getZoom(),
-          measure:
-            generalConfigStore.selectedMeasure === MeasureNames.PM_AQI
-              ? MeasureNames.PM25
-              : generalConfigStore.selectedMeasure,
+          ...baseParams,
           excludeOutliers: generalConfigStore.excludeOutliers,
           ...outlierParams
         },
         retry: 1,
         headers: headers
       });
+
+      if (requestId !== updateMapRequestId) {
+        return;
+      }
 
       const geoJsonData: GeoJsonObject = convertToGeoJSON(response.data);
       geoJsonMapData = geoJsonData;
@@ -416,6 +771,28 @@
         markers.clearLayers();
         markers.addData(geoJsonData);
       });
+
+      if (showOutlierStats.value) {
+        const visibleMonitors = countMonitorsInResponseData(response.data);
+        outlierViewportStats.value.visibleMonitors = visibleMonitors;
+
+        const totalMonitors = cachedUnfilteredTotal ?? null;
+        outlierViewportStats.value.totalMonitors = totalMonitors;
+        outlierViewportStats.value.hiddenMonitors =
+          totalMonitors === null ? null : Math.max(0, totalMonitors - visibleMonitors);
+
+        if (unfilteredTotalPromise) {
+          const unfilteredResponse = await unfilteredTotalPromise;
+          if (requestId !== updateMapRequestId) {
+            return;
+          }
+
+          const unfilteredTotal = countMonitorsInResponseData(unfilteredResponse.data);
+          unfilteredMonitorTotalCache.set(viewportCacheKey, unfilteredTotal);
+          outlierViewportStats.value.totalMonitors = unfilteredTotal;
+          outlierViewportStats.value.hiddenMonitors = Math.max(0, unfilteredTotal - visibleMonitors);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch map data:', error);
       handleApiError(error, 'Failed to load map data. Please try again.');
@@ -571,6 +948,8 @@
     padding: 14px 16px;
     width: 320px;
     max-width: calc(100% - 24px);
+    max-height: calc(100svh - 200px);
+    overflow-y: auto;
     background: rgba(18, 30, 45, 0.92);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 12px;
@@ -607,9 +986,34 @@
     font-size: 13px;
   }
 
+  .map-outlier-controls .control-label-with-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .map-outlier-controls .outlier-info-icon {
+    font-size: 16px;
+    line-height: 1;
+    opacity: 0.75;
+    cursor: help;
+    flex: 0 0 auto;
+  }
+
+  .map-outlier-controls .outlier-info-icon:hover {
+    opacity: 1;
+  }
+
   .map-outlier-controls input[type='range'] {
     accent-color: #7bc8f6;
     width: 100%;
+  }
+
+  .map-outlier-controls input[type='checkbox'] {
+    accent-color: #7bc8f6;
+    width: 16px;
+    height: 16px;
   }
 
   @media (max-width: 768px) {

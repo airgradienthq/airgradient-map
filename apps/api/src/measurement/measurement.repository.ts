@@ -13,6 +13,7 @@ class MeasurementRepository {
     excludeOutliers: boolean,
     measure?: MeasureType,
     paramsCount: number = 0,
+    outliersOnly: boolean = false,
   ): {
     selectQuery: string;
     whereQuery: string;
@@ -60,7 +61,11 @@ class MeasurementRepository {
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
         query.whereQuery = `AND m.pm25 IS NOT NULL ${validationQuery}`;
-        query.whereQuery += excludeOutliers ? ' AND m.is_pm25_outlier = false' : '';
+        if (outliersOnly) {
+          query.whereQuery += ' AND m.is_pm25_outlier = true';
+        } else {
+          query.whereQuery += excludeOutliers ? ' AND m.is_pm25_outlier = false' : '';
+        }
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `AND m.${measure} IS NOT NULL ${validationQuery}`;
@@ -138,6 +143,7 @@ class MeasurementRepository {
     excludeOutliers: boolean,
     hasFullAccess: boolean,
     measure?: MeasureType,
+    outliersOnly: boolean = false,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
 
@@ -145,6 +151,7 @@ class MeasurementRepository {
       excludeOutliers,
       measure,
       params.length,
+      outliersOnly,
     );
 
     if (hasValidation) {

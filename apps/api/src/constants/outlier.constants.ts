@@ -1,6 +1,11 @@
 export const OUTLIER_CONFIG = {
   RADIUS_METERS: 10000,
   MEASURED_AT_INTERVAL_HOURS: 2,
+  SAME_VALUE_WINDOW_HOURS: 24,
+  SAME_VALUE_MIN_COUNT: 3,
+  SAME_VALUE_INCLUDE_ZERO: false,
+  ENABLE_SAME_VALUE_CHECK: true,
+  Z_SCORE_MIN_MEAN: 50,
   ABSOLUTE_THRESHOLD: 30, // for PM2.5 < 50 µg/m3
   Z_SCORE_THRESHOLD: 2, // cover around 0.9545 of data in normal distribution
   MIN_NEARBY_COUNT: 3, // Including itself

@@ -6,6 +6,11 @@ import { OUTLIER_CONFIG } from 'src/constants/outlier.constants';
 export type OutlierCalculationOptions = {
   radiusMeters?: number;
   measuredAtIntervalHours?: number;
+  sameValueWindowHours?: number;
+  sameValueMinCount?: number;
+  sameValueIncludeZero?: boolean;
+  enableSameValueCheck?: boolean;
+  zScoreMinMean?: number;
   absoluteThreshold?: number;
   zScoreThreshold?: number;
   minNearbyCount?: number;
@@ -26,6 +31,11 @@ export class OutlierService {
   // Configuration from constants or environment
   private readonly RADIUS_METERS: number;
   private readonly MEASURED_AT_INTERVAL_HOURS: number;
+  private readonly SAME_VALUE_WINDOW_HOURS: number;
+  private readonly SAME_VALUE_MIN_COUNT: number;
+  private readonly SAME_VALUE_INCLUDE_ZERO: boolean;
+  private readonly ENABLE_SAME_VALUE_CHECK: boolean;
+  private readonly Z_SCORE_MIN_MEAN: number;
   private readonly ABSOLUTE_THRESHOLD: number;
   private readonly Z_SCORE_THRESHOLD: number;
   private readonly MIN_NEARBY_COUNT: number;
@@ -42,6 +52,26 @@ export class OutlierService {
     this.MEASURED_AT_INTERVAL_HOURS = this.configService.get<number>(
       'MEASURED_AT_INTERVAL_HOURS',
       OUTLIER_CONFIG.MEASURED_AT_INTERVAL_HOURS,
+    );
+    this.SAME_VALUE_WINDOW_HOURS = this.configService.get<number>(
+      'SAME_VALUE_WINDOW_HOURS',
+      OUTLIER_CONFIG.SAME_VALUE_WINDOW_HOURS,
+    );
+    this.SAME_VALUE_MIN_COUNT = this.configService.get<number>(
+      'SAME_VALUE_MIN_COUNT',
+      OUTLIER_CONFIG.SAME_VALUE_MIN_COUNT,
+    );
+    this.SAME_VALUE_INCLUDE_ZERO = this.configService.get<boolean>(
+      'SAME_VALUE_INCLUDE_ZERO',
+      OUTLIER_CONFIG.SAME_VALUE_INCLUDE_ZERO,
+    );
+    this.ENABLE_SAME_VALUE_CHECK = this.configService.get<boolean>(
+      'ENABLE_SAME_VALUE_CHECK',
+      OUTLIER_CONFIG.ENABLE_SAME_VALUE_CHECK,
+    );
+    this.Z_SCORE_MIN_MEAN = this.configService.get<number>(
+      'Z_SCORE_MIN_MEAN',
+      OUTLIER_CONFIG.Z_SCORE_MIN_MEAN,
     );
     this.ABSOLUTE_THRESHOLD = this.configService.get<number>(
       'ABSOLUTE_THRESHOLD',
@@ -65,11 +95,15 @@ export class OutlierService {
     const radiusMeters = options?.radiusMeters ?? this.RADIUS_METERS;
     const measuredAtIntervalHours =
       options?.measuredAtIntervalHours ?? this.MEASURED_AT_INTERVAL_HOURS;
+    const sameValueWindowHours = options?.sameValueWindowHours ?? this.SAME_VALUE_WINDOW_HOURS;
+    const sameValueMinCount = options?.sameValueMinCount ?? this.SAME_VALUE_MIN_COUNT;
+    const sameValueIncludeZero = options?.sameValueIncludeZero ?? this.SAME_VALUE_INCLUDE_ZERO;
+    const enableSameValueCheck = options?.enableSameValueCheck ?? this.ENABLE_SAME_VALUE_CHECK;
+    const zScoreMinMean = options?.zScoreMinMean ?? this.Z_SCORE_MIN_MEAN;
     const absoluteThreshold = options?.absoluteThreshold ?? this.ABSOLUTE_THRESHOLD;
     const zScoreThreshold = options?.zScoreThreshold ?? this.Z_SCORE_THRESHOLD;
     const minNearbyCount = options?.minNearbyCount ?? this.MIN_NEARBY_COUNT;
-    const useStoredOutlierFlagForNeighbors =
-      options?.useStoredOutlierFlagForNeighbors ?? true;
+    const useStoredOutlierFlagForNeighbors = options?.useStoredOutlierFlagForNeighbors ?? true;
 
     // Group datapoints by dataSource (map requests can combine sources)
     const pointsBySource = new Map<string, OutlierDataPoint[]>();
@@ -98,15 +132,21 @@ export class OutlierService {
 
       let before = Date.now();
 
-      // Check 1: Same value for 24 hours (computed in database)
-      this.logger.debug('Check same value for 24 hours');
-      const sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
-        source,
-        locationReferenceIds,
-        measuredAts,
-        pm25Values,
-      );
-      this.logger.debug(`24 hours check spend ${Date.now() - before}ms`);
+      // Check 1: Same value for N hours (computed in database)
+      let sameValueCheckMap = new Map<string, boolean>();
+      if (enableSameValueCheck) {
+        this.logger.debug(`Check same value for ${sameValueWindowHours} hours`);
+        sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
+          source,
+          locationReferenceIds,
+          measuredAts,
+          pm25Values,
+          sameValueIncludeZero,
+          sameValueMinCount,
+          sameValueWindowHours,
+        );
+        this.logger.debug(`Same value check spend ${Date.now() - before}ms`);
+      }
 
       before = Date.now();
 
@@ -129,7 +169,7 @@ export class OutlierService {
         const { locationReferenceId, pm25, measuredAt } = dataPoint;
         const key = `${locationReferenceId}_${measuredAt}`;
 
-        // Check 1: Same value for 24 hours (already computed in DB)
+        // Check 1: Same value outlier (already computed in DB)
         const isSameValue = sameValueCheckMap.get(key);
         if (isSameValue === true) {
           resultsMap.set(key, true);
@@ -147,7 +187,7 @@ export class OutlierService {
         const { mean, stddev } = stats;
         let isOutlier = false;
 
-        if (mean >= 50) {
+        if (mean >= zScoreMinMean) {
           const zScore = (pm25 - mean) / stddev;
           isOutlier = Math.abs(zScore) > zScoreThreshold;
         } else {
