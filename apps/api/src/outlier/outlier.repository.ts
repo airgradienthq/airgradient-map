@@ -3,7 +3,6 @@ import DatabaseService from 'src/database/database.service';
 import { NearbyStats } from './nearby-stats.entity';
 import { DataSource } from 'src/types';
 import { MeasureType } from 'src/types';
-import { OUTLIER_COLUMN_NAME } from 'src/constants/outlier-column-name';
 
 @Injectable()
 export class OutlierRepository {
@@ -96,13 +95,21 @@ export class OutlierRepository {
   ): Promise<Map<string, NearbyStats>> {
     try {
       /**
-       * Batch query to calculate spatial statistics for multiple location/timestamp pairs.
+       * Batch query to calculate spatial statistics: ROBUST-Z Score for multiple location/timestamp pairs.
+       *
+       * Robust Z-score = (value - Median)/Scaled MAD
+       *
+       * Scaled MAD here is the 1.4826 * Median Absolute Deviation to make it "normal-consistent":
+       *   Scaled MAD = 1.4826 * MAD
+       *   MAD = median( |x - median(x)| )
        *
        * Strategy: Uses LATERAL JOIN to execute spatial analysis for each pair in one query:
        * 1. unnest() creates a virtual table of (locationReferenceId, measuredAt) pairs
        * 2. LATERAL processes each pair: finds nearby locations within radius, gets closest measurement per location
+       *  2.1 Do not exclude outliers, because the most recent value could be incorrectly flagged as an outlier
+       *  2.2 Using a robust z-score (median + scaled MAD) makes this safe, since extreme values have much less influence on the neighborhood statistics.
        * 3. Filter by data_source to ensure locationReferenceId uniqueness
-       * 4. Calculates mean & stddev for each pair's neighborhood
+       * 4. Calculates median & scaled MAD for each pair's neighborhood
        * 5. Returns all results in one round-trip
        *
        * This reduces individual spatial queries to 1 LATERAL JOIN query.
@@ -111,12 +118,12 @@ export class OutlierRepository {
         SELECT
           input.reference_id,
           input.measured_at,
-          stats.mean,
-          stats.stddev
+          stats.median,
+          stats.scaled_mad
         FROM unnest($1::int[], $2::text[]) AS input(reference_id, measured_at)
-        CROSS JOIN LATERAL (
+        LEFT JOIN LATERAL (
           WITH nearby AS (
-            SELECT DISTINCT ON (l2.id) m.${measureType}
+            SELECT DISTINCT ON (l2.id) m.${measureType} AS value
             FROM location l1
             JOIN location l2
               ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
@@ -126,17 +133,31 @@ export class OutlierRepository {
               ON l1.data_source_id = ds.id
             WHERE ds.name = $3
               AND l1.reference_id = input.reference_id
-              AND m.${OUTLIER_COLUMN_NAME[measureType]} = false
               AND m.measured_at BETWEEN input.measured_at::timestamp - make_interval(hours => $5::int)
                                   AND input.measured_at::timestamp + make_interval(hours => $5::int)
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
+          ),
+          base_stats AS (
+            SELECT
+              percentile_cont(0.5) WITHIN GROUP (ORDER BY value) AS median,
+              COUNT(*) AS nearby_count
+            FROM nearby
+          ),
+          stats AS (
+            SELECT
+              base_stats.median,
+              1.4826 * (
+                SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY ABS(value - base_stats.median))
+                FROM nearby
+              ) AS scaled_mad
+            FROM base_stats
+            WHERE base_stats.nearby_count >= $6
           )
           SELECT
-            AVG(${measureType}) AS mean,
-            STDDEV_SAMP(${measureType}) AS stddev
-          FROM nearby
-          WHERE (SELECT COUNT(*) FROM nearby) >= $6
-        ) AS stats;
+            stats.median,
+            stats.scaled_mad
+          FROM stats
+        ) AS stats ON true;
       `;
       const value = [
         locationReferenceIds,
@@ -152,7 +173,7 @@ export class OutlierRepository {
       const statsMap = new Map<string, NearbyStats>();
       result.rows.forEach((r: any) => {
         const key = `${r.reference_id}_${r.measured_at}`;
-        statsMap.set(key, new NearbyStats(r.mean, r.stddev));
+        statsMap.set(key, new NearbyStats(r.median, r.scaled_mad));
       });
 
       return statsMap;
