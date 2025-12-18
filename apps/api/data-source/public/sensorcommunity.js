@@ -126,7 +126,7 @@ async function location(args) {
     const locationOwnerInput = merged.map(raw => ({
       ownerReferenceId: raw.location.id, // use location id instead
       locationReferenceId: raw.location.id,
-      locationName: `Sensor.Community: ${raw.location.id}`, // use location id instead
+      locationName: null,
       /** @type {SensorType} */
       sensorType: 'Small Sensor',
       timezone: tzLookup(raw.location.latitude, raw.location.longitude),
