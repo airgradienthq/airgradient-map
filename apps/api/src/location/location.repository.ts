@@ -217,6 +217,57 @@ class LocationRepository {
     }
   }
 
+  async retrieveLatestPm25ForOutlierExplain(id: number, hasFullAccess: boolean) {
+    const query = `
+      WITH latest_measurement AS (
+        SELECT m.pm25, m.rhum, m.measured_at, m.is_pm25_outlier
+        FROM measurement m
+        WHERE m.location_id = $1
+          AND m.measured_at >= NOW() - INTERVAL '6 hours'
+        ORDER BY m.measured_at DESC
+        LIMIT 1
+      )
+      SELECT
+        l.id AS "locationId",
+        l.reference_id AS "locationReferenceId",
+        d.name AS "dataSource",
+        m.pm25,
+        m.rhum,
+        m.measured_at AS "measuredAt",
+        m.is_pm25_outlier AS "isPm25Outlier"
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
+      JOIN latest_measurement m ON TRUE
+      WHERE l.id = $1;
+    `;
+
+    try {
+      const result = await this.databaseService.runQuery(query, [id]);
+      const row = result.rows[0];
+      if (!row) {
+        throw new NotFoundException({
+          message: 'LOC_006: Latest PM2.5 measurement not found for location',
+          operation: 'retrieveLatestPm25ForOutlierExplain',
+          parameters: { id },
+          code: 'LOC_006',
+        });
+      }
+      return row;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'LOC_007: Failed to retrieve latest PM2.5 for outlier explain',
+        operation: 'retrieveLatestPm25ForOutlierExplain',
+        parameters: { id },
+        error: error.message,
+        code: 'LOC_007',
+      });
+    }
+  }
+
   private getBinClauseFromBucketSize(bucketSize: BucketSize): string {
     switch (bucketSize) {
       case BucketSize.OneMonth: {

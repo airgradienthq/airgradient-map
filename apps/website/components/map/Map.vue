@@ -666,7 +666,28 @@
 
     marker.on('click', () => {
       if (isSensor && feature.properties) {
-        dialogStore.open(locationHistoryDialogId, { location: feature.properties });
+        const outlierExplainParams =
+          isPmMeasure.value && (generalConfigStore.excludeOutliers || isDebugMode.value)
+            ? {
+                outlierRadiusMeters: generalConfigStore.outlierRadiusKm * 1000,
+                outlierWindowHours: generalConfigStore.outlierWindowHours,
+                outlierMinNearby: outlierMinNearby.value,
+                outlierAbsoluteThreshold: outlierAbsoluteThreshold.value,
+                outlierZScoreThreshold: outlierZScoreThreshold.value,
+                outlierZScoreMinMean: outlierZScoreMinMean.value,
+                outlierUseStoredOutlierFlagForNeighbors:
+                  outlierUseStoredOutlierFlagForNeighbors.value,
+                outlierEnableSameValueCheck: outlierEnableSameValueCheck.value,
+                outlierSameValueWindowHours: outlierSameValueWindowHours.value,
+                outlierSameValueMinCount: outlierSameValueMinCount.value,
+                outlierSameValueIncludeZero: outlierSameValueIncludeZero.value
+              }
+            : undefined;
+
+        dialogStore.open(locationHistoryDialogId, {
+          location: feature.properties,
+          outlierParams: outlierExplainParams
+        });
       } else if (!isSensor) {
         const currentZoom = mapInstance!.getZoom();
         const newZoom = Math.min(currentZoom + 2, DEFAULT_MAP_VIEW_CONFIG.maxZoom);

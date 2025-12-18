@@ -26,6 +26,7 @@ import { AveragesQueryDto } from './averagesQuery.dto';
 import { CigarettesQueryDto } from './cigarettesQuery.dto';
 import ExcludeOutliersQuery from 'src/utils/excludeOutliersQuery';
 import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
+import OutlierRealtimeQuery from 'src/measurement/outlierRealtimeQuery';
 
 @Controller('map/api/v1/locations')
 @ApiTags('Locations')
@@ -218,5 +219,25 @@ export class LocationController {
     );
 
     return new Pagination(timeseriesDto, null, null);
+  }
+
+  @Get(':id/outliers/pm25/explain')
+  @ApiOperation({
+    summary: 'Explain PM2.5 outlier decision for a location',
+    description:
+      'Returns detailed information about why the latest PM2.5 measurement is flagged as an outlier (or not), using the provided outlier parameters.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Location identifier',
+    example: 12345,
+  })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async explainPm25Outlier(
+    @Param() { id }: FindOneParams,
+    @Query() outlierQuery: OutlierRealtimeQuery,
+    @HasFullAccess() hasFullAccess: boolean,
+  ) {
+    return await this.locationService.explainPm25Outlier(id, hasFullAccess, outlierQuery);
   }
 }

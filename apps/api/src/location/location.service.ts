@@ -12,10 +12,15 @@ import {
 } from '../types/location/location.types';
 import { MeasureType } from 'src/types';
 import { DataSource } from 'src/types/shared/data-source';
+import OutlierRealtimeQuery from 'src/measurement/outlierRealtimeQuery';
+import { OutlierCalculationOptions, OutlierService } from 'src/outlier/outlier.service';
 
 @Injectable()
 export class LocationService {
-  constructor(private readonly locationRepository: LocationRepository) {}
+  constructor(
+    private readonly locationRepository: LocationRepository,
+    private readonly outlierService: OutlierService,
+  ) {}
   private readonly logger = new Logger(LocationService.name);
 
   async getLocations(
@@ -50,6 +55,60 @@ export class LocationService {
       results.rhum,
     );
     return results;
+  }
+
+  async explainPm25Outlier(
+    id: number,
+    hasFullAccess: boolean,
+    outlierQuery: OutlierRealtimeQuery,
+  ): Promise<any> {
+    await this.locationRepository.isLocationIdExist(id, hasFullAccess);
+
+    const current = await this.locationRepository.retrieveLatestPm25ForOutlierExplain(
+      id,
+      hasFullAccess,
+    );
+
+    if (current.pm25 === null || current.pm25 === undefined || !current.measuredAt) {
+      return {
+        locationId: id,
+        isOutlier: false,
+        decision: { reason: 'within_threshold', message: 'No PM2.5 measurement available' },
+      };
+    }
+
+    const measuredAtIso = new Date(current.measuredAt).toISOString();
+
+    const options: OutlierCalculationOptions = {
+      radiusMeters: outlierQuery?.outlierRadiusMeters,
+      measuredAtIntervalHours: outlierQuery?.outlierWindowHours,
+      minNearbyCount: outlierQuery?.outlierMinNearby,
+      absoluteThreshold: outlierQuery?.outlierAbsoluteThreshold,
+      zScoreThreshold: outlierQuery?.outlierZScoreThreshold,
+      zScoreMinMean: outlierQuery?.outlierZScoreMinMean,
+      useStoredOutlierFlagForNeighbors: outlierQuery?.outlierUseStoredOutlierFlagForNeighbors,
+      enableSameValueCheck: outlierQuery?.outlierEnableSameValueCheck,
+      sameValueWindowHours: outlierQuery?.outlierSameValueWindowHours,
+      sameValueMinCount: outlierQuery?.outlierSameValueMinCount,
+      sameValueIncludeZero: outlierQuery?.outlierSameValueIncludeZero,
+    };
+
+    const explanation = await this.outlierService.explainPm25Outlier(
+      current.dataSource,
+      {
+        locationReferenceId: current.locationReferenceId,
+        pm25: Number(current.pm25),
+        measuredAt: measuredAtIso,
+        dataSource: current.dataSource,
+      },
+      options,
+    );
+
+    return {
+      locationId: current.locationId,
+      storedIsPm25Outlier: Boolean(current.isPm25Outlier),
+      ...explanation,
+    };
   }
 
   async getCigarettesSmoked(

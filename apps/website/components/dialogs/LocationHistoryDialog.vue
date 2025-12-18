@@ -67,6 +67,124 @@
             </UiDropdownControl>
           </div>
         </div>
+
+        <div v-if="showOutlierExplainPanel" class="outlier-explain mb-4">
+          <div class="d-flex align-center justify-space-between gap-2 flex-wrap">
+            <div class="d-flex align-center gap-2 flex-wrap">
+              <v-chip
+                v-if="outlierExplain"
+                :color="outlierExplain.isOutlier ? 'error' : 'success'"
+                size="small"
+              >
+                {{ outlierExplain.isOutlier ? 'OUTLIER' : 'INLIER' }}
+              </v-chip>
+              <small v-if="outlierExplain">{{ outlierExplain.decision?.message }}</small>
+              <small v-else-if="outlierExplainLoading">Loading outlier details…</small>
+              <small v-else-if="outlierExplainError">Unable to load outlier details</small>
+            </div>
+
+            <UiButton
+              v-if="outlierExplainError && !outlierExplainLoading"
+              variant="outlined"
+              size="small"
+              color="primary"
+              @click="retryFetchOutlierExplain"
+            >
+              Retry
+            </UiButton>
+          </div>
+
+          <div v-if="outlierExplain" class="outlier-explain-details mt-2">
+            <div class="outlier-explain-section">
+              <div class="section-title">Input</div>
+              <div class="kv">
+                <span class="k">PM2.5 (raw)</span>
+                <span class="v">{{ outlierExplain.pm25 }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Measured at</span>
+                <span class="v">{{ outlierExplain.measuredAt }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Stored outlier flag</span>
+                <span class="v">{{ outlierExplain.storedIsPm25Outlier }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Data source</span>
+                <span class="v">{{ outlierExplain.dataSource }}</span>
+              </div>
+            </div>
+
+            <div class="outlier-explain-section">
+              <div class="section-title">Spatial check</div>
+              <div class="kv">
+                <span class="k">Neighbors</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.spatial?.neighborCount }} (min
+                  {{ outlierExplain.params?.minNearbyCount }})
+                </span>
+              </div>
+              <div class="kv">
+                <span class="k">Mean / Stddev</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.spatial?.mean ?? '—' }} /
+                  {{ outlierExplain.checks?.spatial?.stddev ?? '—' }}
+                </span>
+              </div>
+              <div class="kv">
+                <span class="k">Mode</span>
+                <span class="v">{{ outlierExplain.checks?.spatial?.mode ?? '—' }}</span>
+              </div>
+              <div v-if="outlierExplain.checks?.spatial?.mode === 'zscore'" class="kv">
+                <span class="k">Z-score</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.spatial?.zScore ?? '—' }} (threshold
+                  {{ outlierExplain.params?.zScoreThreshold }})
+                </span>
+              </div>
+              <div v-else-if="outlierExplain.checks?.spatial?.mode === 'absolute'" class="kv">
+                <span class="k">|Δ|</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.spatial?.absoluteDelta ?? '—' }} (threshold
+                  {{ outlierExplain.params?.absoluteThreshold }})
+                </span>
+              </div>
+              <div v-if="outlierExplain.checks?.spatial?.note" class="note">
+                {{ outlierExplain.checks?.spatial?.note }}
+              </div>
+            </div>
+
+            <div class="outlier-explain-section">
+              <div class="section-title">Same-value check</div>
+              <div class="kv">
+                <span class="k">Enabled</span>
+                <span class="v">{{ outlierExplain.checks?.sameValue?.enabled }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Window</span>
+                <span class="v">{{ outlierExplain.checks?.sameValue?.windowHours }} h</span>
+              </div>
+              <div class="kv">
+                <span class="k">Min count</span>
+                <span class="v">{{ outlierExplain.checks?.sameValue?.minCount }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Count / Distinct</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.sameValue?.measurementCount ?? '—' }} /
+                  {{ outlierExplain.checks?.sameValue?.distinctCount ?? '—' }}
+                </span>
+              </div>
+              <div class="kv">
+                <span class="k">Result</span>
+                <span class="v">{{ outlierExplain.checks?.sameValue?.isOutlier }}</span>
+              </div>
+              <div v-if="outlierExplain.checks?.sameValue?.note" class="note">
+                {{ outlierExplain.checks?.sameValue?.note }}
+              </div>
+            </div>
+          </div>
+        </div>
         <ClientOnly>
           <div class="chart-container">
             <Bar v-if="chartData && chartOptions" :data="chartData" :options="chartOptions" />
@@ -175,9 +293,10 @@
   import { useApiErrorHandler } from '~/composables/shared/useApiErrorHandler';
   import { useNuxtApp } from '#imports';
   import { LICENSE_MAP, DATA_SOURCE_MAP } from '~/constants/map/attribution';
+  import { useRoute } from 'vue-router';
 
   const props = defineProps<{
-    dialog: DialogInstance<{ location: AGMapLocationData }>;
+    dialog: DialogInstance<{ location: AGMapLocationData; outlierParams?: Record<string, any> }>;
   }>();
 
   const runtimeConfig = useRuntimeConfig();
@@ -220,6 +339,20 @@
   const loading: Ref<boolean> = computed(() => historyLoading.value || detailsLoading.value);
 
   const { $i18n } = useNuxtApp();
+  const route = useRoute();
+
+  const isDebugMode = computed(() => route.query.debug === 'true');
+  const isPmMeasure = computed(() =>
+    [MeasureNames.PM25, MeasureNames.PM_AQI].includes(generalConfigStore.selectedMeasure)
+  );
+
+  const showOutlierExplainPanel = computed(
+    () => isDebugMode.value && isPmMeasure.value && Boolean(mapLocationData.value?.locationId)
+  );
+
+  const outlierExplainLoading = ref(false);
+  const outlierExplainError = ref(false);
+  const outlierExplain = ref<any>(null);
 
   const timezoneSelectShown: Ref<boolean> = computed(() => {
     const userOffset = DateTime.now().toFormat('ZZ');
@@ -327,6 +460,30 @@
     }
   }
 
+  async function fetchOutlierExplain(locationId: number): Promise<void> {
+    outlierExplainLoading.value = true;
+    outlierExplainError.value = false;
+
+    try {
+      const response = await $fetch<any>(`${apiUrl}/locations/${locationId}/outliers/pm25/explain`, {
+        params: props.dialog?.data?.outlierParams ?? {},
+        retry: 1,
+        headers: headers
+      });
+      outlierExplain.value = response;
+    } catch (error) {
+      outlierExplainError.value = true;
+    } finally {
+      outlierExplainLoading.value = false;
+    }
+  }
+
+  function retryFetchOutlierExplain() {
+    if (mapLocationData.value?.locationId) {
+      fetchOutlierExplain(mapLocationData.value.locationId);
+    }
+  }
+
   async function fetchLocationHistory(locationId: number): Promise<LocationHistoryData> {
     historyLoading.value = true;
     historyError.value = false;
@@ -393,6 +550,9 @@
     if (mapLocationData.value) {
       fetchLocationHistory(mapLocationData.value.locationId);
       fetchLocationDetails(mapLocationData.value.locationId);
+      if (showOutlierExplainPanel.value) {
+        fetchOutlierExplain(mapLocationData.value.locationId);
+      }
       startRefreshInterval();
     }
   });
@@ -501,6 +661,56 @@
     @include tablet {
       flex-direction: column;
     }
+  }
+
+  .outlier-explain {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .outlier-explain-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+  }
+
+  .outlier-explain-section {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .section-title {
+    font-size: 12px;
+    font-weight: var(--font-weight-medium);
+    margin-bottom: 6px;
+  }
+
+  .kv {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    font-size: 12px;
+    line-height: 1.3;
+    margin: 2px 0;
+  }
+
+  .k {
+    opacity: 0.75;
+  }
+
+  .v {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      'Courier New', monospace;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+
+  .note {
+    margin-top: 6px;
+    font-size: 11px;
+    opacity: 0.8;
   }
 
   .headless {

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OutlierRepository } from './outlier.repository';
 import { ConfigService } from '@nestjs/config';
 import { OUTLIER_CONFIG } from 'src/constants/outlier.constants';
@@ -15,6 +15,63 @@ export type OutlierCalculationOptions = {
   zScoreThreshold?: number;
   minNearbyCount?: number;
   useStoredOutlierFlagForNeighbors?: boolean;
+};
+
+export type Pm25OutlierExplanation = {
+  key: string;
+  locationReferenceId: number;
+  dataSource: string;
+  measuredAt: string;
+  pm25: number;
+  isOutlier: boolean;
+  params: {
+    radiusMeters: number;
+    measuredAtIntervalHours: number;
+    minNearbyCount: number;
+    useStoredOutlierFlagForNeighbors: boolean;
+    zScoreThreshold: number;
+    absoluteThreshold: number;
+    zScoreMinMean: number;
+    enableSameValueCheck: boolean;
+    sameValueWindowHours: number;
+    sameValueMinCount: number;
+    sameValueIncludeZero: boolean;
+  };
+  checks: {
+    sameValue: {
+      enabled: boolean;
+      includeZero: boolean;
+      windowHours: number;
+      minCount: number;
+      measurementCount: number | null;
+      distinctCount: number | null;
+      min: number | null;
+      max: number | null;
+      isOutlier: boolean;
+      note?: string;
+    };
+    spatial: {
+      neighborCount: number;
+      mean: number | null;
+      stddev: number | null;
+      mode: 'zscore' | 'absolute' | null;
+      zScore: number | null;
+      absoluteDelta: number | null;
+      threshold: number | null;
+      thresholdType: 'zscore' | 'absolute' | null;
+      isOutlier: boolean | null;
+      note?: string;
+    };
+  };
+  decision: {
+    reason:
+      | 'same_value'
+      | 'spatial_zscore'
+      | 'spatial_absolute'
+      | 'insufficient_neighbors'
+      | 'within_threshold';
+    message: string;
+  };
 };
 
 type OutlierDataPoint = {
@@ -199,5 +256,179 @@ export class OutlierService {
     }
 
     return resultsMap;
+  }
+
+  public async explainPm25Outlier(
+    dataSource: string | undefined,
+    dataPoint: OutlierDataPoint,
+    options?: OutlierCalculationOptions,
+  ): Promise<Pm25OutlierExplanation> {
+    const radiusMeters = options?.radiusMeters ?? this.RADIUS_METERS;
+    const measuredAtIntervalHours =
+      options?.measuredAtIntervalHours ?? this.MEASURED_AT_INTERVAL_HOURS;
+    const absoluteThreshold = options?.absoluteThreshold ?? this.ABSOLUTE_THRESHOLD;
+    const zScoreThreshold = options?.zScoreThreshold ?? this.Z_SCORE_THRESHOLD;
+    const zScoreMinMean = options?.zScoreMinMean ?? this.Z_SCORE_MIN_MEAN;
+    const minNearbyCount = options?.minNearbyCount ?? this.MIN_NEARBY_COUNT;
+    const useStoredOutlierFlagForNeighbors = options?.useStoredOutlierFlagForNeighbors ?? true;
+    const sameValueWindowHours = options?.sameValueWindowHours ?? this.SAME_VALUE_WINDOW_HOURS;
+    const sameValueMinCount = options?.sameValueMinCount ?? this.SAME_VALUE_MIN_COUNT;
+    const sameValueIncludeZero = options?.sameValueIncludeZero ?? this.SAME_VALUE_INCLUDE_ZERO;
+    const enableSameValueCheck = options?.enableSameValueCheck ?? this.ENABLE_SAME_VALUE_CHECK;
+
+    const source = dataPoint.dataSource ?? dataSource;
+    if (!source) {
+      throw new BadRequestException('dataSource is required to explain PM2.5 outlier');
+    }
+
+    const key = `${dataPoint.locationReferenceId}_${dataPoint.measuredAt}`;
+
+    const sameValueStats = enableSameValueCheck
+      ? await this.outlierRepository.getSameValueWindowStats(
+          source,
+          dataPoint.locationReferenceId,
+          dataPoint.measuredAt,
+          sameValueWindowHours,
+        )
+      : null;
+
+    const sameValueIsApplicable =
+      enableSameValueCheck && (sameValueIncludeZero || dataPoint.pm25 !== 0);
+    const sameValueIsOutlier =
+      sameValueIsApplicable &&
+      sameValueStats !== null &&
+      sameValueStats.count >= sameValueMinCount &&
+      sameValueStats.distinctCount === 1 &&
+      sameValueStats.min === dataPoint.pm25;
+
+    const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
+      source,
+      [dataPoint.locationReferenceId],
+      [dataPoint.measuredAt],
+      radiusMeters,
+      measuredAtIntervalHours,
+      minNearbyCount,
+      useStoredOutlierFlagForNeighbors,
+    );
+
+    const spatialStats = spatialStatsMap.get(key);
+    const neighborCount = spatialStats?.count ?? 0;
+    const mean = spatialStats?.mean ?? null;
+    const stddev = spatialStats?.stddev ?? null;
+
+    const hasEnoughNeighbors = neighborCount >= minNearbyCount;
+
+    let spatialMode: 'zscore' | 'absolute' | null = null;
+    let zScore: number | null = null;
+    let absoluteDelta: number | null = null;
+    let threshold: number | null = null;
+    let thresholdType: 'zscore' | 'absolute' | null = null;
+    let spatialIsOutlier: boolean | null = null;
+    let spatialNote: string | undefined;
+
+    if (!hasEnoughNeighbors || mean === null || stddev === null) {
+      spatialNote = hasEnoughNeighbors
+        ? 'Spatial stats unavailable'
+        : `Insufficient neighbors (need ≥ ${minNearbyCount})`;
+    } else if (mean >= zScoreMinMean) {
+      spatialMode = 'zscore';
+      threshold = zScoreThreshold;
+      thresholdType = 'zscore';
+
+      if (stddev === 0) {
+        if (dataPoint.pm25 === mean) {
+          zScore = 0;
+        } else {
+          zScore = dataPoint.pm25 > mean ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        }
+      } else {
+        zScore = (dataPoint.pm25 - mean) / stddev;
+      }
+
+      spatialIsOutlier = Math.abs(zScore) > zScoreThreshold;
+    } else {
+      spatialMode = 'absolute';
+      threshold = absoluteThreshold;
+      thresholdType = 'absolute';
+      absoluteDelta = Math.abs(dataPoint.pm25 - mean);
+      spatialIsOutlier = absoluteDelta > absoluteThreshold;
+    }
+
+    const isOutlier = sameValueIsOutlier || spatialIsOutlier === true;
+
+    let decisionReason: Pm25OutlierExplanation['decision']['reason'] = 'within_threshold';
+    let decisionMessage = 'Within thresholds';
+
+    if (sameValueIsOutlier) {
+      decisionReason = 'same_value';
+      decisionMessage = 'Same-value check triggered';
+    } else if (spatialIsOutlier === true && spatialMode === 'zscore') {
+      decisionReason = 'spatial_zscore';
+      decisionMessage = 'Spatial Z-score exceeded threshold';
+    } else if (spatialIsOutlier === true && spatialMode === 'absolute') {
+      decisionReason = 'spatial_absolute';
+      decisionMessage = 'Spatial absolute delta exceeded threshold';
+    } else if (spatialIsOutlier === null) {
+      decisionReason = 'insufficient_neighbors';
+      decisionMessage = spatialNote ?? 'Spatial check not applicable';
+    }
+
+    const sameValueNote = !enableSameValueCheck
+      ? 'Same-value check disabled'
+      : !sameValueIsApplicable
+        ? 'Same-value check skipped (PM2.5 = 0 and include-zero is off)'
+        : undefined;
+
+    return {
+      key,
+      locationReferenceId: dataPoint.locationReferenceId,
+      dataSource: source,
+      measuredAt: dataPoint.measuredAt,
+      pm25: dataPoint.pm25,
+      isOutlier,
+      params: {
+        radiusMeters,
+        measuredAtIntervalHours,
+        minNearbyCount,
+        useStoredOutlierFlagForNeighbors,
+        zScoreThreshold,
+        absoluteThreshold,
+        zScoreMinMean,
+        enableSameValueCheck,
+        sameValueWindowHours,
+        sameValueMinCount,
+        sameValueIncludeZero,
+      },
+      checks: {
+        sameValue: {
+          enabled: enableSameValueCheck,
+          includeZero: sameValueIncludeZero,
+          windowHours: sameValueWindowHours,
+          minCount: sameValueMinCount,
+          measurementCount: sameValueStats?.count ?? null,
+          distinctCount: sameValueStats?.distinctCount ?? null,
+          min: sameValueStats?.min ?? null,
+          max: sameValueStats?.max ?? null,
+          isOutlier: sameValueIsOutlier,
+          note: sameValueNote,
+        },
+        spatial: {
+          neighborCount,
+          mean,
+          stddev,
+          mode: spatialMode,
+          zScore,
+          absoluteDelta,
+          threshold,
+          thresholdType,
+          isOutlier: spatialIsOutlier,
+          note: spatialNote,
+        },
+      },
+      decision: {
+        reason: decisionReason,
+        message: decisionMessage,
+      },
+    };
   }
 }

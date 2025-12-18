@@ -8,6 +8,59 @@ export class OutlierRepository {
 
   constructor(private readonly databaseService: DatabaseService) {}
 
+  public async getSameValueWindowStats(
+    dataSource: string,
+    locationReferenceId: number,
+    measuredAt: string,
+    windowHours: number,
+  ): Promise<{
+    count: number;
+    distinctCount: number;
+    min: number | null;
+    max: number | null;
+  }> {
+    try {
+      const query = `
+        SELECT
+          COUNT(*)::int AS count,
+          COUNT(DISTINCT m.pm25)::int AS distinct_count,
+          MIN(m.pm25) AS min,
+          MAX(m.pm25) AS max
+        FROM measurement m
+        JOIN location l ON m.location_id = l.id
+        JOIN data_source ds ON l.data_source_id = ds.id
+        WHERE ds.name = $1
+          AND l.reference_id = $2
+          AND m.measured_at >= $3::timestamp - ($4::numeric * INTERVAL '1 hour')
+          AND m.measured_at < $3::timestamp;
+      `;
+
+      const result = await this.databaseService.runQuery(query, [
+        dataSource,
+        locationReferenceId,
+        measuredAt,
+        windowHours,
+      ]);
+
+      const row = result.rows[0];
+      return {
+        count: row?.count ?? 0,
+        distinctCount: row?.distinct_count ?? 0,
+        min: row?.min !== null && row?.min !== undefined ? Number(row.min) : null,
+        max: row?.max !== null && row?.max !== undefined ? Number(row.max) : null,
+      };
+    } catch (error) {
+      this.logger.error(error);
+      throw new InternalServerErrorException({
+        message: 'OUT_005: Failed to calculate same value window stats',
+        operation: 'getSameValueWindowStats',
+        parameters: { dataSource, locationReferenceId, measuredAt, windowHours },
+        error: error.message,
+        code: 'OUT_005',
+      });
+    }
+  }
+
   public async getBatchSameValue24hCheck(
     dataSource: string,
     locationReferenceIds: number[],
@@ -118,7 +171,8 @@ export class OutlierRepository {
           input.reference_id,
           input.measured_at,
           stats.mean,
-          stats.stddev
+          stats.stddev,
+          stats.count
         FROM unnest($1::int[], $2::text[]) AS input(reference_id, measured_at)
         CROSS JOIN LATERAL (
           WITH nearby AS (
@@ -138,10 +192,10 @@ export class OutlierRepository {
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
           )
           SELECT
-            AVG(pm25) AS mean,
-            STDDEV_SAMP(pm25) AS stddev
+            CASE WHEN COUNT(*) >= $6 THEN AVG(pm25) ELSE NULL END AS mean,
+            CASE WHEN COUNT(*) >= $6 THEN STDDEV_SAMP(pm25) ELSE NULL END AS stddev,
+            COUNT(*) AS count
           FROM nearby
-          WHERE (SELECT COUNT(*) FROM nearby) >= $6
         ) AS stats;
       `;
       const value = [
@@ -158,7 +212,7 @@ export class OutlierRepository {
       const statsMap = new Map<string, NearbyPm25Stats>();
       result.rows.forEach((r: any) => {
         const key = `${r.reference_id}_${r.measured_at}`;
-        statsMap.set(key, new NearbyPm25Stats(r.mean, r.stddev));
+        statsMap.set(key, new NearbyPm25Stats(r.mean, r.stddev, r.count));
       });
 
       return statsMap;
