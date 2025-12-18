@@ -135,20 +135,20 @@
                 <span class="k">Mode</span>
                 <span class="v">{{ outlierExplain.checks?.spatial?.mode ?? '—' }}</span>
               </div>
-              <div v-if="outlierExplain.checks?.spatial?.mode === 'zscore'" class="kv">
-                <span class="k">Z-score</span>
-                <span class="v">
-                  {{ outlierExplain.checks?.spatial?.zScore ?? '—' }} (threshold
-                  {{ outlierExplain.params?.zScoreThreshold }})
-                </span>
-              </div>
-              <div v-else-if="outlierExplain.checks?.spatial?.mode === 'absolute'" class="kv">
-                <span class="k">|Δ|</span>
-                <span class="v">
-                  {{ outlierExplain.checks?.spatial?.absoluteDelta ?? '—' }} (threshold
-                  {{ outlierExplain.params?.absoluteThreshold }})
-                </span>
-              </div>
+	              <div v-if="outlierExplain.checks?.spatial?.mode === 'zscore'" class="kv">
+	                <span class="k">Z-score</span>
+	                <span class="v">
+	                  {{ outlierExplain.checks?.spatial?.zScore ?? '—' }} (threshold
+	                  {{ outlierExplain.checks?.spatial?.threshold ?? '—' }})
+	                </span>
+	              </div>
+	              <div v-else-if="outlierExplain.checks?.spatial?.mode === 'absolute'" class="kv">
+	                <span class="k">|Δ|</span>
+	                <span class="v">
+	                  {{ outlierExplain.checks?.spatial?.absoluteDelta ?? '—' }} (threshold
+	                  {{ outlierExplain.checks?.spatial?.threshold ?? '—' }})
+	                </span>
+	              </div>
               <div v-if="outlierExplain.checks?.spatial?.note" class="note">
                 {{ outlierExplain.checks?.spatial?.note }}
               </div>

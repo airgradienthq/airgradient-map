@@ -180,6 +180,7 @@ export class OutlierRepository {
             FROM location l1
             JOIN location l2
               ON ST_DWithin(l1.coordinate::geography, l2.coordinate::geography, $4)
+              AND l2.id <> l1.id
             JOIN measurement m
               ON m.location_id = l2.id
             JOIN data_source ds 

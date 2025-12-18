@@ -245,10 +245,22 @@ export class OutlierService {
         let isOutlier = false;
 
         if (mean >= zScoreMinMean) {
-          const zScore = (pm25 - mean) / stddev;
+          const zScore =
+            stddev === 0
+              ? pm25 === mean
+                ? 0
+                : pm25 > mean
+                  ? Number.POSITIVE_INFINITY
+                  : Number.NEGATIVE_INFINITY
+              : (pm25 - mean) / stddev;
           isOutlier = Math.abs(zScore) > zScoreThreshold;
         } else {
-          isOutlier = Math.abs(pm25 - mean) > absoluteThreshold;
+          const absDelta = Math.abs(pm25 - mean);
+          const varianceAwareThreshold =
+            Number.isFinite(stddev) && stddev > 0
+              ? Math.max(absoluteThreshold, zScoreThreshold * stddev)
+              : absoluteThreshold;
+          isOutlier = absDelta > varianceAwareThreshold;
         }
 
         resultsMap.set(key, isOutlier);
@@ -348,10 +360,17 @@ export class OutlierService {
       spatialIsOutlier = Math.abs(zScore) > zScoreThreshold;
     } else {
       spatialMode = 'absolute';
-      threshold = absoluteThreshold;
+      const varianceAwareThreshold =
+        stddev > 0 ? Math.max(absoluteThreshold, zScoreThreshold * stddev) : absoluteThreshold;
+      threshold = varianceAwareThreshold;
       thresholdType = 'absolute';
       absoluteDelta = Math.abs(dataPoint.pm25 - mean);
-      spatialIsOutlier = absoluteDelta > absoluteThreshold;
+      spatialIsOutlier = absoluteDelta > varianceAwareThreshold;
+      if (varianceAwareThreshold !== absoluteThreshold) {
+        spatialNote = `High neighborhood variance; using threshold max(absoluteThreshold=${absoluteThreshold}, zScoreThreshold*stddev=${(
+          zScoreThreshold * stddev
+        ).toFixed(2)})`;
+      }
     }
 
     const isOutlier = sameValueIsOutlier || spatialIsOutlier === true;
