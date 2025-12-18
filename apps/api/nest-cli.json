@@ -7,7 +7,7 @@
     "assets": [
       {
         "include": "aqi-standards/aqi_standards.json",
-        "outDir": "dist/src"
+        "outDir": "dist"
       }
     ],
     "watchAssets": true
