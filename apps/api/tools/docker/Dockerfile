@@ -13,6 +13,10 @@ RUN npm ci
 RUN npm install -g @nestjs/cli
 RUN npm cache clean --force
 
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gdal-bin \
+  && rm -rf /var/lib/apt/lists/*
+
 # Copy source code
 COPY src/ ./src/
 
