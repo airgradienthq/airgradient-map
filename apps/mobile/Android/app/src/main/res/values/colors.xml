@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- Brand Colors -->
+    <color name="agmap_primary">#2E7D32</color>
+    <color name="agmap_secondary">#1976D2</color>
+    <color name="agmap_accent">#388E3C</color>
+    <color name="splash_background">#1865C7</color>
+    
+    <!-- Air Quality Colors -->
+    <color name="aqi_good">#00E400</color>
+    <color name="aqi_moderate">#F0B900</color>
+    <color name="aqi_unhealthy_for_sensitive">#FF7E00</color>
+    <color name="aqi_unhealthy">#FF0000</color>
+    <color name="aqi_very_unhealthy">#8F3F97</color>
+    <color name="aqi_hazardous">#7E0023</color>
+    
+    <!-- Surface Colors -->
+    <color name="surface_light">#FFFBFE</color>
+    <color name="surface_dark">#1C1B1F</color>
+    
+    <!-- Widget Colors -->
+    <color name="widget_background">#F5F5F5</color>
+    <color name="widget_border">#E0E0E0</color>
+    <color name="widget_text_primary">#1B1B1F</color>
+    <color name="widget_text_secondary">#991B1B1F</color>
+    <color name="widget_gray">#BDBDBD</color>
+    <color name="widget_error">#F44336</color>
+    <color name="widget_chip_overlay">#33000000</color>
+    
+    <!-- Widget Air Quality Colors -->
+    <color name="widget_good">#4CAF50</color>
+    <color name="widget_moderate">#FF9800</color>
+    <color name="widget_unhealthy_sensitive">#FF5722</color>
+    <color name="widget_unhealthy">#F44336</color>
+    <color name="widget_very_unhealthy">#9C27B0</color>
+    <color name="widget_hazardous">#795548</color>
+</resources>

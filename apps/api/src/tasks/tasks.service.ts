@@ -61,6 +61,8 @@ export class TasksService {
 
       await this.tasksRepository.upsertLocationsAndOwners(
         dataSource,
+        result.metadata.allowApiAccess,
+        result.metadata.dataSourceUrl,
         result.data as UpsertLocationOwnerInput[],
       );
       this.logger.log(
@@ -115,11 +117,21 @@ export class TasksService {
     return await this.syncLocations('public', 'airgradient.js', DataSource.AIRGRADIENT);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_DAY_AT_11PM)
   async syncOpenAQLocations(): Promise<void> {
     return await this.syncLocations('public', 'openaq.js', DataSource.OPENAQ, {
       apiKey: this.openAQApiKey,
     });
+  }
+
+  @Cron('10 23 * * *') // EVERY_DAY_AT_11_10_PM
+  async syncDustBoyLocations(): Promise<void> {
+    return await this.syncLocations('private', 'dustboy.js', DataSource.DUSTBOY);
+  }
+
+  @Cron('20 * * * *') // At minute 20 EVERY HOUR
+  async syncSensorCommunityLocations(): Promise<void> {
+    return await this.syncLocations('public', 'sensorcommunity.js', DataSource.SENSORCOMMUNITY);
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -160,6 +172,16 @@ export class TasksService {
     } catch (err) {
       this.logger.error(`Get openaq.js latest job failed: ${err}`);
     }
+  }
+
+  @Cron('10 * * * *') // At minute 10 EVERY HOUR
+  async getDustBoyLatest(): Promise<void> {
+    await this.getLatest('private', 'dustboy.js', DataSource.DUSTBOY);
+  }
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async getSensorCommunityLatest(): Promise<void> {
+    await this.getLatest('public', 'sensorcommunity.js', DataSource.SENSORCOMMUNITY);
   }
 
   @Cron(CronExpression.EVERY_MINUTE)

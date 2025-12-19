@@ -3,7 +3,7 @@ import MeasurementRepository from './measurement.repository';
 import Supercluster from 'supercluster';
 import MeasurementCluster from './measurementCluster.model';
 import { ConfigService } from '@nestjs/config';
-import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { getPMWithEPACorrectionIfNeeded } from 'src/utils/getEpaCorrectedPM';
 import { MeasurementEntity } from './measurement.entity';
 import {
   MeasurementServiceResult,
@@ -44,12 +44,18 @@ export class MeasurementService {
   }
 
   async getLastMeasurements(
+    hasFullAccess: boolean,
     measure?: MeasureType,
     page = 1,
     pagesize = 100,
   ): Promise<MeasurementServiceResult> {
     const offset = pagesize * (page - 1); // Calculate the offset for query
-    const measurements = await this.measurementRepository.retrieveLatest(offset, pagesize, measure);
+    const measurements = await this.measurementRepository.retrieveLatest(
+      hasFullAccess,
+      offset,
+      pagesize,
+      measure,
+    );
 
     return this.setEPACorrectedPM(measurements);
   }
@@ -59,6 +65,7 @@ export class MeasurementService {
     yMin: number,
     xMax: number,
     yMax: number,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementsByAreaResult> {
     const measurements = await this.measurementRepository.retrieveLatestByArea(
@@ -67,6 +74,7 @@ export class MeasurementService {
       xMax,
       yMax,
       true,
+      hasFullAccess,
       measure,
     );
 
@@ -80,6 +88,7 @@ export class MeasurementService {
     yMax: number,
     zoom: number,
     excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
     minPoints?: number,
     radius?: number,
@@ -95,6 +104,7 @@ export class MeasurementService {
       xMax,
       yMax,
       excludeOutliers,
+      hasFullAccess,
       measure,
     );
 
@@ -115,8 +125,8 @@ export class MeasurementService {
     let geojson = new Array<MeasurementGeoJSONFeature>();
     locations.map(point => {
       const value =
-        measure === MeasureType.PM25 && point.dataSource === DataSource.AIRGRADIENT
-          ? getEPACorrectedPM(point.pm25, point.rhum)
+        measure === MeasureType.PM25
+          ? getPMWithEPACorrectionIfNeeded(point.dataSource as DataSource, point.pm25, point.rhum)
           : point[measure];
       geojson.push({
         type: 'Feature',
@@ -163,8 +173,12 @@ export class MeasurementService {
 
   private setEPACorrectedPM(measurements: MeasurementEntity[]) {
     return measurements.map(point => {
-      if (point.dataSource === DataSource.AIRGRADIENT && (point.pm25 || point.pm25 === 0)) {
-        point.pm25 = getEPACorrectedPM(point.pm25, point.rhum);
+      if (point.pm25 || point.pm25 === 0) {
+        point.pm25 = getPMWithEPACorrectionIfNeeded(
+          point.dataSource as DataSource,
+          point.pm25,
+          point.rhum,
+        );
       }
       return point;
     });

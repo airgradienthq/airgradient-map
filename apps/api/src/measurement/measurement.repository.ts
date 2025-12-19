@@ -3,6 +3,11 @@ import DatabaseService from 'src/database/database.service';
 import { MeasurementEntity } from './measurement.entity';
 import { MeasureType } from 'src/types';
 import { getMeasureValidValueRange } from 'src/utils/measureValueValidation';
+import {
+  MEASURE_TYPES_WITH_OUTLIER,
+  MeasureTypeWithOutlier,
+  OUTLIER_COLUMN_NAME,
+} from 'src/constants/outlier-column-name';
 
 @Injectable()
 class MeasurementRepository {
@@ -20,11 +25,14 @@ class MeasurementRepository {
     minVal: number | null;
     maxVal: number | null;
   } {
-    let selectQuery = 'm.pm10, m.atmp, m.rhum, m.rco2, m.o3, m.no2, ';
-
-    selectQuery += excludeOutliers
-      ? 'CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25'
-      : 'm.pm25';
+    const selectQuery = `
+      ${excludeOutliers ? 'CASE WHEN m.is_pm25_outlier = false THEN m.pm25 ELSE NULL END AS pm25' : 'm.pm25'},
+      m.pm10, 
+      m.atmp, 
+      m.rhum, 
+      ${excludeOutliers ? 'CASE WHEN m.is_rco2_outlier = false THEN m.rco2 ELSE NULL END AS rco2' : 'm.rco2'},
+      m.o3, 
+      m.no2`;
 
     // General where query to ensure at least one measure is present
     const whereQuery = `
@@ -33,7 +41,7 @@ class MeasurementRepository {
         OR m.pm10 IS NOT NULL
         OR m.atmp IS NOT NULL
         OR m.rhum IS NOT NULL
-        OR m.rco2 IS NOT NULL
+        OR (m.is_rco2_outlier = false AND m.rco2 IS NOT NULL)
         OR m.o3 IS NOT NULL
         OR m.no2 IS NOT NULL
       )`;
@@ -60,16 +68,23 @@ class MeasurementRepository {
       if (measure === MeasureType.PM25) {
         query.selectQuery = `m.pm25, m.rhum`;
         query.whereQuery = `AND m.pm25 IS NOT NULL ${validationQuery}`;
-        query.whereQuery += excludeOutliers ? ' AND m.is_pm25_outlier = false' : '';
       } else {
         query.selectQuery = `m.${measure}`;
         query.whereQuery = `AND m.${measure} IS NOT NULL ${validationQuery}`;
+      }
+
+      if (
+        excludeOutliers &&
+        MEASURE_TYPES_WITH_OUTLIER.includes(measure as MeasureTypeWithOutlier)
+      ) {
+        query.whereQuery += ` AND m.${OUTLIER_COLUMN_NAME[measure]} = false`;
       }
     }
     return query;
   }
 
   async retrieveLatest(
+    hasFullAccess: boolean,
     offset: number = 0,
     limit: number = 100,
     measure?: MeasureType,
@@ -93,9 +108,10 @@ class MeasurementRepository {
         ST_Y(l.coordinate) AS "latitude",
         l.sensor_type AS "sensorType",
         m.measured_at AS "measuredAt",
-        l.data_source AS "dataSource",
+        d.name AS "dataSource",
         ${selectQuery}
-      FROM location l
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
       JOIN LATERAL (
         SELECT *
         FROM measurement m
@@ -133,6 +149,7 @@ class MeasurementRepository {
     xMax: number,
     yMax: number,
     excludeOutliers: boolean,
+    hasFullAccess: boolean,
     measure?: MeasureType,
   ): Promise<MeasurementEntity[]> {
     const params = [xMin, yMin, xMax, yMax];
@@ -156,9 +173,10 @@ class MeasurementRepository {
         ST_Y(l.coordinate) AS "latitude",
         l.sensor_type AS "sensorType",
         m.measured_at AS "measuredAt",
-        l.data_source AS "dataSource",
+        d.name AS "dataSource",
         ${selectQuery}
-      FROM location l
+      FROM ${hasFullAccess ? 'location' : 'vw_location_public'} l
+      JOIN data_source d ON l.data_source_id = d.id
       JOIN LATERAL (
         SELECT *
         FROM measurement m

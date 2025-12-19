@@ -129,10 +129,6 @@
 </style>
 
 <style lang="scss" scoped>
-  .native-app.ios header {
-    margin-top: 40px;
-  }
-
   select {
     border: 1px solid var(--select-border);
     border-radius: 0.25em;

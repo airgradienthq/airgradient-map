@@ -30,6 +30,7 @@ import {
 import { NotificationEntity } from './notification.entity';
 import { CreateNotificationDto } from './create-notification.dto';
 import { UpdateNotificationDto } from './update-notification.dto';
+import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 
 /**
  * Controller for managing push notification registrations.
@@ -95,8 +96,9 @@ If a duplicate is attempted, a 409 Conflict response is returned.
   })
   async createNotification(
     @Body() notification: CreateNotificationDto,
+    @HasFullAccess() hasFullAccess: boolean,
   ): Promise<NotificationEntity> {
-    return await this.notificationsService.createNotification(notification);
+    return await this.notificationsService.createNotification(notification, hasFullAccess);
   }
 
   @Get('players/:playerId/registrations')

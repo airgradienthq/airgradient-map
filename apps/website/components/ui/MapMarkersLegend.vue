@@ -57,7 +57,7 @@
     width: 20px;
     height: 20px;
     border-radius: 4px;
-    background-color: var(--airGreen);
+    background-color: var(--aq-green-500);
     display: flex;
     align-items: center;
     justify-content: center;

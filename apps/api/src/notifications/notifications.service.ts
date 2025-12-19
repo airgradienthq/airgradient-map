@@ -22,7 +22,7 @@ import { NotificationsRepository } from './notifications.repository';
 import { NotificationBatchProcessor } from './notification-batch.processor';
 import LocationRepository from 'src/location/location.repository';
 import { convertPmToUsAqi } from 'src/utils/convert-pm-us-aqi';
-import { getEPACorrectedPM } from 'src/utils/getEpaCorrectedPM';
+import { getPMWithEPACorrectionIfNeeded } from 'src/utils/getEpaCorrectedPM';
 import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { getMascotImageUrl } from './notification-mascots.util';
@@ -71,9 +71,11 @@ export class NotificationsService {
 
   public async createNotification(
     notification: CreateNotificationDto,
+    hasFullAccess: boolean,
   ): Promise<NotificationEntity> {
     // Normalize input to use new field names
     const { threshold, display_unit } = this.normalizeCreateInput(notification);
+
 
     this.validateNotificationData(notification, threshold, display_unit);
 
@@ -87,7 +89,7 @@ export class NotificationsService {
 
       // Verify location exists
       try {
-        await this.locationRepository.retrieveLocationById(notification.location_id);
+        await this.locationRepository.retrieveLocationById(notification.location_id, hasFullAccess);
       } catch (error) {
         this.logger.warn('Location lookup failed during notification creation', {
           locationId: notification.location_id,
@@ -96,6 +98,7 @@ export class NotificationsService {
         });
         throw new NotFoundException(`Location with ID ${notification.location_id} not found`);
       }
+
     }
 
     // Check for existing threshold notification for this player, location, and parameter
@@ -324,6 +327,7 @@ export class NotificationsService {
       startTime,
       scheduledCount,
       thresholdCount,
+
     });
   }
 
@@ -461,7 +465,11 @@ export class NotificationsService {
     // Apply EPA correction for AirGradient sensors to ensure consistency with display values
     measurements.forEach((measurement: LatestLocationMeasurementData) => {
       if (measurement.pm25 && measurement.dataSource === DataSource.AIRGRADIENT) {
-        measurement.pm25 = getEPACorrectedPM(measurement.pm25, measurement.rhum);
+        measurement.pm25 = getPMWithEPACorrectionIfNeeded(
+          measurement.dataSource as DataSource,
+          measurement.pm25,
+          measurement.rhum,
+        );
       }
     });
 

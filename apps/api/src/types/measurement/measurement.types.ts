@@ -28,15 +28,16 @@ export type MeasurementClusterResult = MeasurementCluster[];
 
 /**
  * Available measurement types for filtering
+ * IMPORTANT: Enum Values must match the column name in the database
  */
 export enum MeasureType {
-  PM25 = 'pm25',
-  PM10 = 'pm10',
-  ATMP = 'atmp',
-  RHUM = 'rhum',
-  RCO2 = 'rco2',
-  O3 = 'o3',
-  NO2 = 'no2',
+  PM25 = 'pm25', // Fine particulate matter (≤2.5µm) in µg/m³
+  PM10 = 'pm10', // Coarse particulate matter (≤10µm) in µg/m³
+  ATMP = 'atmp', // Ambient temperature in °C
+  RHUM = 'rhum', // Relative humidity in %
+  RCO2 = 'rco2', // Carbon dioxide in ppm
+  O3 = 'o3', // Ozone
+  NO2 = 'no2', // Nitrogen dioxide
 }
 
 /**

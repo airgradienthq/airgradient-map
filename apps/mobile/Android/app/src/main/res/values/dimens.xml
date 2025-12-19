@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Widget padding and spacing -->
+    <dimen name="widget_padding">16dp</dimen>
+    <dimen name="widget_padding_small">8dp</dimen>
+    <dimen name="widget_padding_large">24dp</dimen>
+    <dimen name="widget_padding_top_reduced">8dp</dimen>
+    <dimen name="widget_padding_top_reduced_large">12dp</dimen>
+    <dimen name="widget_footer_padding_vertical">8dp</dimen>
+    <dimen name="widget_footer_padding_vertical_large">10dp</dimen>
+    <dimen name="widget_spacing_xs">4dp</dimen>
+    <dimen name="widget_spacing_xs_small">2dp</dimen>
+    <dimen name="widget_spacing_sm">6dp</dimen>
+    <dimen name="widget_spacing_sm_small">3dp</dimen>
+    <dimen name="widget_spacing_md">12dp</dimen>
+    <dimen name="widget_spacing_md_small">6dp</dimen>
+    <dimen name="widget_spacing_lg">16dp</dimen>
+    <dimen name="widget_spacing_lg_small">8dp</dimen>
+    <dimen name="widget_spacing_xl">20dp</dimen>
+    <dimen name="widget_spacing_chip_margin_large">8dp</dimen>
+
+    <dimen name="widget_spacing_location_to_aqi">2.8dp</dimen>
+    <dimen name="widget_spacing_location_to_aqi_large">4.2dp</dimen>
+    <dimen name="widget_spacing_aqi_row_padding">2.8dp</dimen>
+    <dimen name="widget_spacing_aqi_row_padding_large">4.2dp</dimen>
+    <dimen name="widget_spacing_category_margin">2.8dp</dimen>
+    <dimen name="widget_spacing_category_margin_large">4.2dp</dimen>
+    <!-- Widget chip padding and radius -->
+    <dimen name="widget_chip_padding_horizontal">12dp</dimen>
+    <dimen name="widget_chip_padding_horizontal_large">14dp</dimen>
+    <dimen name="widget_chip_padding_vertical">6dp</dimen>
+    <dimen name="widget_chip_padding_vertical_large">8dp</dimen>
+    <dimen name="widget_chip_corner_radius">12dp</dimen>
+
+    <!-- Widget mascot visuals -->
+    <dimen name="widget_mascot_container_size">68dp</dimen>
+    <dimen name="widget_mascot_container_size_compact">52dp</dimen>
+    <dimen name="widget_mascot_container_size_large">88dp</dimen>
+    <dimen name="widget_mascot_image_size">48dp</dimen>
+    <dimen name="widget_mascot_image_size_compact">36dp</dimen>
+    <dimen name="widget_mascot_image_size_large">64dp</dimen>
+    <dimen name="widget_refresh_icon_size">32dp</dimen>
+    <dimen name="widget_refresh_icon_size_large">40dp</dimen>
+
+    <!-- Widget typography -->
+    <dimen name="widget_text_size_location">18sp</dimen>
+    <dimen name="widget_text_size_location_small">14sp</dimen>
+    <dimen name="widget_text_size_location_large">22sp</dimen>
+    <dimen name="widget_text_size_caption">12sp</dimen>
+    <dimen name="widget_text_size_caption_small">10sp</dimen>
+    <dimen name="widget_text_size_caption_large">14sp</dimen>
+    <dimen name="widget_text_size_value">22sp</dimen>
+    <dimen name="widget_text_size_value_small">24sp</dimen>
+    <dimen name="widget_text_size_value_large">41sp</dimen>
+    <dimen name="widget_text_size_label">18sp</dimen>
+    <dimen name="widget_text_size_label_small">16sp</dimen>
+    <dimen name="widget_text_size_label_large">22sp</dimen>
+    <dimen name="widget_text_size_category">32sp</dimen>
+    <dimen name="widget_text_size_category_large">25sp</dimen>
+</resources>

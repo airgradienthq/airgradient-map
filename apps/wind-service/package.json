@@ -1,0 +1,22 @@
+{
+  "name": "@airgradient/wind-service",
+  "version": "1.0.0",
+  "description": "Isolated wind data processing service for AirGradient",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/pg": "^8.11.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

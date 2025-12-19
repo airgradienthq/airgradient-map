@@ -5,7 +5,7 @@
     "noImplicitAny": false,
     "moduleResolution": "node",
     "verbatimModuleSyntax": false,
-    "types": ["node", "@capacitor/core", "vue"],
+    "types": ["node", "vue"],
     "paths": {
       "~/*": ["./*"],
       "@/*": ["./*"],

@@ -19,6 +19,9 @@ export const useUrlState = () => {
   const route = useRoute();
   const router = useRouter();
 
+  const mapThemeQuery = route.query.map_theme;
+  const resolvedMapTheme = Array.isArray(mapThemeQuery) ? mapThemeQuery[0] : mapThemeQuery;
+
   // Initialize the reactive URL state with defaults and current query
   const urlState = reactive({
     zoom: DEFAULT_MAP_VIEW_CONFIG.zoom,
@@ -26,6 +29,7 @@ export const useUrlState = () => {
     lat: DEFAULT_MAP_VIEW_CONFIG.center[0],
     meas: DEFAULT_URL_CONFIG.meas,
     wind_layer: String(DEFAULT_MAP_VIEW_CONFIG.wind_layer),
+    map_theme: resolvedMapTheme ?? DEFAULT_MAP_VIEW_CONFIG.map_theme,
     org: DEFAULT_URL_CONFIG.org,
     embedded: String(DEFAULT_MAP_VIEW_CONFIG.embedded),
     debug: route.query.debug ?? DEFAULT_MAP_VIEW_CONFIG.debug, // hide it at first

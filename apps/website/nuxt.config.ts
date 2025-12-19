@@ -1,6 +1,5 @@
 //@ts-ignore
 export default defineNuxtConfig({
-  ssr: !process.env.NUXT_PUBLIC_MOBILE,
   runtimeConfig: {
     public: {
       apiUrl:
@@ -8,7 +7,8 @@ export default defineNuxtConfig({
           ? 'https://map-data.airgradient.com/map/api/v1'
           : process.env.APP_ENV === 'staging'
             ? 'https://map-data-int.airgradient.com/map/api/v1'
-            : 'http://localhost:3001/map/api/v1'
+            : 'http://localhost:3001/map/api/v1',
+      trustedContext: process.env.NUXT_PUBLIC_TRUSTED_CONTEXT || ''
     }
   },
   css: [
@@ -16,7 +16,8 @@ export default defineNuxtConfig({
     '@mdi/font/css/materialdesignicons.min.css',
     '@/assets/styles/bootstrap.min.css',
     '@/assets/styles/main.scss',
-    'leaflet-geosearch/dist/geosearch.css'
+    'leaflet-geosearch/dist/geosearch.css',
+    'leaflet-velocity/dist/leaflet-velocity.css'
   ],
   build: {
     transpile: ['vuetify']
