@@ -40,7 +40,7 @@ export class DashboardApiClient {
     }
   }
 
-  async registerNotificationTrigger(payload: DashboardNotificationPayload): Promise<void> {
+  async registerNotificationTrigger(payload: DashboardNotificationPayload): Promise<number> {
     if (!this.apiUrl || !this.apiToken) {
       throw new Error('Dashboard API configuration is missing');
     }
@@ -48,7 +48,7 @@ export class DashboardApiClient {
     const url = `${this.apiUrl}/api/v1/notifications/triggers`;
 
     try {
-      await firstValueFrom(
+      const response = await firstValueFrom(
         this.httpService.post(url, payload, {
           headers: {
             'Content-Type': 'application/json',
@@ -57,9 +57,15 @@ export class DashboardApiClient {
           },
         }),
       );
+      const triggerId = (response.data as { id?: number })?.id;
+      if (typeof triggerId !== 'number') {
+        this.logger.error('Dashboard API response missing trigger id', { data: response.data });
+        throw new Error('Dashboard API registration response missing trigger id');
+      }
       this.logger.log(
-        `Registered owned notification trigger for location ${payload.locationId} (${payload.measure})`,
+        `Registered owned notification trigger ${triggerId} for location ${payload.locationId} (${payload.measure})`,
       );
+      return triggerId;
     } catch (error) {
       const axiosError = error as AxiosError;
       const status = axiosError.response?.status;

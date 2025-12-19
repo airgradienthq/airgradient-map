@@ -231,7 +231,8 @@ export class CreateNotificationDto {
 
   @ApiPropertyOptional({
     description:
-      'Type of monitor: "owned" for user\'s own device, "public" for community monitor. Defaults to "public".',
+      'Type of monitor: "owned" for user\'s own device, "public" for community monitor. Defaults to "public". ' +
+      '**Owned monitors support threshold notifications only.**',
     enum: MonitorType,
     enumName: 'MonitorType',
     default: MonitorType.PUBLIC,

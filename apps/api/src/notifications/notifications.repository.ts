@@ -15,8 +15,8 @@ export class NotificationsRepository {
           player_id, user_id, alarm_type, location_id, parameter,
           threshold, threshold_cycle,
           scheduled_days, scheduled_time, scheduled_timezone,
-          active, display_unit, monitor_type, place_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          active, display_unit, monitor_type, place_id, external_reference_id
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *`,
         [
           notification.player_id,
@@ -33,6 +33,7 @@ export class NotificationsRepository {
           notification.display_unit,
           notification.monitor_type,
           notification.place_id,
+          notification.external_reference_id,
         ],
       );
       return result.rows[0];
@@ -95,8 +96,9 @@ export class NotificationsRepository {
           player_id = $1, user_id = $2, alarm_type = $3, location_id = $4, parameter = $5,
           threshold = $6, threshold_cycle = $7,
           scheduled_days = $8, scheduled_time = $9, scheduled_timezone = $10,
-          active = $11, display_unit = $12, monitor_type = $13, place_id = $14
-        WHERE id = $15 RETURNING *`,
+          active = $11, display_unit = $12, monitor_type = $13, place_id = $14,
+          external_reference_id = $15
+        WHERE id = $16 RETURNING *`,
         [
           notification.player_id,
           notification.user_id,
@@ -112,6 +114,7 @@ export class NotificationsRepository {
           notification.display_unit,
           notification.monitor_type,
           notification.place_id,
+          notification.external_reference_id,
           notification.id,
         ],
       );

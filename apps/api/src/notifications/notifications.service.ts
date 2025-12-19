@@ -132,10 +132,12 @@ export class NotificationsService {
       display_unit,
       monitor_type: notification.monitor_type ?? MonitorType.PUBLIC,
       place_id: notification.place_id ?? null,
+      external_reference_id: null,
     });
 
     if (newNotification.monitor_type === MonitorType.OWNED) {
-      await this.forwardOwnedNotificationToDashboard(newNotification);
+      const externalId = await this.forwardOwnedNotificationToDashboard(newNotification);
+      newNotification.external_reference_id = externalId;
     }
 
     const result = await this.notificationRepository.createNotification(newNotification);
@@ -271,9 +273,14 @@ export class NotificationsService {
       updated_at: new Date(),
     });
 
-    // Validate place_id is required when monitor_type is 'owned'
-    if (updatedNotification.monitor_type === MonitorType.OWNED && !updatedNotification.place_id) {
-      throw new BadRequestException('place_id is required when monitor_type is "owned"');
+    // Validate place_id / alarm_type rules for owned monitors
+    if (updatedNotification.monitor_type === MonitorType.OWNED) {
+      if (updatedNotification.alarm_type !== NotificationType.THRESHOLD) {
+        throw new BadRequestException('Owned monitors only support threshold notifications');
+      }
+      if (!updatedNotification.place_id) {
+        throw new BadRequestException('place_id is required when monitor_type is "owned"');
+      }
     }
 
     // Validate parameter/display_unit combination
@@ -884,25 +891,32 @@ export class NotificationsService {
       );
     }
 
-    // Validate place_id is required when monitor_type is 'owned'
-    if (data.monitor_type === MonitorType.OWNED && !data.place_id) {
-      throw new BadRequestException('place_id is required when monitor_type is "owned"');
+    // Validate owned monitor constraints
+    if (data.monitor_type === MonitorType.OWNED) {
+      if (data.alarm_type && data.alarm_type !== NotificationType.THRESHOLD) {
+        throw new BadRequestException('Owned monitors only support threshold notifications');
+      }
+      if (!data.place_id) {
+        throw new BadRequestException('place_id is required when monitor_type is "owned"');
+      }
     }
   }
 
-  private async forwardOwnedNotificationToDashboard(notification: NotificationEntity): Promise<void> {
+  private async forwardOwnedNotificationToDashboard(
+    notification: NotificationEntity,
+  ): Promise<number | null> {
     if (notification.alarm_type !== NotificationType.THRESHOLD) {
       this.logger.warn(
         `Owned notification for location ${notification.location_id} with alarm type ${notification.alarm_type} cannot be forwarded to Dashboard API`,
       );
-      return;
+      return null;
     }
 
     if (notification.threshold === null || notification.threshold === undefined) {
       throw new BadRequestException('Owned notifications require a threshold value');
     }
 
-    await this.dashboardApiClient.registerNotificationTrigger({
+    return await this.dashboardApiClient.registerNotificationTrigger({
       active: true,
       alarmType: 'location',
       description: 'hg',

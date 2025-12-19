@@ -83,6 +83,12 @@ export class NotificationEntity {
   @ApiProperty()
   last_notified_at: Date;
 
+  @ApiProperty({
+    description: 'External trigger identifier from Core API for owned notifications',
+    nullable: true,
+  })
+  external_reference_id: number | null;
+
   constructor(partial: Partial<NotificationEntity>) {
     Object.assign(this, partial);
   }
