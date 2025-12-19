@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { OutlierRepository } from './outlier.repository';
 import { ConfigService } from '@nestjs/config';
 import { OUTLIER_CONFIG } from 'src/constants/outlier.constants';
+import { NearbyPm25Stats } from './nearby-pm25-stats.entity';
 
 export type OutlierCalculationOptions = {
   radiusMeters?: number;
@@ -104,6 +105,32 @@ type OutlierDataPoint = {
   dataSource?: string;
 };
 
+type ResolvedOutlierParams = {
+  radiusMeters: number;
+  measuredAtIntervalHours: number;
+  sameValueWindowHours: number;
+  sameValueMinCount: number;
+  sameValueIncludeZero: boolean;
+  sameValueTolerance: number;
+  sameValueMinValue: number;
+  enableSameValueCheck: boolean;
+  pm25HardMax: number;
+  zScoreMinMean: number;
+  absoluteThreshold: number;
+  zScoreThreshold: number;
+  minNearbyCount: number;
+  useStoredOutlierFlagForNeighbors: boolean;
+};
+
+type SpatialStatsMapsWithFallback = {
+  radiusMeters: number;
+  fallbackRadiusMeters: number;
+  maxRadiusMeters: number;
+  primaryStatsMap: Map<string, NearbyPm25Stats>;
+  fallbackStatsMap: Map<string, NearbyPm25Stats> | null;
+  maxStatsMap: Map<string, NearbyPm25Stats> | null;
+};
+
 @Injectable()
 export class OutlierService {
   private readonly logger = new Logger(OutlierService.name);
@@ -182,26 +209,200 @@ export class OutlierService {
     );
   }
 
+  private buildKey(locationReferenceId: number, measuredAt: string): string {
+    return `${locationReferenceId}_${measuredAt}`;
+  }
+
+  private resolveParams(options?: OutlierCalculationOptions): ResolvedOutlierParams {
+    return {
+      radiusMeters: options?.radiusMeters ?? this.RADIUS_METERS,
+      measuredAtIntervalHours: options?.measuredAtIntervalHours ?? this.MEASURED_AT_INTERVAL_HOURS,
+      sameValueWindowHours: options?.sameValueWindowHours ?? this.SAME_VALUE_WINDOW_HOURS,
+      sameValueMinCount: options?.sameValueMinCount ?? this.SAME_VALUE_MIN_COUNT,
+      sameValueIncludeZero: options?.sameValueIncludeZero ?? this.SAME_VALUE_INCLUDE_ZERO,
+      sameValueTolerance: options?.sameValueTolerance ?? this.SAME_VALUE_TOLERANCE,
+      sameValueMinValue: options?.sameValueMinValue ?? this.SAME_VALUE_MIN_VALUE,
+      enableSameValueCheck: options?.enableSameValueCheck ?? this.ENABLE_SAME_VALUE_CHECK,
+      pm25HardMax: options?.pm25HardMax ?? this.PM25_HARD_MAX,
+      zScoreMinMean: options?.zScoreMinMean ?? this.Z_SCORE_MIN_MEAN,
+      absoluteThreshold: options?.absoluteThreshold ?? this.ABSOLUTE_THRESHOLD,
+      zScoreThreshold: options?.zScoreThreshold ?? this.Z_SCORE_THRESHOLD,
+      minNearbyCount: options?.minNearbyCount ?? this.MIN_NEARBY_COUNT,
+      useStoredOutlierFlagForNeighbors: options?.useStoredOutlierFlagForNeighbors ?? true,
+    };
+  }
+
+  private isSpatialStatsUsable(stats: NearbyPm25Stats | undefined | null): boolean {
+    return Boolean(stats && stats.count > 0 && stats.mean !== null);
+  }
+
+  private selectSpatialStatsForKey(
+    key: string,
+    maps: SpatialStatsMapsWithFallback,
+  ): NearbyPm25Stats | null {
+    const candidates = [
+      maps.primaryStatsMap.get(key),
+      maps.fallbackStatsMap?.get(key),
+      maps.maxStatsMap?.get(key),
+    ];
+
+    return (
+      candidates.find(candidate => this.isSpatialStatsUsable(candidate)) ??
+      candidates.find(Boolean) ??
+      null
+    );
+  }
+
+  private async getSpatialStatsMapsWithFallback(
+    source: string,
+    locationReferenceIds: number[],
+    measuredAts: string[],
+    params: ResolvedOutlierParams,
+  ): Promise<SpatialStatsMapsWithFallback> {
+    const primaryStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
+      source,
+      locationReferenceIds,
+      measuredAts,
+      params.radiusMeters,
+      params.measuredAtIntervalHours,
+      params.useStoredOutlierFlagForNeighbors,
+    );
+
+    const maxRadiusMeters = 300000;
+    const fallbackRadiusMeters = Math.min(params.radiusMeters * 5, maxRadiusMeters);
+    const shouldTryFallback = fallbackRadiusMeters > params.radiusMeters;
+
+    const fallbackReferenceIds: number[] = [];
+    const fallbackMeasuredAts: string[] = [];
+
+    if (shouldTryFallback) {
+      for (let index = 0; index < locationReferenceIds.length; index++) {
+        const key = this.buildKey(locationReferenceIds[index], measuredAts[index]);
+        const stats = primaryStatsMap.get(key);
+        if (!this.isSpatialStatsUsable(stats)) {
+          fallbackReferenceIds.push(locationReferenceIds[index]);
+          fallbackMeasuredAts.push(measuredAts[index]);
+        }
+      }
+    }
+
+    const fallbackStatsMap =
+      shouldTryFallback && fallbackReferenceIds.length > 0
+        ? await this.outlierRepository.getBatchSpatialZScoreStats(
+            source,
+            fallbackReferenceIds,
+            fallbackMeasuredAts,
+            fallbackRadiusMeters,
+            params.measuredAtIntervalHours,
+            params.useStoredOutlierFlagForNeighbors,
+          )
+        : null;
+
+    const shouldTryMax = maxRadiusMeters > fallbackRadiusMeters;
+    const maxReferenceIds: number[] = [];
+    const maxMeasuredAts: string[] = [];
+
+    if (shouldTryMax) {
+      for (let index = 0; index < locationReferenceIds.length; index++) {
+        const key = this.buildKey(locationReferenceIds[index], measuredAts[index]);
+        const primaryStats = primaryStatsMap.get(key);
+        if (this.isSpatialStatsUsable(primaryStats)) continue;
+
+        const fallbackStats = fallbackStatsMap?.get(key);
+        if (this.isSpatialStatsUsable(fallbackStats)) continue;
+
+        maxReferenceIds.push(locationReferenceIds[index]);
+        maxMeasuredAts.push(measuredAts[index]);
+      }
+    }
+
+    const maxStatsMap =
+      shouldTryMax && maxReferenceIds.length > 0
+        ? await this.outlierRepository.getBatchSpatialZScoreStats(
+            source,
+            maxReferenceIds,
+            maxMeasuredAts,
+            maxRadiusMeters,
+            params.measuredAtIntervalHours,
+            params.useStoredOutlierFlagForNeighbors,
+          )
+        : null;
+
+    return {
+      radiusMeters: params.radiusMeters,
+      fallbackRadiusMeters,
+      maxRadiusMeters,
+      primaryStatsMap,
+      fallbackStatsMap,
+      maxStatsMap,
+    };
+  }
+
+  private computeRobustBaseline(stats: NearbyPm25Stats): {
+    center: number;
+    centerType: 'median' | 'mean';
+    scale: number | null;
+    scaleType: 'iqr' | 'stddev' | null;
+  } {
+    const hasRobustQuantiles = stats.p25 !== null && stats.median !== null && stats.p75 !== null;
+
+    const center = stats.median ?? stats.mean ?? 0;
+    const centerType: 'median' | 'mean' = stats.median !== null ? 'median' : 'mean';
+
+    const iqr = hasRobustQuantiles ? stats.p75! - stats.p25! : null;
+    const iqrScale = iqr !== null && Number.isFinite(iqr) && iqr > 0 ? iqr / 1.349 : null;
+
+    const stddevScale =
+      typeof stats.stddev === 'number' && Number.isFinite(stats.stddev) && stats.stddev > 0
+        ? stats.stddev
+        : null;
+
+    const scale = iqrScale ?? stddevScale;
+    const scaleType: 'iqr' | 'stddev' | null =
+      iqrScale !== null ? 'iqr' : stddevScale ? 'stddev' : null;
+
+    return { center, centerType, scale, scaleType };
+  }
+
+  private computeSparsityFactor(neighborCount: number, minNearbyCount: number): number {
+    if (neighborCount <= 0 || neighborCount >= minNearbyCount) return 1;
+    return Math.sqrt(minNearbyCount / neighborCount);
+  }
+
+  private isSpatialOutlier(
+    pm25: number,
+    stats: NearbyPm25Stats | null,
+    params: ResolvedOutlierParams,
+  ): boolean {
+    if (!stats || stats.mean === null) return false;
+
+    const neighborCount = stats.count;
+    const requiredNeighborCount = 1;
+    if (neighborCount < requiredNeighborCount) return false;
+
+    const { center, scale } = this.computeRobustBaseline(stats);
+    const sparsityFactor = this.computeSparsityFactor(neighborCount, params.minNearbyCount);
+
+    if (center >= params.zScoreMinMean && scale !== null && scale > 0) {
+      const zScore = (pm25 - center) / scale;
+      return Math.abs(zScore) > params.zScoreThreshold * sparsityFactor;
+    }
+
+    const absDelta = Math.abs(pm25 - center);
+    const varianceAwareBaseThreshold =
+      scale !== null && Number.isFinite(scale) && scale > 0
+        ? Math.max(params.absoluteThreshold, params.zScoreThreshold * scale)
+        : params.absoluteThreshold;
+
+    return absDelta > varianceAwareBaseThreshold * sparsityFactor;
+  }
+
   public async calculateBatchIsPm25Outlier(
     dataSource: string | undefined,
     dataPoints: OutlierDataPoint[],
     options?: OutlierCalculationOptions,
   ): Promise<Map<string, boolean>> {
-    const radiusMeters = options?.radiusMeters ?? this.RADIUS_METERS;
-    const measuredAtIntervalHours =
-      options?.measuredAtIntervalHours ?? this.MEASURED_AT_INTERVAL_HOURS;
-    const sameValueWindowHours = options?.sameValueWindowHours ?? this.SAME_VALUE_WINDOW_HOURS;
-    const sameValueMinCount = options?.sameValueMinCount ?? this.SAME_VALUE_MIN_COUNT;
-    const sameValueIncludeZero = options?.sameValueIncludeZero ?? this.SAME_VALUE_INCLUDE_ZERO;
-    const sameValueTolerance = options?.sameValueTolerance ?? this.SAME_VALUE_TOLERANCE;
-    const sameValueMinValue = options?.sameValueMinValue ?? this.SAME_VALUE_MIN_VALUE;
-    const enableSameValueCheck = options?.enableSameValueCheck ?? this.ENABLE_SAME_VALUE_CHECK;
-    const pm25HardMax = options?.pm25HardMax ?? this.PM25_HARD_MAX;
-    const zScoreMinMean = options?.zScoreMinMean ?? this.Z_SCORE_MIN_MEAN;
-    const absoluteThreshold = options?.absoluteThreshold ?? this.ABSOLUTE_THRESHOLD;
-    const zScoreThreshold = options?.zScoreThreshold ?? this.Z_SCORE_THRESHOLD;
-    const minNearbyCount = options?.minNearbyCount ?? this.MIN_NEARBY_COUNT;
-    const useStoredOutlierFlagForNeighbors = options?.useStoredOutlierFlagForNeighbors ?? true;
+    const params = this.resolveParams(options);
 
     // Group datapoints by dataSource (map requests can combine sources)
     const pointsBySource = new Map<string, OutlierDataPoint[]>();
@@ -232,104 +433,41 @@ export class OutlierService {
 
       // Check 1: Same value for N hours (computed in database)
       let sameValueCheckMap = new Map<string, boolean>();
-      if (enableSameValueCheck) {
-        this.logger.debug(`Check same value for ${sameValueWindowHours} hours`);
+      if (params.enableSameValueCheck) {
+        this.logger.debug(`Check same value for ${params.sameValueWindowHours} hours`);
         sameValueCheckMap = await this.outlierRepository.getBatchSameValue24hCheck(
           source,
           locationReferenceIds,
           measuredAts,
           pm25Values,
-          sameValueIncludeZero,
-          sameValueMinCount,
-          sameValueWindowHours,
-          sameValueMinValue,
-          sameValueTolerance,
+          params.sameValueIncludeZero,
+          params.sameValueMinCount,
+          params.sameValueWindowHours,
+          params.sameValueMinValue,
+          params.sameValueTolerance,
         );
         this.logger.debug(`Same value check spend ${Date.now() - before}ms`);
       }
 
       before = Date.now();
 
-      // Check 2: Fetch all spatial stats in one query
+      // Check 2: Fetch spatial stats (with radius fallback when sparse)
       this.logger.debug('Fetch spatial statistics');
-      const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
+      const spatialMaps = await this.getSpatialStatsMapsWithFallback(
         source,
         locationReferenceIds,
         measuredAts,
-        radiusMeters,
-        measuredAtIntervalHours,
-        useStoredOutlierFlagForNeighbors,
+        params,
       );
 
       this.logger.debug(`Spatial stats fetch spend ${Date.now() - before}ms`);
 
-      const maxRadiusMeters = 300000;
-      const fallbackRadiusMeters = Math.min(radiusMeters * 5, maxRadiusMeters);
-      const shouldUseFallbackRadius = fallbackRadiusMeters > radiusMeters;
-      const fallbackReferenceIds: number[] = [];
-      const fallbackMeasuredAts: string[] = [];
-
-      if (shouldUseFallbackRadius) {
-        for (const dp of points) {
-          const key = `${dp.locationReferenceId}_${dp.measuredAt}`;
-          const stats = spatialStatsMap.get(key);
-          if (!stats || stats.count === 0 || stats.mean === null) {
-            fallbackReferenceIds.push(dp.locationReferenceId);
-            fallbackMeasuredAts.push(dp.measuredAt);
-          }
-        }
-      }
-
-      const fallbackStatsMap =
-        shouldUseFallbackRadius && fallbackReferenceIds.length > 0
-          ? await this.outlierRepository.getBatchSpatialZScoreStats(
-              source,
-              fallbackReferenceIds,
-              fallbackMeasuredAts,
-              fallbackRadiusMeters,
-              measuredAtIntervalHours,
-              useStoredOutlierFlagForNeighbors,
-            )
-          : null;
-
-      const shouldUseMaxRadius = maxRadiusMeters > fallbackRadiusMeters;
-      const maxRadiusReferenceIds: number[] = [];
-      const maxRadiusMeasuredAts: string[] = [];
-
-      if (shouldUseMaxRadius) {
-        for (const dp of points) {
-          const key = `${dp.locationReferenceId}_${dp.measuredAt}`;
-          const primary = spatialStatsMap.get(key);
-          const primaryMissing = !primary || primary.count === 0 || primary.mean === null;
-          if (!primaryMissing) continue;
-
-          const fallback = fallbackStatsMap?.get(key);
-          const fallbackMissing = !fallback || fallback.count === 0 || fallback.mean === null;
-          if (!fallbackMissing) continue;
-
-          maxRadiusReferenceIds.push(dp.locationReferenceId);
-          maxRadiusMeasuredAts.push(dp.measuredAt);
-        }
-      }
-
-      const maxRadiusStatsMap =
-        shouldUseMaxRadius && maxRadiusReferenceIds.length > 0
-          ? await this.outlierRepository.getBatchSpatialZScoreStats(
-              source,
-              maxRadiusReferenceIds,
-              maxRadiusMeasuredAts,
-              maxRadiusMeters,
-              measuredAtIntervalHours,
-              useStoredOutlierFlagForNeighbors,
-            )
-          : null;
-
       // Combine results for each data point
       for (const dataPoint of points) {
         const { locationReferenceId, pm25, measuredAt } = dataPoint;
-        const key = `${locationReferenceId}_${measuredAt}`;
+        const key = this.buildKey(locationReferenceId, measuredAt);
 
-        if (pm25HardMax > 0 && pm25 >= pm25HardMax) {
+        if (params.pm25HardMax > 0 && pm25 >= params.pm25HardMax) {
           resultsMap.set(key, true);
           continue;
         }
@@ -342,64 +480,8 @@ export class OutlierService {
         }
 
         // Check 2: Spatial Z-score outlier
-        const primaryStats = spatialStatsMap.get(key);
-        const fallbackStats = fallbackStatsMap?.get(key);
-        const maxStats = maxRadiusStatsMap?.get(key);
-
-        const stats =
-          [primaryStats, fallbackStats, maxStats].find(
-            s => !!s && s.count > 0 && s.mean !== null,
-          ) ??
-          primaryStats ??
-          fallbackStats ??
-          maxStats ??
-          null;
-
-        if (!stats || stats.mean === null) {
-          // No data available, hence not outlier
-          resultsMap.set(key, false);
-          continue;
-        }
-
-        const { mean, stddev, count: neighborCount } = stats;
-
-        const requiredNeighborCount = 1;
-        if (neighborCount < requiredNeighborCount) {
-          resultsMap.set(key, false);
-          continue;
-        }
-
-        const hasRobustQuantiles =
-          stats.p25 !== null && stats.median !== null && stats.p75 !== null;
-        const center = stats.median ?? mean;
-        const centerType: 'median' | 'mean' = stats.median !== null ? 'median' : 'mean';
-
-        const iqr = hasRobustQuantiles ? stats.p75! - stats.p25! : null;
-        const iqrScale = iqr !== null && Number.isFinite(iqr) && iqr > 0 ? iqr / 1.349 : null;
-        const stddevScale =
-          typeof stddev === 'number' && Number.isFinite(stddev) && stddev > 0 ? stddev : null;
-        const scale = iqrScale ?? stddevScale;
-
-        const sparsityFactor =
-          neighborCount >= minNearbyCount ? 1 : Math.sqrt(minNearbyCount / neighborCount);
-
-        let isOutlier = false;
-
-        if (center >= zScoreMinMean && scale !== null && scale > 0) {
-          const effectiveZScoreThreshold = zScoreThreshold * sparsityFactor;
-          const zScore = (pm25 - center) / scale;
-          isOutlier = Math.abs(zScore) > effectiveZScoreThreshold;
-        } else {
-          const absDelta = Math.abs(pm25 - center);
-          const varianceAwareBaseThreshold =
-            scale !== null && Number.isFinite(scale) && scale > 0
-              ? Math.max(absoluteThreshold, zScoreThreshold * scale)
-              : absoluteThreshold;
-          const effectiveAbsThreshold = varianceAwareBaseThreshold * sparsityFactor;
-          isOutlier = absDelta > effectiveAbsThreshold;
-        }
-
-        resultsMap.set(key, isOutlier);
+        const stats = this.selectSpatialStatsForKey(key, spatialMaps);
+        resultsMap.set(key, this.isSpatialOutlier(pm25, stats, params));
       }
     }
 
@@ -411,28 +493,31 @@ export class OutlierService {
     dataPoint: OutlierDataPoint,
     options?: OutlierCalculationOptions,
   ): Promise<Pm25OutlierExplanation> {
-    const radiusMeters = options?.radiusMeters ?? this.RADIUS_METERS;
-    const measuredAtIntervalHours =
-      options?.measuredAtIntervalHours ?? this.MEASURED_AT_INTERVAL_HOURS;
-    const absoluteThreshold = options?.absoluteThreshold ?? this.ABSOLUTE_THRESHOLD;
-    const zScoreThreshold = options?.zScoreThreshold ?? this.Z_SCORE_THRESHOLD;
-    const zScoreMinMean = options?.zScoreMinMean ?? this.Z_SCORE_MIN_MEAN;
-    const minNearbyCount = options?.minNearbyCount ?? this.MIN_NEARBY_COUNT;
-    const useStoredOutlierFlagForNeighbors = options?.useStoredOutlierFlagForNeighbors ?? true;
-    const sameValueWindowHours = options?.sameValueWindowHours ?? this.SAME_VALUE_WINDOW_HOURS;
-    const sameValueMinCount = options?.sameValueMinCount ?? this.SAME_VALUE_MIN_COUNT;
-    const sameValueIncludeZero = options?.sameValueIncludeZero ?? this.SAME_VALUE_INCLUDE_ZERO;
-    const sameValueTolerance = options?.sameValueTolerance ?? this.SAME_VALUE_TOLERANCE;
-    const sameValueMinValue = options?.sameValueMinValue ?? this.SAME_VALUE_MIN_VALUE;
-    const enableSameValueCheck = options?.enableSameValueCheck ?? this.ENABLE_SAME_VALUE_CHECK;
-    const pm25HardMax = options?.pm25HardMax ?? this.PM25_HARD_MAX;
+    const params = this.resolveParams(options);
+
+    const {
+      radiusMeters,
+      measuredAtIntervalHours,
+      absoluteThreshold,
+      zScoreThreshold,
+      zScoreMinMean,
+      minNearbyCount,
+      useStoredOutlierFlagForNeighbors,
+      sameValueWindowHours,
+      sameValueMinCount,
+      sameValueIncludeZero,
+      sameValueTolerance,
+      sameValueMinValue,
+      enableSameValueCheck,
+      pm25HardMax,
+    } = params;
 
     const source = dataPoint.dataSource ?? dataSource;
     if (!source) {
       throw new BadRequestException('dataSource is required to explain PM2.5 outlier');
     }
 
-    const key = `${dataPoint.locationReferenceId}_${dataPoint.measuredAt}`;
+    const key = this.buildKey(dataPoint.locationReferenceId, dataPoint.measuredAt);
 
     const sameValueStats = enableSameValueCheck
       ? await this.outlierRepository.getSameValueWindowStats(
@@ -462,67 +547,14 @@ export class OutlierService {
       sameValueStats.max <= dataPoint.pm25 + sameValueTolerance &&
       sameValueStats.min >= dataPoint.pm25 - sameValueTolerance;
 
-    const spatialStatsMap = await this.outlierRepository.getBatchSpatialZScoreStats(
+    const spatialMaps = await this.getSpatialStatsMapsWithFallback(
       source,
       [dataPoint.locationReferenceId],
       [dataPoint.measuredAt],
-      radiusMeters,
-      measuredAtIntervalHours,
-      useStoredOutlierFlagForNeighbors,
+      params,
     );
 
-    const primarySpatialStats = spatialStatsMap.get(key);
-    const maxRadiusMeters = 300000;
-    const fallbackRadiusMeters = Math.min(radiusMeters * 5, maxRadiusMeters);
-    const shouldTryFallbackRadius =
-      fallbackRadiusMeters > radiusMeters &&
-      (!primarySpatialStats ||
-        primarySpatialStats.count === 0 ||
-        primarySpatialStats.mean === null);
-
-    const fallbackSpatialStatsMap = shouldTryFallbackRadius
-      ? await this.outlierRepository.getBatchSpatialZScoreStats(
-          source,
-          [dataPoint.locationReferenceId],
-          [dataPoint.measuredAt],
-          fallbackRadiusMeters,
-          measuredAtIntervalHours,
-          useStoredOutlierFlagForNeighbors,
-        )
-      : null;
-
-    const fallbackSpatialStats = fallbackSpatialStatsMap?.get(key);
-
-    const shouldTryMaxRadius =
-      maxRadiusMeters > fallbackRadiusMeters &&
-      (!fallbackSpatialStats ||
-        fallbackSpatialStats.count === 0 ||
-        fallbackSpatialStats.mean === null) &&
-      (!primarySpatialStats ||
-        primarySpatialStats.count === 0 ||
-        primarySpatialStats.mean === null);
-
-    const maxSpatialStatsMap = shouldTryMaxRadius
-      ? await this.outlierRepository.getBatchSpatialZScoreStats(
-          source,
-          [dataPoint.locationReferenceId],
-          [dataPoint.measuredAt],
-          maxRadiusMeters,
-          measuredAtIntervalHours,
-          useStoredOutlierFlagForNeighbors,
-        )
-      : null;
-
-    const maxSpatialStats = maxSpatialStatsMap?.get(key);
-
-    const spatialStats =
-      [primarySpatialStats, fallbackSpatialStats, maxSpatialStats].find(
-        s => !!s && s.count > 0 && s.mean !== null,
-      ) ??
-      primarySpatialStats ??
-      fallbackSpatialStats ??
-      maxSpatialStats ??
-      null;
+    const spatialStats = this.selectSpatialStatsForKey(key, spatialMaps);
     const neighborCount = spatialStats?.count ?? 0;
     const mean = spatialStats?.mean ?? null;
     const stddev = spatialStats?.stddev ?? null;
@@ -532,23 +564,20 @@ export class OutlierService {
 
     const requiredNeighborCount = 1;
     const hasMinimalNeighbors = neighborCount >= requiredNeighborCount;
-    const sparsityFactor =
-      neighborCount >= minNearbyCount || neighborCount === 0
-        ? 1
-        : Math.sqrt(minNearbyCount / neighborCount);
+    const sparsityFactor = this.computeSparsityFactor(neighborCount, minNearbyCount);
 
-    const hasRobustQuantiles = p25 !== null && median !== null && p75 !== null;
-    const center = median ?? mean;
-    const centerType: 'median' | 'mean' | null =
-      center === null ? null : median !== null ? 'median' : 'mean';
+    let center: number | null = null;
+    let centerType: 'median' | 'mean' | null = null;
+    let scale: number | null = null;
+    let scaleType: 'iqr' | 'stddev' | null = null;
 
-    const iqr = hasRobustQuantiles ? p75 - p25 : null;
-    const iqrScale = iqr !== null && Number.isFinite(iqr) && iqr > 0 ? iqr / 1.349 : null;
-    const stddevScale =
-      typeof stddev === 'number' && Number.isFinite(stddev) && stddev > 0 ? stddev : null;
-    const scale = iqrScale ?? stddevScale;
-    const scaleType: 'iqr' | 'stddev' | null =
-      iqrScale !== null ? 'iqr' : stddevScale ? 'stddev' : null;
+    if (spatialStats && mean !== null) {
+      const baseline = this.computeRobustBaseline(spatialStats);
+      center = baseline.center;
+      centerType = baseline.centerType;
+      scale = baseline.scale;
+      scaleType = baseline.scaleType;
+    }
 
     let spatialMode: 'zscore' | 'absolute' | null = null;
     let zScore: number | null = null;
@@ -560,10 +589,10 @@ export class OutlierService {
 
     const spatialNoteParts: string[] = [];
 
-    if (fallbackSpatialStatsMap || maxSpatialStatsMap) {
+    if (spatialMaps.fallbackStatsMap || spatialMaps.maxStatsMap) {
       const tried = [radiusMeters];
-      if (fallbackSpatialStatsMap) tried.push(fallbackRadiusMeters);
-      if (maxSpatialStatsMap) tried.push(maxRadiusMeters);
+      if (spatialMaps.fallbackStatsMap) tried.push(spatialMaps.fallbackRadiusMeters);
+      if (spatialMaps.maxStatsMap) tried.push(spatialMaps.maxRadiusMeters);
 
       if (tried.length === 2) {
         spatialNoteParts.push(
