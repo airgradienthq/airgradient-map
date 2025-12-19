@@ -1,9 +1,9 @@
 export class NearbyStats {
-  mean: number | null;
-  stddev: number | null;
+  median: number | null;
+  scaledMad: number | null;
 
-  constructor(mean: unknown, stddev: unknown) {
-    this.mean = mean !== null ? Number(mean) : null;
-    this.stddev = stddev !== null ? Number(stddev) : null;
+  constructor(median: unknown, scaledMad: unknown) {
+    this.median = median !== null ? Number(median) : null;
+    this.scaledMad = scaledMad !== null ? Number(scaledMad) : null;
   }
 }

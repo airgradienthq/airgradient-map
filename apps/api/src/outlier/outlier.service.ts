@@ -100,22 +100,22 @@ export class OutlierService {
         continue;
       }
 
-      // Check 2: Spatial Z-score outlier
+      // Check 2: Spatial robust Z-score outlier
       const stats = spatialStatsMap.get(key);
-      if (!stats || stats.mean === null || stats.stddev === null) {
+      if (!stats || stats.median === null || stats.scaledMad === null) {
         // No data available, hence not outlier
         resultsMap.set(key, false);
         continue;
       }
 
-      const { mean, stddev } = stats;
+      const { median, scaledMad } = stats;
       let isOutlier = false;
 
-      if (mean >= 50) {
-        const zScore = (value - mean) / stddev;
-        isOutlier = Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
+      if (median >= 50) {
+        const robustZScore = value - median / scaledMad;
+        isOutlier = Math.abs(robustZScore) > this.Z_SCORE_THRESHOLD;
       } else {
-        isOutlier = Math.abs(value - mean) > this.ABSOLUTE_THRESHOLD;
+        isOutlier = Math.abs(value - median) > this.ABSOLUTE_THRESHOLD;
       }
 
       resultsMap.set(key, isOutlier);
