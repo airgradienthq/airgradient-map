@@ -1,0 +1,32 @@
+{
+  "dark": [
+    { "windStrength": "0-1.5 m/s (calm)", "color": "#48D1CC" },
+    { "windStrength": "1.5-3 m/s (light breeze)", "color": "#40C8C0" },
+    { "windStrength": "3-4.5 m/s (gentle)", "color": "#38BFB4" },
+    { "windStrength": "4.5-6 m/s (moderate)", "color": "#30B6A8" },
+    { "windStrength": "6-7.5 m/s (fresh)", "color": "#28AD9C" },
+    { "windStrength": "7.5-9 m/s (strong breeze)", "color": "#3DA8C8" },
+    { "windStrength": "9-10.5 m/s (stiff)", "color": "#5298D0" },
+    { "windStrength": "10.5-12 m/s (near gale)", "color": "#6788D8" },
+    { "windStrength": "12-13.5 m/s (gale)", "color": "#7C78E0" },
+    { "windStrength": "13.5-15 m/s (strong gale)", "color": "#8868D8" },
+    { "windStrength": "15-16.5 m/s (storm)", "color": "#9458D0" },
+    { "windStrength": "16.5-18 m/s (violent storm)", "color": "#9050C8" },
+    { "windStrength": "18+ m/s (extreme)", "color": "#8848C0" }
+  ],
+  "light": [
+    { "windStrength": "0-1.5 m/s (calm)", "color": "#3b8aa1" },
+    { "windStrength": "1.5-3 m/s (light breeze)", "color": "#337c92" },
+    { "windStrength": "3-4.5 m/s (gentle)", "color": "#2d6f83" },
+    { "windStrength": "4.5-6 m/s (moderate)", "color": "#276174" },
+    { "windStrength": "6-7.5 m/s (fresh)", "color": "#215366" },
+    { "windStrength": "7.5-9 m/s (strong breeze)", "color": "#294a7c" },
+    { "windStrength": "9-10.5 m/s (stiff)", "color": "#2f428f" },
+    { "windStrength": "10.5-12 m/s (near gale)", "color": "#2b3a8d" },
+    { "windStrength": "12-13.5 m/s (gale)", "color": "#273387" },
+    { "windStrength": "13.5-15 m/s (strong gale)", "color": "#232d7f" },
+    { "windStrength": "15-16.5 m/s (storm)", "color": "#1e2874" },
+    { "windStrength": "16.5-18 m/s (violent storm)", "color": "#43246f" },
+    { "windStrength": "18+ m/s (extreme)", "color": "#301a60" }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "background": "#121212",
+  "surface": "#1c1c1c",
+  "surfaceAlt": "#222222",
+  "border": "#2f2f2f",
+  "textPrimary": "#f5f5f5",
+  "textSecondary": "#cfcfcf",
+  "accentPrimary": "#00c2b7",
+  "accentSecondary": "#58d32f",
+  "success": "#22c55e",
+  "warning": "#fbbf24",
+  "danger": "#ef4444",
+  "map": {
+    "background": "#2a2a2a",
+    "water": "#383838",
+    "land": "#333333",
+    "boundary": "#5a5a5a",
+    "road": "#4a4a4a",
+    "label": "#c0c0c0"
+  }
+}

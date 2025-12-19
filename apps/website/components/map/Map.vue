@@ -14,12 +14,14 @@
       <UiGeolocationButton @location-found="handleLocationFound" @error="handleGeolocationError" />
 
       <UiIconButton
+        v-if="!generalConfigStore.embedded"
         :ripple="false"
         :size="ButtonSize.NORMAL"
-        customIcon="wind-icon.svg"
-        :active="windLayerEnabled"
-        title="Toggle Wind Layer"
-        @click="toggleWindLayer"
+        :icon="isDarkMapEnabled ? 'mdi-weather-night' : 'mdi-white-balance-sunny'"
+        :style="'light'"
+        :active="isDarkMapEnabled"
+        title="Toggle Dark Map"
+        @click="toggleMapTheme"
       >
       </UiIconButton>
 
@@ -64,6 +66,20 @@
           @change="handleMeasureChange"
         >
         </UiDropdownControl>
+        <div
+          v-if="!generalConfigStore.embedded"
+          style="display: flex; justify-content: end; margin-top: 10px"
+        >
+          <UiIconButton
+            :ripple="false"
+            :size="ButtonSize.NORMAL"
+            customIcon="wind-icon.svg"
+            :active="windLayerEnabled"
+            title="Toggle Wind Layer"
+            @click="toggleWindLayer"
+          >
+          </UiIconButton>
+        </div>
       </div>
 
       <LMap
@@ -84,13 +100,14 @@
         v-if="mapInstance && isMapFullyReady"
         :map="mapInstance"
         :enabled="windLayerEnabled"
+        :map-theme="mapTheme"
         @loading-change="handleWindLoadingChange"
       />
 
       <div v-if="isLegendShown" class="legend-overlay">
         <div class="legend-container">
           <UiMapMarkersLegend class="markers-legend" />
-          <UiColorsLegend class="colors-legend" :is-white-mode="windLayerEnabled" />
+          <UiColorsLegend class="colors-legend" :is-white-mode="isDarkMapEnabled" />
         </div>
       </div>
     </div>
@@ -120,7 +137,7 @@
     DialogId,
     ButtonSize
   } from '~/types';
-  import { DEFAULT_MAP_VIEW_CONFIG, MEASURE_LABELS_WITH_UNITS } from '~/constants';
+  import { DEFAULT_MAP_VIEW_CONFIG, MEASURE_LABELS_WITH_UNITS, MapTheme } from '~/constants';
   import { useUrlState } from '~/composables/shared/ui/useUrlState';
   import { getColorForMeasure } from '~/utils/colors';
   import { pm25ToAQI } from '~/utils/aqi';
@@ -183,6 +200,8 @@
   const locationHistoryDialog = computed(() => dialogStore.getDialog(locationHistoryDialogId));
 
   const windLayerEnabled = computed(() => urlState.wind_layer === 'true');
+  const mapTheme = computed<MapTheme>(() => (urlState.map_theme === 'dark' ? 'dark' : 'light'));
+  const isDarkMapEnabled = computed(() => mapTheme.value === 'dark');
 
   const measureSelectOptions: DropdownOption[] = [
     { label: MEASURE_LABELS_WITH_UNITS[MeasureNames.PM25], value: MeasureNames.PM25 },
@@ -217,6 +236,7 @@
     }
 
     mapInstance = map.value.leafletObject;
+    applyMapThemeClass();
 
     disableScrollWheelZoomForHeadless();
 
@@ -237,7 +257,7 @@
       console.warn('Attribution init failed:', e);
     }
 
-    currentMapStyle = windLayerEnabled.value
+    currentMapStyle = isDarkMapEnabled.value
       ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
       : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
 
@@ -275,6 +295,16 @@
 
   function toggleWindLayer(): void {
     setUrlState({ wind_layer: String(!windLayerEnabled.value) });
+  }
+
+  function toggleMapTheme(): void {
+    setUrlState({ map_theme: isDarkMapEnabled.value ? 'light' : 'dark' });
+  }
+
+  function applyMapThemeClass(): void {
+    if (!mapInstance) return;
+    const container = mapInstance.getContainer();
+    container.classList.toggle('is-dark-map', isDarkMapEnabled.value);
   }
 
   function createMarker(feature: GeoJSON.Feature, latlng: LatLngExpression): L.Marker {
@@ -397,11 +427,17 @@
   async function updateBaseMapStyle(): Promise<void> {
     if (!mapLibreLayer || styleUpdateInProgress) return;
 
-    const targetStyle = windLayerEnabled.value
+    const targetStyle = isDarkMapEnabled.value
       ? DEFAULT_MAP_VIEW_CONFIG.dark_map_style_url
       : DEFAULT_MAP_VIEW_CONFIG.light_map_style_url;
 
-    if (currentMapStyle === targetStyle) return;
+    // If style is already correct but it's dark style, still apply custom colors
+    if (currentMapStyle === targetStyle) {
+      if (isDarkMapEnabled.value) {
+        await customizeDarkStyleColors();
+      }
+      return;
+    }
 
     styleUpdateInProgress = true;
 
@@ -413,8 +449,14 @@
 
       if (maplibreMap && typeof maplibreMap.setStyle === 'function') {
         await new Promise<void>(resolve => {
-          const onStyleLoad = () => {
+          const onStyleLoad = async () => {
             maplibreMap.off('styledata', onStyleLoad);
+
+            // Apply custom colors IMMEDIATELY in the style load event
+            if (isDarkMapEnabled.value) {
+              await customizeDarkStyleColors();
+            }
+
             resolve();
           };
           maplibreMap.on('styledata', onStyleLoad);
@@ -427,6 +469,104 @@
       console.error('Failed to update base map style:', error);
     } finally {
       styleUpdateInProgress = false;
+    }
+  }
+
+  async function customizeDarkStyleColors(): Promise<void> {
+    if (!isDarkMapEnabled.value) {
+      return;
+    }
+
+    try {
+      const maplibreMap =
+        typeof mapLibreLayer.getMaplibreMap === 'function'
+          ? mapLibreLayer.getMaplibreMap()
+          : mapLibreLayer._glMap;
+
+      if (!maplibreMap) {
+        console.warn('MapLibre map instance not found');
+        return;
+      }
+
+      // Wait for style to be fully loaded with timeout and polling
+      if (!maplibreMap.isStyleLoaded()) {
+        try {
+          await new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Style load timeout'));
+            }, 5000);
+
+            // Poll for style loaded state more frequently
+            const checkInterval = setInterval(() => {
+              if (maplibreMap.isStyleLoaded()) {
+                clearInterval(checkInterval);
+                clearTimeout(timeout);
+
+                resolve(); // Apply immediately, no delay
+              }
+            }, 50); // Check every 50ms
+
+            // Also listen for event
+            maplibreMap.once('styledata', () => {
+              clearInterval(checkInterval);
+              clearTimeout(timeout);
+
+              resolve(); // Apply immediately, no delay
+            });
+          });
+        } catch (err) {
+          console.error('Style loading failed:', err);
+          return; // Exit if style never loads
+        }
+      }
+
+      // Log all available layers for debugging
+      const style = maplibreMap.getStyle();
+
+      // Set background color to pure neutral gray (no purple/blue tint)
+      if (maplibreMap.getPaintProperty('background', 'background-color') !== undefined) {
+        maplibreMap.setPaintProperty('background', 'background-color', '#2a2a2a');
+      }
+
+      // Find and lighten all layers by type with pure neutral gray tones
+      style.layers.forEach(layer => {
+        try {
+          // Water layers - slightly darker neutral gray
+          if (layer.type === 'fill' && layer.id.includes('water')) {
+            maplibreMap.setPaintProperty(layer.id, 'fill-color', '#383838');
+          }
+
+          // Landcover/landuse layers - medium neutral gray
+          if (
+            layer.type === 'fill' &&
+            (layer.id.includes('land') || layer.id.includes('background'))
+          ) {
+            maplibreMap.setPaintProperty(layer.id, 'fill-color', '#333333');
+          }
+
+          // Borders - lighter neutral gray
+          if (layer.type === 'line' && layer.id.includes('boundary')) {
+            maplibreMap.setPaintProperty(layer.id, 'line-color', '#5a5a5a');
+          }
+
+          // Roads - medium-light neutral gray
+          if (layer.type === 'line' && layer.id.includes('road')) {
+            maplibreMap.setPaintProperty(layer.id, 'line-color', '#4a4a4a');
+          }
+
+          // Labels - very light neutral gray
+          if (
+            layer.type === 'symbol' &&
+            (layer.id.includes('place') || layer.id.includes('label'))
+          ) {
+            maplibreMap.setPaintProperty(layer.id, 'text-color', '#c0c0c0');
+          }
+        } catch (err) {
+          // Skip layers that don't support the property
+        }
+      });
+    } catch (error) {
+      console.error('Failed to customize dark style colors:', error);
     }
   }
 
@@ -467,11 +607,12 @@
   });
 
   watch(
-    () => windLayerEnabled.value,
-    async enabled => {
+    () => mapTheme.value,
+    async () => {
       if (isMapFullyReady.value) {
         await updateBaseMapStyle();
       }
+      applyMapThemeClass();
     }
   );
 
@@ -498,7 +639,7 @@
   }
 
   #map {
-    height: calc(100svh - 130px);
+    height: calc(100svh - 129px);
   }
 
   .legend-overlay {
@@ -536,7 +677,7 @@
 
   @include desktop {
     #map {
-      height: calc(100svh - 117px);
+      height: calc(100svh - 116px);
     }
 
     .legend-container {
@@ -851,5 +992,16 @@
     padding: 4px 8px !important;
     text-align: center;
     word-wrap: break-word !important;
+  }
+
+  .is-dark-map .leaflet-control-attribution {
+    background-color: #1f1f1f;
+    color: var(--main-white-color);
+    border-radius: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .is-dark-map .leaflet-control-attribution a {
+    color: #8cc8ff;
   }
 </style>
