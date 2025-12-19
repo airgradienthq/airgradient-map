@@ -12,6 +12,7 @@ import {
   Patch,
   HttpCode,
   Query,
+  Req,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import {
@@ -30,6 +31,7 @@ import {
 import { NotificationEntity } from './notification.entity';
 import { CreateNotificationDto } from './create-notification.dto';
 import { UpdateNotificationDto } from './update-notification.dto';
+import { Request } from 'express';
 import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
 
 /**
@@ -97,8 +99,9 @@ If a duplicate is attempted, a 409 Conflict response is returned.
   async createNotification(
     @Body() notification: CreateNotificationDto,
     @HasFullAccess() hasFullAccess: boolean,
+    @Req() request: Request,
   ): Promise<NotificationEntity> {
-    return await this.notificationsService.createNotification(notification, hasFullAccess);
+    return await this.notificationsService.createNotification(notification, hasFullAccess, request);
   }
 
   @Get('players/:playerId/registrations')
@@ -188,8 +191,14 @@ If both old and new field names are provided, **the new field takes precedence**
     @Param('playerId') playerId: string,
     @Param('id') id: string,
     @Body() notification: UpdateNotificationDto,
+    @Req() request: Request,
   ): Promise<NotificationEntity> {
-    return await this.notificationsService.updateRegisteredNotification(playerId, id, notification);
+    return await this.notificationsService.updateRegisteredNotification(
+      playerId,
+      id,
+      notification,
+      request,
+    );
   }
 
   @Delete('players/:playerId/registrations/:id')
@@ -220,7 +229,8 @@ If both old and new field names are provided, **the new field takes precedence**
   async deleteRegistration(
     @Param('playerId') playerId: string,
     @Param('id') id: string,
+    @Req() request: Request,
   ): Promise<void> {
-    return await this.notificationsService.deleteRegisteredNotification(playerId, id);
+    return await this.notificationsService.deleteRegisteredNotification(playerId, id, request);
   }
 }

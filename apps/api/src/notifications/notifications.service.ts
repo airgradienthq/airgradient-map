@@ -27,7 +27,17 @@ import { DataSource } from 'src/types/shared/data-source';
 import { NOTIFICATION_UNIT_LABELS } from './notification-unit-label';
 import { getMascotImageUrl } from './notification-mascots.util';
 import { getAndroidAccentColor } from './notification-colors.util';
-import { DashboardApiClient } from './dashboard-api.client';
+import { CoreApiService } from 'src/utils/core-api.service';
+import { Request } from 'express';
+import { DashboardNotificationPayload } from './dto/dashboard-notification.dto';
+import {
+  validateAuthenticatedRequest,
+  validateNotificationOwnership,
+  validateAlarmTypeFieldConsistency,
+  validateNotificationData,
+  validateOwnedMonitorConstraints,
+} from './utils/notifications.validation';
+import { DEFAULT_DASHBOARD_NOTIFICATION_PAYLOAD } from './constants/dashboard-notification';
 
 @Injectable()
 export class NotificationsService {
@@ -37,7 +47,7 @@ export class NotificationsService {
     private readonly notificationRepository: NotificationsRepository,
     private readonly batchProcessor: NotificationBatchProcessor,
     private readonly locationRepository: LocationRepository,
-    private readonly dashboardApiClient: DashboardApiClient,
+    private readonly coreApiService: CoreApiService,
   ) {}
 
   /**
@@ -72,12 +82,13 @@ export class NotificationsService {
   public async createNotification(
     notification: CreateNotificationDto,
     hasFullAccess: boolean,
+    request?: Request,
   ): Promise<NotificationEntity> {
     // Normalize input to use new field names
     const { threshold, display_unit } = this.normalizeCreateInput(notification);
 
 
-    this.validateNotificationData(notification, threshold, display_unit);
+    validateNotificationData(notification, threshold, display_unit);
 
     if (notification.monitor_type === MonitorType.PUBLIC) {
       // Public monitors only support PM2.5 notifications
@@ -136,7 +147,7 @@ export class NotificationsService {
     });
 
     if (newNotification.monitor_type === MonitorType.OWNED) {
-      const externalId = await this.forwardOwnedNotificationToDashboard(newNotification);
+      const externalId = await this.forwardOwnedNotificationToDashboard(newNotification, request);
       newNotification.external_reference_id = externalId;
     }
 
@@ -156,15 +167,19 @@ export class NotificationsService {
     );
   }
 
-  public async deleteRegisteredNotification(playerId: string, id: string): Promise<void> {
-    const notification = await this.notificationRepository.getNotificationById(id);
+  public async deleteRegisteredNotification(
+    playerId: string,
+    id: string,
+    request?: Request,
+  ): Promise<void> {
+    const notification = validateNotificationOwnership(
+      await this.notificationRepository.getNotificationById(id),
+      playerId,
+      id,
+    );
 
-    if (!notification) {
-      throw new NotFoundException(`Notification registration ${id} not found`);
-    }
-
-    if (notification.player_id !== playerId) {
-      throw new BadRequestException('Player ID does not match notification registration');
+    if (notification.monitor_type === MonitorType.OWNED) {
+      await this.deleteOwnedNotificationFromCoreApi(notification, request);
     }
 
     await this.notificationRepository.deleteNotificationById(id);
@@ -176,16 +191,13 @@ export class NotificationsService {
     playerId: string,
     id: string,
     updateDto: UpdateNotificationDto,
+    request?: Request,
   ): Promise<NotificationEntity> {
-    const notification = await this.notificationRepository.getNotificationById(id);
-
-    if (!notification) {
-      throw new NotFoundException(`Notification registration ${id} not found`);
-    }
-
-    if (notification.player_id !== playerId) {
-      throw new BadRequestException('Player ID does not match notification registration');
-    }
+    const notification = validateNotificationOwnership(
+      await this.notificationRepository.getNotificationById(id),
+      playerId,
+      id,
+    );
 
     // Normalize input to use new field names
     const { threshold, display_unit } = this.normalizeUpdateInput(updateDto);
@@ -202,19 +214,11 @@ export class NotificationsService {
       updateDto.scheduled_time !== undefined ||
       updateDto.scheduled_timezone !== undefined;
 
-    if (notification.alarm_type === NotificationType.SCHEDULED) {
-      if (hasThresholdFields) {
-        throw new BadRequestException(
-          'Cannot set threshold fields on a scheduled notification. Create a new notification instead.',
-        );
-      }
-    } else if (notification.alarm_type === NotificationType.THRESHOLD) {
-      if (hasScheduledFields) {
-        throw new BadRequestException(
-          'Cannot set scheduled fields on a threshold notification. Create a new notification instead.',
-        );
-      }
-    }
+    validateAlarmTypeFieldConsistency(
+      notification.alarm_type,
+      hasThresholdFields,
+      hasScheduledFields,
+    );
 
     // Validate timezone if provided
     if (updateDto.scheduled_timezone) {
@@ -274,14 +278,7 @@ export class NotificationsService {
     });
 
     // Validate place_id / alarm_type rules for owned monitors
-    if (updatedNotification.monitor_type === MonitorType.OWNED) {
-      if (updatedNotification.alarm_type !== NotificationType.THRESHOLD) {
-        throw new BadRequestException('Owned monitors only support threshold notifications');
-      }
-      if (!updatedNotification.place_id) {
-        throw new BadRequestException('place_id is required when monitor_type is "owned"');
-      }
-    }
+    validateOwnedMonitorConstraints(updatedNotification);
 
     // Validate parameter/display_unit combination
     const finalParameter = updatedNotification.parameter;
@@ -294,6 +291,13 @@ export class NotificationsService {
             `Valid units for ${finalParameter}: ${validUnits.join(', ')}`,
         );
       }
+    }
+
+    if (
+      updatedNotification.monitor_type === MonitorType.OWNED &&
+      this.ownedNotificationRequiresCoreApiUpdate(notification, updatedNotification)
+    ) {
+      await this.updateOwnedNotificationOnCoreApi(notification, updatedNotification, request);
     }
 
     const result = await this.notificationRepository.updateNotification(updatedNotification);
@@ -819,91 +823,55 @@ export class NotificationsService {
     return result;
   }
 
-  private validateNotificationData(
-    data: Partial<CreateNotificationDto>,
-    threshold: number | undefined,
-    display_unit: NotificationDisplayUnit | undefined,
-  ): void {
-    // Validate based on alarm type
-    if (data.alarm_type === NotificationType.THRESHOLD) {
-      if (threshold === undefined || threshold === null) {
-        throw new BadRequestException(
-          'Threshold notifications require threshold (or threshold_ug_m3 for legacy clients)',
-        );
-      }
+  private ownedNotificationRequiresCoreApiUpdate(
+    original: NotificationEntity,
+    updated: NotificationEntity,
+  ): boolean {
+    return (
+      original.location_id !== updated.location_id ||
+      original.place_id !== updated.place_id ||
+      original.parameter !== updated.parameter ||
+      original.threshold !== updated.threshold ||
+      original.threshold_cycle !== updated.threshold_cycle
+    );
+  }
 
-      // Prevent scheduled fields on threshold notifications
-      if (data.scheduled_days || data.scheduled_time || data.scheduled_timezone) {
-        throw new BadRequestException(
-          'Cannot set scheduled fields on a threshold notification. Use alarm_type: "scheduled" instead.',
-        );
-      }
-    }
+  private async updateOwnedNotificationOnCoreApi(
+    original: NotificationEntity,
+    updated: NotificationEntity,
+    request?: Request,
+  ): Promise<void> {
+    validateAuthenticatedRequest(request, 'for owned notifications');
 
-    if (data.alarm_type === NotificationType.SCHEDULED) {
-      if (!data.scheduled_time || !data.scheduled_timezone) {
-        throw new BadRequestException(
-          'Scheduled notifications require scheduled_time and scheduled_timezone',
-        );
-      }
-
-      // Prevent threshold fields on scheduled notifications
-      const hasThresholdFields = threshold !== undefined || data.threshold_cycle !== undefined;
-      if (hasThresholdFields) {
-        throw new BadRequestException(
-          'Cannot set threshold fields on a scheduled notification. Use alarm_type: "threshold" instead.',
-        );
-      }
-
-      // Additional runtime timezone validation
-      if (data.scheduled_timezone) {
-        try {
-          new Intl.DateTimeFormat('en-US', { timeZone: data.scheduled_timezone });
-        } catch (error) {
-          console.log(error);
-          throw new BadRequestException(
-            `Invalid timezone '${data.scheduled_timezone}'. Please provide a valid IANA timezone (e.g., America/New_York, Europe/London)`,
-          );
-        }
-      }
-    }
-
-    if (!data.location_id || data.location_id <= 0) {
-      throw new BadRequestException('Valid location_id is required');
-    }
-
-    // Validate that parameter is provided
-    if (!data.parameter) {
-      throw new BadRequestException('parameter is required');
-    }
-
-    // Validate that display_unit is provided (from either new or legacy field)
-    if (display_unit === undefined || display_unit === null) {
-      throw new BadRequestException('display_unit (or unit for legacy clients) is required');
-    }
-
-    // Validate that display_unit is valid for the given parameter
-    const validUnits = PARAMETER_VALID_UNITS[data.parameter as NotificationParameter];
-    if (validUnits && !validUnits.includes(display_unit)) {
+    if (!original.external_reference_id) {
       throw new BadRequestException(
-        `Invalid display_unit '${display_unit}' for parameter '${data.parameter}'. ` +
-          `Valid units for ${data.parameter}: ${validUnits.join(', ')}`,
+        'Owned notification is missing external reference id; cannot update Core API',
       );
     }
 
-    // Validate owned monitor constraints
-    if (data.monitor_type === MonitorType.OWNED) {
-      if (data.alarm_type && data.alarm_type !== NotificationType.THRESHOLD) {
-        throw new BadRequestException('Owned monitors only support threshold notifications');
-      }
-      if (!data.place_id) {
-        throw new BadRequestException('place_id is required when monitor_type is "owned"');
-      }
+    const placeId = updated.place_id ?? original.place_id;
+    if (!placeId) {
+      throw new BadRequestException('place_id is required when updating owned notifications');
     }
+
+    const payload: DashboardNotificationPayload = {
+      ...DEFAULT_DASHBOARD_NOTIFICATION_PAYLOAD,
+      active: updated.active,
+      locationId: updated.location_id,
+      measure: updated.parameter,
+      threshold: updated.threshold,
+    };
+
+    await this.coreApiService.patch(
+      request,
+      `/places/${placeId}/admin/alarms/${original.external_reference_id}`,
+      payload,
+    );
   }
 
   private async forwardOwnedNotificationToDashboard(
     notification: NotificationEntity,
+    request?: Request,
   ): Promise<number | null> {
     if (notification.alarm_type !== NotificationType.THRESHOLD) {
       this.logger.warn(
@@ -916,28 +884,56 @@ export class NotificationsService {
       throw new BadRequestException('Owned notifications require a threshold value');
     }
 
-    return await this.dashboardApiClient.registerNotificationTrigger({
-      active: true,
-      alarmType: 'location',
-      description: 'hg',
-      locationGroupId: null,
-      locationGroupName: null,
+    validateAuthenticatedRequest(request, 'for owned notifications');
+
+    const payload: DashboardNotificationPayload = {
+      ...DEFAULT_DASHBOARD_NOTIFICATION_PAYLOAD,
       locationId: notification.location_id,
       measure: notification.parameter,
-      operator: 'greater',
       threshold: notification.threshold,
-      title: 'kjh',
-      triggerDelay: 0,
-      triggerOnlyWhenOpen: false,
-      triggerType: 'always',
-    });
+    };
+
+    const placeId = notification.place_id;
+    if (!placeId) {
+      throw new BadRequestException('place_id is required for owned notifications');
+    }
+
+    const response = await this.coreApiService.post<{ id: number }>(
+      request,
+      `/places/${placeId}/admin/alarms`,
+      payload,
+    );
+
+    if (!response?.id) {
+      throw new BadRequestException('Core API did not return a trigger id for owned notification');
+    }
+
+    return response.id;
   }
 
-  /**
-   * Get mascot image URL based on parameter and value
-   * @deprecated Use getMascotImageUrl from notification-mascots.util.ts directly
-   */
-  private getImageUrlForAQI(pm25: number): string {
-    return getMascotImageUrl(NotificationParameter.PM25, pm25);
+  private async deleteOwnedNotificationFromCoreApi(
+    notification: NotificationEntity,
+    request?: Request,
+  ): Promise<void> {
+    validateAuthenticatedRequest(request, 'for owned notifications');
+
+    if (!notification.external_reference_id) {
+      this.logger.warn(
+        `Owned notification ${notification.id} missing external_reference_id; skipping Core API delete`,
+      );
+      return;
+    }
+
+    if (!notification.place_id) {
+      this.logger.warn(
+        `Owned notification ${notification.id} missing place_id; skipping Core API delete`,
+      );
+      return;
+    }
+
+    await this.coreApiService.delete(
+      request,
+      `/places/${notification.place_id}/admin/alarms/${notification.external_reference_id}`,
+    );
   }
 }
