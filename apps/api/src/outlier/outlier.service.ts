@@ -9,21 +9,22 @@ export class OutlierService {
   private readonly logger = new Logger(OutlierService.name);
 
   // Configuration from constants or environment
-  private readonly RADIUS_METERS: number;
   private readonly MEASURED_AT_INTERVAL_HOURS: number;
   private readonly ABSOLUTE_THRESHOLD: number;
+
+  private readonly RADIUS_METERS: number;
   private readonly Z_SCORE_THRESHOLD: number;
   private readonly MIN_NEARBY_COUNT: number;
+
+  private readonly MAX_DYNAMIC_RADIUS_METERS_SECOND_CIRCLE: number;
+  private readonly Z_SCORE_THRESHOLD_SECOND_CIRCLE: number;
+  private readonly MIN_NEARBY_COUNT_SECOND_CIRCLE: number;
 
   constructor(
     private readonly outlierRepository: OutlierRepository,
     private readonly configService: ConfigService,
   ) {
     // Allow environment overrides for production tuning
-    this.RADIUS_METERS = this.configService.get<number>(
-      'RADIUS_METERS',
-      OUTLIER_CONFIG.RADIUS_METERS,
-    );
     this.MEASURED_AT_INTERVAL_HOURS = this.configService.get<number>(
       'MEASURED_AT_INTERVAL_HOURS',
       OUTLIER_CONFIG.MEASURED_AT_INTERVAL_HOURS,
@@ -32,6 +33,10 @@ export class OutlierService {
       'ABSOLUTE_THRESHOLD',
       OUTLIER_CONFIG.ABSOLUTE_THRESHOLD,
     );
+    this.RADIUS_METERS = this.configService.get<number>(
+      'RADIUS_METERS',
+      OUTLIER_CONFIG.RADIUS_METERS,
+    );
     this.Z_SCORE_THRESHOLD = this.configService.get<number>(
       'Z_SCORE_THRESHOLD',
       OUTLIER_CONFIG.Z_SCORE_THRESHOLD,
@@ -39,6 +44,18 @@ export class OutlierService {
     this.MIN_NEARBY_COUNT = this.configService.get<number>(
       'MIN_NEARBY_COUNT',
       OUTLIER_CONFIG.MIN_NEARBY_COUNT,
+    );
+    this.MAX_DYNAMIC_RADIUS_METERS_SECOND_CIRCLE = this.configService.get<number>(
+      'MAX_DYNAMIC_RADIUS_METERS_SECOND_CIRCLE',
+      OUTLIER_CONFIG.MAX_DYNAMIC_RADIUS_METERS_SECOND_CIRCLE,
+    );
+    this.Z_SCORE_THRESHOLD_SECOND_CIRCLE = this.configService.get<number>(
+      'Z_SCORE_THRESHOLD_SECOND_CIRCLE',
+      OUTLIER_CONFIG.Z_SCORE_THRESHOLD_SECOND_CIRCLE,
+    );
+    this.MIN_NEARBY_COUNT_SECOND_CIRCLE = this.configService.get<number>(
+      'MIN_NEARBY_COUNT_SECOND_CIRCLE',
+      OUTLIER_CONFIG.MIN_NEARBY_COUNT_SECOND_CIRCLE,
     );
   }
 
@@ -82,6 +99,8 @@ export class OutlierService {
       this.RADIUS_METERS,
       this.MEASURED_AT_INTERVAL_HOURS,
       this.MIN_NEARBY_COUNT,
+      this.MIN_NEARBY_COUNT_SECOND_CIRCLE,
+      this.MAX_DYNAMIC_RADIUS_METERS_SECOND_CIRCLE,
     );
 
     this.logger.debug(`Spatial stats fetch spend ${Date.now() - before}ms`);
@@ -102,25 +121,57 @@ export class OutlierService {
 
       // Check 2: Spatial Z-score outlier
       const stats = spatialStatsMap.get(key);
-      if (!stats || stats.mean === null || stats.stddev === null) {
-        // No data available, hence not outlier
+
+      if (!stats) {
         resultsMap.set(key, false);
         continue;
       }
 
-      const { mean, stddev } = stats;
-      let isOutlier = false;
+      const { firstCircleMean, firstCircleStddev, secondCircleMean, secondCircleStddev } = stats;
 
-      if (mean >= 50) {
-        const zScore = (value - mean) / stddev;
-        isOutlier = Math.abs(zScore) > this.Z_SCORE_THRESHOLD;
-      } else {
-        isOutlier = Math.abs(value - mean) > this.ABSOLUTE_THRESHOLD;
-      }
+      const isOutlier =
+        // Check 2.1 First Circle (Fixed Radius)
+        (firstCircleMean !== null &&
+          firstCircleStddev !== null &&
+          firstCircleStddev !== 0 &&
+          this.calculateBatchIsOutlierHelper(
+            value,
+            firstCircleMean,
+            firstCircleStddev,
+            this.Z_SCORE_THRESHOLD,
+            this.ABSOLUTE_THRESHOLD,
+          )) ||
+        // Check 2.2 Second Circle (Dynamic Radius)
+        (secondCircleMean !== null &&
+          secondCircleStddev !== null &&
+          secondCircleStddev !== 0 &&
+          this.calculateBatchIsOutlierHelper(
+            value,
+            secondCircleMean,
+            secondCircleStddev,
+            this.Z_SCORE_THRESHOLD_SECOND_CIRCLE,
+            this.ABSOLUTE_THRESHOLD,
+          ));
 
       resultsMap.set(key, isOutlier);
     }
 
     return resultsMap;
+  }
+
+  public calculateBatchIsOutlierHelper(
+    value: number,
+    mean: number,
+    stddev: number,
+    zScoreThreshold: number,
+    absoluteThreshold: number,
+  ): boolean {
+    if (mean >= 50) {
+      const zScore = (value - mean) / stddev;
+      return Math.abs(zScore) > zScoreThreshold;
+    }
+    {
+      return Math.abs(value - mean) > absoluteThreshold;
+    }
   }
 }
