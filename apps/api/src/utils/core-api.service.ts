@@ -128,6 +128,33 @@ export class CoreApiService {
   }
 
   /**
+   * Forward a PUT request to Core API with cookies
+   */
+  async put<T>(req: Request, path: string, body: unknown): Promise<T> {
+    const url = `${this.coreApiUrl}${path}`;
+    const cookies = this.extractCookies(req);
+
+    this.logger.log(`Forwarding PUT ${path} to Core API`);
+
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.put<T>(url, body, {
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(cookies && { Cookie: cookies }),
+          },
+        }),
+      );
+
+      return data;
+    } catch (error) {
+      this.logger.error(`Core API PUT ${path} failed: ${error.message}`);
+      throw new Error(`Core API error: ${error.response?.status || 500}`);
+    }
+  }
+
+  /**
    * Forward a DELETE request to Core API with cookies
    * @param req Express request (to extract cookies from)
    * @param path Core API path

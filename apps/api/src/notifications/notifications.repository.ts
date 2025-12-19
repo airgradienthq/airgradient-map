@@ -89,6 +89,26 @@ export class NotificationsRepository {
     }
   }
 
+  async getNotificationsByExternalReferenceIds(ids: number[]): Promise<NotificationEntity[]> {
+    if (!ids.length) {
+      return [];
+    }
+
+    try {
+      const result = await this.databaseService.runQuery(
+        'SELECT * FROM notifications WHERE external_reference_id = ANY($1::bigint[])',
+        [ids],
+      );
+      return result.rows;
+    } catch (error) {
+      this.logger.error('Failed to get notifications by external_reference_ids', {
+        ids,
+        error: error.message,
+      });
+      return [];
+    }
+  }
+
   async updateNotification(notification: NotificationEntity): Promise<NotificationEntity> {
     try {
       const result = await this.databaseService.runQuery(

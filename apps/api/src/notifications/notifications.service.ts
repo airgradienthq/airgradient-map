@@ -38,6 +38,7 @@ import {
   validateOwnedMonitorConstraints,
 } from './utils/notifications.validation';
 import { DEFAULT_DASHBOARD_NOTIFICATION_PAYLOAD } from './constants/dashboard-notification';
+import { ExternalNotificationTriggerDto } from './dto/external-trigger.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -862,7 +863,7 @@ export class NotificationsService {
       threshold: updated.threshold,
     };
 
-    await this.coreApiService.patch(
+    await this.coreApiService.put(
       request,
       `/places/${placeId}/admin/alarms/${original.external_reference_id}`,
       payload,
@@ -935,5 +936,126 @@ export class NotificationsService {
       request,
       `/places/${notification.place_id}/admin/alarms/${notification.external_reference_id}`,
     );
+  }
+
+  async processExternalTriggers(
+    triggers: ExternalNotificationTriggerDto[],
+  ): Promise<BatchResult> {
+    if (!triggers.length) {
+      this.logger.debug('Received empty trigger payload from Core API');
+      return { successful: [], failed: [], totalTime: 0 };
+    }
+
+    const triggerMap = new Map<number, ExternalNotificationTriggerDto>();
+    const triggerIds: number[] = [];
+    triggers.forEach(trigger => {
+      triggerMap.set(trigger.id, trigger);
+      triggerIds.push(trigger.id);
+    });
+
+    const notifications =
+      await this.notificationRepository.getNotificationsByExternalReferenceIds(triggerIds);
+
+    if (!notifications.length) {
+      this.logger.warn(
+        `No notifications found for ${triggerIds.length} external trigger(s); skipping dispatch.`,
+      );
+      return { successful: [], failed: [], totalTime: 0 };
+    }
+
+    const unknownTriggers = triggerIds.filter(
+      id => !notifications.some(n => n.external_reference_id === id),
+    );
+    if (unknownTriggers.length > 0) {
+      this.logger.warn(
+        `Skipping ${unknownTriggers.length} trigger(s) with no matching notification: ${unknownTriggers.join(', ')}`,
+      );
+    }
+
+    const { measurementMap, matchedNotificationIds } = this.buildMeasurementMapFromTriggers(
+      notifications,
+      triggerMap,
+    );
+
+    const matchedNotifications = notifications.filter(n => matchedNotificationIds.has(n.id));
+
+    if (matchedNotifications.length === 0) {
+      this.logger.warn(
+        'Trigger payload resolved to zero notifications with measurements; nothing to dispatch.',
+      );
+      return { successful: [], failed: [], totalTime: 0 };
+    }
+
+    return this.dispatchNotifications(matchedNotifications, measurementMap);
+  }
+
+  private buildMeasurementMapFromTriggers(
+    notifications: NotificationEntity[],
+    triggerMap: Map<number, ExternalNotificationTriggerDto>,
+  ): {
+    measurementMap: Map<number, LatestLocationMeasurementData>;
+    matchedNotificationIds: Set<number>;
+  } {
+    const measurementMap = new Map<number, LatestLocationMeasurementData>();
+    const matchedNotificationIds = new Set<number>();
+
+    for (const notification of notifications) {
+      if (!notification.external_reference_id) {
+        continue;
+      }
+
+      const trigger = triggerMap.get(notification.external_reference_id);
+      if (!trigger) {
+        continue;
+      }
+
+      const measurement = this.createMeasurementFromTrigger(trigger, notification);
+      measurementMap.set(notification.location_id, measurement);
+      matchedNotificationIds.add(notification.id);
+    }
+
+    return { measurementMap, matchedNotificationIds };
+  }
+
+  private createMeasurementFromTrigger(
+    trigger: ExternalNotificationTriggerDto,
+    notification: NotificationEntity,
+  ): LatestLocationMeasurementData {
+    const measurement: LatestLocationMeasurementData = {
+      locationId: notification.location_id,
+      pm25: null,
+      rco2: null,
+      tvoc_index: null,
+      nox_index: null,
+      atmp: null,
+      rhum: null,
+      measuredAt: new Date(),
+      locationName: trigger.locationName || `Location ${notification.location_id}`,
+      sensorType: notification.monitor_type === MonitorType.OWNED ? 'ONE_INDOOR' : 'UNKNOWN',
+      dataSource: DataSource.AIRGRADIENT,
+    };
+
+    switch (trigger.measure) {
+      case NotificationParameter.PM25:
+        measurement.pm25 = trigger.value;
+        break;
+      case NotificationParameter.RCO2:
+        measurement.rco2 = trigger.value;
+        break;
+      case NotificationParameter.TVOC_INDEX:
+        measurement.tvoc_index = trigger.value;
+        break;
+      case NotificationParameter.NOX_INDEX:
+        measurement.nox_index = trigger.value;
+        break;
+      case NotificationParameter.ATMP:
+        measurement.atmp = trigger.value;
+        break;
+      case NotificationParameter.RHUM:
+        measurement.rhum = trigger.value;
+        break;
+    }
+
+    return measurement;
   }
 }

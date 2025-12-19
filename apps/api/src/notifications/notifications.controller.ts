@@ -33,6 +33,8 @@ import { CreateNotificationDto } from './create-notification.dto';
 import { UpdateNotificationDto } from './update-notification.dto';
 import { Request } from 'express';
 import { HasFullAccess } from 'src/auth/decorators/access-level.decorator';
+import { ExternalNotificationTriggerDto } from './dto/external-trigger.dto';
+import { BatchResult } from './notification.model';
 
 /**
  * Controller for managing push notification registrations.
@@ -233,4 +235,5 @@ If both old and new field names are provided, **the new field takes precedence**
   ): Promise<void> {
     return await this.notificationsService.deleteRegisteredNotification(playerId, id, request);
   }
+
 }
