@@ -116,6 +116,25 @@
             </div>
 
             <div class="outlier-explain-section">
+              <div class="section-title">Hard-max check</div>
+              <div class="kv">
+                <span class="k">Enabled</span>
+                <span class="v">{{ outlierExplain.checks?.hardMax?.enabled }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Max</span>
+                <span class="v">{{ outlierExplain.params?.pm25HardMax ?? '—' }}</span>
+              </div>
+              <div class="kv">
+                <span class="k">Result</span>
+                <span class="v">{{ outlierExplain.checks?.hardMax?.isOutlier }}</span>
+              </div>
+              <div v-if="outlierExplain.checks?.hardMax?.note" class="note">
+                {{ outlierExplain.checks?.hardMax?.note }}
+              </div>
+            </div>
+
+            <div class="outlier-explain-section">
               <div class="section-title">Spatial check</div>
               <div class="kv">
                 <span class="k">Neighbors</span>
@@ -129,6 +148,14 @@
                 <span class="v">
                   {{ outlierExplain.checks?.spatial?.mean ?? '—' }} /
                   {{ outlierExplain.checks?.spatial?.stddev ?? '—' }}
+                </span>
+              </div>
+              <div class="kv">
+                <span class="k">P25 / Median / P75</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.spatial?.p25 ?? '—' }} /
+                  {{ outlierExplain.checks?.spatial?.median ?? '—' }} /
+                  {{ outlierExplain.checks?.spatial?.p75 ?? '—' }}
                 </span>
               </div>
               <div class="kv">
@@ -161,6 +188,14 @@
                 <span class="v">{{ outlierExplain.checks?.sameValue?.enabled }}</span>
               </div>
               <div class="kv">
+                <span class="k">Min value / Tolerance</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.sameValue?.minValue ?? '—' }} / ±{{
+                    outlierExplain.checks?.sameValue?.tolerance ?? '—'
+                  }}
+                </span>
+              </div>
+              <div class="kv">
                 <span class="k">Window</span>
                 <span class="v">{{ outlierExplain.checks?.sameValue?.windowHours }} h</span>
               </div>
@@ -173,6 +208,14 @@
                 <span class="v">
                   {{ outlierExplain.checks?.sameValue?.measurementCount ?? '—' }} /
                   {{ outlierExplain.checks?.sameValue?.distinctCount ?? '—' }}
+                </span>
+              </div>
+              <div class="kv">
+                <span class="k">Min / Max / Max Δ</span>
+                <span class="v">
+                  {{ outlierExplain.checks?.sameValue?.min ?? '—' }} /
+                  {{ outlierExplain.checks?.sameValue?.max ?? '—' }} /
+                  {{ outlierExplain.checks?.sameValue?.maxDelta ?? '—' }}
                 </span>
               </div>
               <div class="kv">

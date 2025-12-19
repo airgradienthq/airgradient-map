@@ -90,7 +90,10 @@ export class LocationService {
       enableSameValueCheck: outlierQuery?.outlierEnableSameValueCheck,
       sameValueWindowHours: outlierQuery?.outlierSameValueWindowHours,
       sameValueMinCount: outlierQuery?.outlierSameValueMinCount,
+      sameValueTolerance: outlierQuery?.outlierSameValueTolerance,
+      sameValueMinValue: outlierQuery?.outlierSameValueMinValue,
       sameValueIncludeZero: outlierQuery?.outlierSameValueIncludeZero,
+      pm25HardMax: outlierQuery?.outlierPm25HardMax,
     };
 
     const explanation = await this.outlierService.explainPm25Outlier(

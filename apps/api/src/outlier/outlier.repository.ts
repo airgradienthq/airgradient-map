@@ -69,6 +69,8 @@ export class OutlierRepository {
     includeZero: boolean,
     minCount: number,
     windowHours: number,
+    minValue: number,
+    tolerance: number,
   ): Promise<Map<string, boolean>> {
     try {
       /**
@@ -87,10 +89,11 @@ export class OutlierRepository {
           input.measured_at,
           CASE
             WHEN ($5::boolean OR input.pm25 != 0)
+              AND (input.pm25 = 0 OR input.pm25 >= $8)
               AND (
                 SELECT COUNT(*) >= $6
-                  AND COUNT(DISTINCT m.pm25) = 1
-                  AND MIN(m.pm25) = input.pm25
+                  AND MAX(m.pm25) <= input.pm25 + $9
+                  AND MIN(m.pm25) >= input.pm25 - $9
                 FROM measurement m
                 JOIN location l ON m.location_id = l.id
                 JOIN data_source ds ON l.data_source_id = ds.id
@@ -113,6 +116,8 @@ export class OutlierRepository {
         includeZero,
         minCount,
         windowHours,
+        minValue,
+        tolerance,
       ]);
 
       // Build map keyed by "referenceId_measuredAt"
@@ -148,7 +153,6 @@ export class OutlierRepository {
     measuredAts: string[],
     radiusMeters: number,
     measuredAtIntervalHours: number,
-    minNearbyCount: number,
     useStoredOutlierFlagForNeighbors: boolean,
   ): Promise<Map<string, NearbyPm25Stats>> {
     try {
@@ -164,7 +168,9 @@ export class OutlierRepository {
        *
        * This reduces individual spatial queries to 1 LATERAL JOIN query.
        */
-      const outlierFilter = useStoredOutlierFlagForNeighbors ? 'AND m.is_pm25_outlier = false' : '';
+      const outlierFilter = useStoredOutlierFlagForNeighbors
+        ? 'AND COALESCE(m.is_pm25_outlier, false) = false'
+        : '';
 
       const query = `
         SELECT
@@ -172,7 +178,10 @@ export class OutlierRepository {
           input.measured_at,
           stats.mean,
           stats.stddev,
-          stats.count
+          stats.count,
+          stats.p25,
+          stats.median,
+          stats.p75
         FROM unnest($1::int[], $2::text[]) AS input(reference_id, measured_at)
         CROSS JOIN LATERAL (
           WITH nearby AS (
@@ -193,9 +202,12 @@ export class OutlierRepository {
             ORDER BY l2.id, ABS(EXTRACT(EPOCH FROM (m.measured_at - input.measured_at::timestamp)))
           )
           SELECT
-            CASE WHEN COUNT(*) >= $6 THEN AVG(pm25) ELSE NULL END AS mean,
-            CASE WHEN COUNT(*) >= $6 THEN STDDEV_SAMP(pm25) ELSE NULL END AS stddev,
-            COUNT(*) AS count
+            AVG(pm25) AS mean,
+            STDDEV_SAMP(pm25) AS stddev,
+            COUNT(*) AS count,
+            percentile_cont(0.25) WITHIN GROUP (ORDER BY pm25) AS p25,
+            percentile_cont(0.5) WITHIN GROUP (ORDER BY pm25) AS median,
+            percentile_cont(0.75) WITHIN GROUP (ORDER BY pm25) AS p75
           FROM nearby
         ) AS stats;
       `;
@@ -205,7 +217,6 @@ export class OutlierRepository {
         dataSource,
         radiusMeters,
         measuredAtIntervalHours,
-        minNearbyCount,
       ];
       const result = await this.databaseService.runQuery(query, value);
 
@@ -213,7 +224,7 @@ export class OutlierRepository {
       const statsMap = new Map<string, NearbyPm25Stats>();
       result.rows.forEach((r: any) => {
         const key = `${r.reference_id}_${r.measured_at}`;
-        statsMap.set(key, new NearbyPm25Stats(r.mean, r.stddev, r.count));
+        statsMap.set(key, new NearbyPm25Stats(r.mean, r.stddev, r.count, r.p25, r.median, r.p75));
       });
 
       return statsMap;
@@ -228,7 +239,6 @@ export class OutlierRepository {
           timestampCount: measuredAts.length,
           radiusMeters,
           measuredAtIntervalHours,
-          minNearbyCount,
         },
         error: error.message,
         code: 'OUT_002',

@@ -120,6 +120,30 @@ export default class OutlierRealtimeQuery {
   outlierSameValueMinCount?: number;
 
   @ApiPropertyOptional({
+    description:
+      'Allowed deviation (±µg/m³) from the current value for the same-value check; 0 = exact',
+    example: 0,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
+  @IsNumber()
+  @Min(0)
+  @Max(200)
+  outlierSameValueTolerance?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Minimum PM2.5 value required to apply the same-value check (helps avoid false positives at low PM); ignored for PM2.5 = 0 when include-zero is enabled',
+    example: 0,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
+  @IsNumber()
+  @Min(0)
+  @Max(500)
+  outlierSameValueMinValue?: number;
+
+  @ApiPropertyOptional({
     description: 'Include PM2.5 = 0 values in same-value check',
     example: false,
   })
@@ -131,6 +155,18 @@ export default class OutlierRealtimeQuery {
     return Boolean(value);
   })
   outlierSameValueIncludeZero?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Hard maximum PM2.5 value; if set > 0, values at or above this are always flagged as outliers',
+    example: 500,
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined ? Number(value) : undefined))
+  @IsNumber()
+  @Min(0)
+  @Max(5000)
+  outlierPm25HardMax?: number;
 
   @ApiPropertyOptional({
     description:

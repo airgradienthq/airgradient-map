@@ -114,7 +114,10 @@ export class MeasurementService {
       outlierQuery?.outlierEnableSameValueCheck !== undefined ||
       outlierQuery?.outlierSameValueWindowHours !== undefined ||
       outlierQuery?.outlierSameValueMinCount !== undefined ||
-      outlierQuery?.outlierSameValueIncludeZero !== undefined;
+      outlierQuery?.outlierSameValueTolerance !== undefined ||
+      outlierQuery?.outlierSameValueMinValue !== undefined ||
+      outlierQuery?.outlierSameValueIncludeZero !== undefined ||
+      outlierQuery?.outlierPm25HardMax !== undefined;
 
     const shouldApplyDynamicOutlier =
       (excludeOutliers || outliersOnly) && measure === MeasureType.PM25 && hasDynamicOutlierParams;
@@ -222,7 +225,10 @@ export class MeasurementService {
       enableSameValueCheck: outlierQuery?.outlierEnableSameValueCheck,
       sameValueWindowHours: outlierQuery?.outlierSameValueWindowHours,
       sameValueMinCount: outlierQuery?.outlierSameValueMinCount,
+      sameValueTolerance: outlierQuery?.outlierSameValueTolerance,
+      sameValueMinValue: outlierQuery?.outlierSameValueMinValue,
       sameValueIncludeZero: outlierQuery?.outlierSameValueIncludeZero,
+      pm25HardMax: outlierQuery?.outlierPm25HardMax,
       useStoredOutlierFlagForNeighbors:
         outlierQuery?.outlierUseStoredOutlierFlagForNeighbors ?? false,
     };

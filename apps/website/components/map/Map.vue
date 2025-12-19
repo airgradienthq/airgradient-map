@@ -66,10 +66,7 @@
         </UiDropdownControl>
       </div>
 
-      <div
-        v-if="generalConfigStore.excludeOutliers && isPmMeasure"
-        class="map-outlier-controls"
-      >
+      <div v-if="showOutlierStats" class="map-outlier-controls">
         <div class="panel-title">Outlier sensitivity</div>
         <div v-if="showOutlierStats" class="control">
           <div class="control-label">
@@ -310,6 +307,52 @@
         <div v-if="showOutlierStats && outlierEnableSameValueCheck" class="control">
           <div class="control-label">
             <span class="control-label-with-info">
+              Same-value tolerance
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierSameValueTolerance"
+              />
+            </span>
+            <span>±{{ outlierSameValueTolerance.toFixed(1) }} µg/m³</span>
+          </div>
+          <input
+            v-model.number="outlierSameValueTolerance"
+            type="range"
+            min="0"
+            max="50"
+            step="0.5"
+            :aria-valuenow="outlierSameValueTolerance"
+            aria-label="Same-value tolerance"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats && outlierEnableSameValueCheck" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Same-value min value
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierSameValueMinValue"
+              />
+            </span>
+            <span>{{ outlierSameValueMinValue }} µg/m³</span>
+          </div>
+          <input
+            v-model.number="outlierSameValueMinValue"
+            type="range"
+            min="0"
+            max="200"
+            step="1"
+            :aria-valuenow="outlierSameValueMinValue"
+            aria-label="Same-value minimum value"
+            @input="handleOutlierParamsChange"
+          />
+        </div>
+
+        <div v-if="showOutlierStats && outlierEnableSameValueCheck" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
               Same-value include zero
               <i
                 class="mdi mdi-information-outline outlier-info-icon"
@@ -323,6 +366,31 @@
               @change="handleOutlierParamsChange"
             />
           </div>
+        </div>
+
+        <div v-if="showOutlierStats" class="control">
+          <div class="control-label">
+            <span class="control-label-with-info">
+              Hard max
+              <i
+                class="mdi mdi-information-outline outlier-info-icon"
+                :title="outlierControlTooltips.outlierPm25HardMax"
+              />
+            </span>
+            <span>
+              {{ outlierPm25HardMax > 0 ? `${outlierPm25HardMax} µg/m³` : 'off' }}
+            </span>
+          </div>
+          <input
+            v-model.number="outlierPm25HardMax"
+            type="range"
+            min="0"
+            max="1500"
+            step="10"
+            :aria-valuenow="outlierPm25HardMax"
+            aria-label="Hard maximum PM2.5"
+            @input="handleOutlierParamsChange"
+          />
         </div>
 
         <div v-if="showOutlierStats" class="control outlier-stats">
@@ -434,19 +502,22 @@
 
   const locationHistoryDialogId = DialogId.LOCATION_HISTORY_CHART;
   const isLegendShown = useStorage('isLegendShown', true);
-  const showHiddenMonitorsOnly = useStorage('showHiddenMonitorsOnly', false);
-  const outlierMinNearby = useStorage('outlierMinNearby', 3);
-  const outlierZScoreThreshold = useStorage('outlierZScoreThreshold', 2);
-  const outlierAbsoluteThreshold = useStorage('outlierAbsoluteThreshold', 30);
-  const outlierZScoreMinMean = useStorage('outlierZScoreMinMean', 50);
+  const showHiddenMonitorsOnly = useStorage('showHiddenMonitorsOnly', true);
+  const outlierMinNearby = useStorage('outlierMinNearby', 5);
+  const outlierZScoreThreshold = useStorage('outlierZScoreThreshold', 3.8);
+  const outlierAbsoluteThreshold = useStorage('outlierAbsoluteThreshold', 14);
+  const outlierZScoreMinMean = useStorage('outlierZScoreMinMean', 60);
   const outlierUseStoredOutlierFlagForNeighbors = useStorage(
     'outlierUseStoredOutlierFlagForNeighbors',
     false
   );
   const outlierEnableSameValueCheck = useStorage('outlierEnableSameValueCheck', true);
-  const outlierSameValueWindowHours = useStorage('outlierSameValueWindowHours', 24);
-  const outlierSameValueMinCount = useStorage('outlierSameValueMinCount', 3);
-  const outlierSameValueIncludeZero = useStorage('outlierSameValueIncludeZero', false);
+  const outlierSameValueWindowHours = useStorage('outlierSameValueWindowHours', 48);
+  const outlierSameValueMinCount = useStorage('outlierSameValueMinCount', 24);
+  const outlierSameValueTolerance = useStorage('outlierSameValueTolerance', 0);
+  const outlierSameValueMinValue = useStorage('outlierSameValueMinValue', 9);
+  const outlierSameValueIncludeZero = useStorage('outlierSameValueIncludeZero', true);
+  const outlierPm25HardMax = useStorage('outlierPm25HardMax', 940);
 
   const { urlState, setUrlState } = useUrlState();
 
@@ -509,7 +580,7 @@
     outlierWindowHours:
       'Time window (±hours) used when matching nearby measurements to the current timestamp. Larger = more matches but less time-accurate.',
     outlierMinNearby:
-      'Minimum number of nearby monitors required to compute spatial stats. If not met, spatial outlier detection is skipped.',
+      'Target number of nearby monitors for the spatial baseline. With fewer neighbors, thresholds become more conservative instead of skipping the spatial check entirely.',
     outlierZScoreThreshold:
       'When neighborhood mean is high, flags if |value-mean|/stddev exceeds this. Lower = more sensitive.',
     outlierAbsoluteThreshold:
@@ -524,8 +595,14 @@
       'Lookback window for the same-value check. Shorter catches flatlines sooner; longer requires a longer flatline.',
     outlierSameValueMinCount:
       'Minimum number of measurements required in the same-value window to trigger a same-value outlier.',
+    outlierSameValueTolerance:
+      'Allows near-flatlines by accepting values within ±tolerance of the current PM2.5 over the window. Higher = more sensitive to “almost constant” sensors.',
+    outlierSameValueMinValue:
+      'Minimum current PM2.5 required to apply the same-value/flatline check (helps avoid false positives at low PM).',
     outlierSameValueIncludeZero:
-      'If enabled, constant PM2.5 = 0 can be flagged as a same-value outlier (useful for detecting permanent zeros).'
+      'If enabled, constant PM2.5 = 0 can be flagged as a same-value outlier (useful for detecting permanent zeros).',
+    outlierPm25HardMax:
+      'Hard cutoff: if PM2.5 is at or above this value, it is always flagged as an outlier (useful in sparse areas). Set to 0 to disable.'
   } as const;
 
   const visibleMonitorsLabel = computed(() =>
@@ -680,7 +757,10 @@
                 outlierEnableSameValueCheck: outlierEnableSameValueCheck.value,
                 outlierSameValueWindowHours: outlierSameValueWindowHours.value,
                 outlierSameValueMinCount: outlierSameValueMinCount.value,
-                outlierSameValueIncludeZero: outlierSameValueIncludeZero.value
+                outlierSameValueTolerance: outlierSameValueTolerance.value,
+                outlierSameValueMinValue: outlierSameValueMinValue.value,
+                outlierSameValueIncludeZero: outlierSameValueIncludeZero.value,
+                outlierPm25HardMax: outlierPm25HardMax.value
               }
             : undefined;
 
@@ -732,9 +812,8 @@
       const cachedUnfilteredTotal = unfilteredMonitorTotalCache.get(viewportCacheKey);
       const shouldFetchUnfilteredTotal = showOutlierStats.value && cachedUnfilteredTotal === undefined;
 
-      const outlierParams =
-        generalConfigStore.excludeOutliers && isPmMeasure.value
-          ? {
+      const outlierParams = showOutlierStats.value
+        ? {
               outlierRadiusMeters: generalConfigStore.outlierRadiusKm * 1000,
               outlierWindowHours: generalConfigStore.outlierWindowHours,
               outliersOnly: showHiddenMonitorsOnly.value,
@@ -747,9 +826,12 @@
               outlierEnableSameValueCheck: outlierEnableSameValueCheck.value,
               outlierSameValueWindowHours: outlierSameValueWindowHours.value,
               outlierSameValueMinCount: outlierSameValueMinCount.value,
-              outlierSameValueIncludeZero: outlierSameValueIncludeZero.value
-            }
-          : {};
+              outlierSameValueTolerance: outlierSameValueTolerance.value,
+              outlierSameValueMinValue: outlierSameValueMinValue.value,
+              outlierSameValueIncludeZero: outlierSameValueIncludeZero.value,
+              outlierPm25HardMax: outlierPm25HardMax.value
+          }
+        : {};
 
       const baseParams = {
         xmin: bounds.getWest(),
