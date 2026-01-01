@@ -30,7 +30,7 @@
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/platform-express": "^11.1.11",
     "@nestjs/schedule": "^5.0.0",
     "@nestjs/swagger": "^11.0.3",
     "@photostructure/tz-lookup": "^11.3.0",
