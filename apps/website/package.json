@@ -46,7 +46,7 @@
     "date-fns": "^4.1.0",
     "geojson": "^0.5.0",
     "leaflet": "^1.9.4",
-    "leaflet-geosearch": "^4.2.0",
+    "leaflet-geosearch": "^4.2.2",
     "leaflet-velocity": "^2.1.4",
     "luxon": "^3.6.1",
     "maplibre-gl": "^4.7.1",
