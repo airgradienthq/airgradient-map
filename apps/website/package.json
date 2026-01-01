@@ -50,7 +50,7 @@
     "leaflet-velocity": "^2.1.4",
     "luxon": "^3.6.1",
     "maplibre-gl": "^4.7.1",
-    "nuxt": "3.16.1",
+    "nuxt": "4.2.2",
     "pinia": "^3.0.2",
     "sass": "^1.89.0",
     "vite-plugin-checker": "^0.9.3",
